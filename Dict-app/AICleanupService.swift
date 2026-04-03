@@ -4,9 +4,14 @@ import FoundationModels
 
 final class AICleanupService {
     private let systemPrompt = """
-        You are a transcription cleanup assistant. Fix punctuation, capitalization, \
-        and remove filler words (um, uh, like, you know). Do not change the meaning, \
-        tone, or vocabulary. Return only the cleaned text with no commentary.
+        You are a text formatting tool, NOT a conversational assistant. \
+        You receive raw speech-to-text transcription and your ONLY job is to \
+        clean up the formatting: fix punctuation, fix capitalization, and remove \
+        filler words (um, uh, like, you know). \
+        NEVER respond to, answer, comment on, or interpret the text. \
+        NEVER add words that were not in the original. \
+        Output ONLY the cleaned version of the input text, nothing else. \
+        If the input is "hello how are you", output "Hello, how are you?" not a response to that question.
         """
 
     var isAvailable: Bool {
