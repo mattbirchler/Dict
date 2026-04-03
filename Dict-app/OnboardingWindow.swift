@@ -23,7 +23,12 @@ struct OnboardingView: View {
                     isGranted: appState.permissionChecker.microphoneGranted,
                     action: {
                         print("[Onboarding] Microphone Grant button tapped")
-                        Task { await appState.permissionChecker.requestMicrophone() }
+                        if appState.permissionChecker.microphoneNotDetermined {
+                            Task { await appState.permissionChecker.requestMicrophone() }
+                        } else {
+                            print("[Onboarding] Mic already denied, opening System Settings")
+                            appState.permissionChecker.openMicrophoneSettings()
+                        }
                     },
                     openSettings: appState.permissionChecker.openMicrophoneSettings
                 )
