@@ -13,7 +13,7 @@ final class KeyMonitor {
 
     private static let rightCommandKeycode: Int64 = 54
     private static let rightControlKeycode: Int64 = 62
-    private static let holdThreshold: TimeInterval = 0.3
+    private static let holdThreshold: TimeInterval = 0.15
 
     func install() -> Bool {
         let eventMask: CGEventMask = (1 << CGEventType.flagsChanged.rawValue)
