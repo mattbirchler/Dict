@@ -13,38 +13,51 @@ final class PermissionChecker {
     }
 
     func checkAll() {
+        print("[PermissionChecker] checkAll()")
         checkMicrophone()
         checkAccessibility()
         checkSpeechRecognition()
+        print("[PermissionChecker] mic=\(microphoneGranted) accessibility=\(accessibilityGranted) speech=\(speechRecognitionGranted)")
     }
 
     var microphoneNotDetermined: Bool {
-        AVCaptureDevice.authorizationStatus(for: .audio) == .notDetermined
+        let status = AVCaptureDevice.authorizationStatus(for: .audio)
+        print("[PermissionChecker] microphoneNotDetermined check: status=\(status.rawValue)")
+        return status == .notDetermined
     }
 
     func checkMicrophone() {
-        microphoneGranted = AVCaptureDevice.authorizationStatus(for: .audio) == .authorized
+        let status = AVCaptureDevice.authorizationStatus(for: .audio)
+        print("[PermissionChecker] checkMicrophone: status=\(status.rawValue) (0=notDetermined, 1=restricted, 2=denied, 3=authorized)")
+        microphoneGranted = status == .authorized
     }
 
     func checkAccessibility() {
         accessibilityGranted = AXIsProcessTrusted()
+        print("[PermissionChecker] checkAccessibility: \(accessibilityGranted)")
     }
 
     func checkSpeechRecognition() {
-        speechRecognitionGranted = SFSpeechRecognizer.authorizationStatus() == .authorized
+        let status = SFSpeechRecognizer.authorizationStatus()
+        print("[PermissionChecker] checkSpeechRecognition: status=\(status.rawValue) (0=notDetermined, 1=denied, 2=restricted, 3=authorized)")
+        speechRecognitionGranted = status == .authorized
     }
 
     func requestMicrophone() async {
-        // On unsandboxed apps, explicitly activate the app before requesting
-        // so the system dialog appears in front
+        let currentStatus = AVCaptureDevice.authorizationStatus(for: .audio)
+        print("[PermissionChecker] requestMicrophone called. Current status=\(currentStatus.rawValue)")
         NSApp.activate(ignoringOtherApps: true)
+        print("[PermissionChecker] Calling AVCaptureDevice.requestAccess(for: .audio)...")
         let granted = await AVCaptureDevice.requestAccess(for: .audio)
+        print("[PermissionChecker] requestAccess returned: granted=\(granted)")
         microphoneGranted = granted
     }
 
     func requestSpeechRecognition() async {
+        print("[PermissionChecker] requestSpeechRecognition called")
         await withCheckedContinuation { continuation in
             SFSpeechRecognizer.requestAuthorization { status in
+                print("[PermissionChecker] SFSpeechRecognizer authorization callback: status=\(status.rawValue)")
                 Task { @MainActor in
                     self.speechRecognitionGranted = (status == .authorized)
                     continuation.resume()
