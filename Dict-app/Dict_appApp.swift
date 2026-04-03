@@ -38,8 +38,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         keyMonitor.onRecordingStop = { [weak self] in
             guard let self else { return }
-            self.hudController.dismiss()
+            self.hudController.showProcessing()
             self.appState.stopRecording()
+        }
+
+        appState.onProcessingComplete = { [weak self] in
+            self?.hudController.dismiss()
         }
 
         if appState.permissionChecker.accessibilityGranted && appState.isEnabled {

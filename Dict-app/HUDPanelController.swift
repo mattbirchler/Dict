@@ -3,12 +3,17 @@ import SwiftUI
 
 final class HUDPanelController {
     private var panel: NSPanel?
+    private var hudState = HUDState()
 
     func show(audioLevel: @escaping () -> Float, micName: @escaping () -> String) {
+        hudState.mode = .recording
+        hudState.audioLevel = audioLevel
+        hudState.micName = micName
+
         guard panel == nil else { return }
 
         let hostingView = NSHostingView(rootView:
-            WaveformHUDContainer(audioLevel: audioLevel, micName: micName)
+            WaveformHUDContainer(state: hudState)
         )
         hostingView.frame = NSRect(x: 0, y: 0, width: 320, height: 56)
 
@@ -27,7 +32,6 @@ final class HUDPanelController {
         panel.isMovableByWindowBackground = false
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
 
-        // Position at bottom center of main screen
         if let screen = NSScreen.main {
             let screenFrame = screen.visibleFrame
             let x = screenFrame.midX - 160
@@ -47,6 +51,10 @@ final class HUDPanelController {
         self.panel = panel
     }
 
+    func showProcessing() {
+        hudState.mode = .processing
+    }
+
     func dismiss() {
         guard let panel else { return }
         NSAnimationContext.runAnimationGroup({ context in
@@ -60,15 +68,22 @@ final class HUDPanelController {
     }
 }
 
+@Observable
+final class HUDState {
+    var mode: HUDMode = .recording
+    var audioLevel: (() -> Float)?
+    var micName: (() -> String)?
+}
+
 struct WaveformHUDContainer: View {
-    var audioLevel: () -> Float
-    var micName: () -> String
+    var state: HUDState
 
     var body: some View {
         TimelineView(.animation(minimumInterval: 0.05)) { timeline in
             WaveformHUD(
-                audioLevel: audioLevel(),
-                micName: micName(),
+                mode: state.mode,
+                audioLevel: state.audioLevel?() ?? 0,
+                micName: state.micName?() ?? "",
                 pulsePhase: timeline.date.timeIntervalSinceReferenceDate
             )
         }

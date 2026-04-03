@@ -9,6 +9,7 @@ final class AppState {
         didSet { onEnabledChanged?(isEnabled) }
     }
     var onEnabledChanged: ((Bool) -> Void)?
+    var onProcessingComplete: (() -> Void)?
     var isRecording = false
     var isProcessing = false
     var lastError: String?
@@ -33,6 +34,7 @@ final class AppState {
         Task {
             let result = await pipeline.stopRecordingAndProcess()
             isProcessing = false
+            onProcessingComplete?()
             if result == nil {
                 lastError = "Transcription failed. Please try again."
             }
