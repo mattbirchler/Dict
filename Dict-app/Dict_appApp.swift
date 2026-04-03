@@ -42,8 +42,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self.appState.stopRecording()
         }
 
-        if appState.permissionChecker.accessibilityGranted {
+        if appState.permissionChecker.accessibilityGranted && appState.isEnabled {
             _ = keyMonitor.install()
+        }
+
+        appState.onEnabledChanged = { [weak self] enabled in
+            guard let self else { return }
+            if enabled && self.appState.permissionChecker.accessibilityGranted {
+                _ = self.keyMonitor.install()
+            } else {
+                self.keyMonitor.uninstall()
+            }
         }
 
         if !appState.hasCompletedOnboarding {

@@ -5,7 +5,10 @@ final class AppState {
     let permissionChecker = PermissionChecker()
     let pipeline = PipelineCoordinator()
 
-    var isEnabled = true
+    var isEnabled = true {
+        didSet { onEnabledChanged?(isEnabled) }
+    }
+    var onEnabledChanged: ((Bool) -> Void)?
     var isRecording = false
     var isProcessing = false
     var lastError: String?

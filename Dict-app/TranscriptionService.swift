@@ -18,12 +18,14 @@ final class TranscriptionService {
         request.shouldReportPartialResults = false
 
         let result = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<SFSpeechRecognitionResult, Error>) in
+            var hasResumed = false
             recognizer.recognitionTask(with: request) { result, error in
+                guard !hasResumed else { return }
                 if let error {
+                    hasResumed = true
                     continuation.resume(throwing: error)
-                    return
-                }
-                if let result, result.isFinal {
+                } else if let result, result.isFinal {
+                    hasResumed = true
                     continuation.resume(returning: result)
                 }
             }

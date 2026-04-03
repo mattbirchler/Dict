@@ -55,19 +55,19 @@ final class KeyMonitor {
     }
 
     nonisolated private static let eventCallback: CGEventTapCallBack = { _, type, event, refcon in
-        guard let refcon else { return Unmanaged.passRetained(event) }
+        guard let refcon else { return Unmanaged.passUnretained(event) }
         let monitor = Unmanaged<KeyMonitor>.fromOpaque(refcon).takeUnretainedValue()
 
         if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
             if let tap = monitor.eventTap {
                 CGEvent.tapEnable(tap: tap, enable: true)
             }
-            return Unmanaged.passRetained(event)
+            return Unmanaged.passUnretained(event)
         }
 
         let keycode = event.getIntegerValueField(.keyboardEventKeycode)
         guard keycode == rightCommandKeycode || keycode == rightControlKeycode else {
-            return Unmanaged.passRetained(event)
+            return Unmanaged.passUnretained(event)
         }
 
         let flags = event.flags
@@ -86,7 +86,7 @@ final class KeyMonitor {
             }
         }
 
-        return Unmanaged.passRetained(event)
+        return Unmanaged.passUnretained(event)
     }
 
     private func handleKeyDown() {

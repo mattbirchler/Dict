@@ -63,8 +63,12 @@ struct WaveformHUDContainer: View {
     var micName: () -> String
 
     var body: some View {
-        TimelineView(.animation(minimumInterval: 0.05)) { _ in
-            WaveformHUD(audioLevel: audioLevel(), micName: micName())
+        TimelineView(.animation(minimumInterval: 0.05)) { timeline in
+            WaveformHUD(
+                audioLevel: audioLevel(),
+                micName: micName(),
+                pulsePhase: timeline.date.timeIntervalSinceReferenceDate
+            )
         }
     }
 }

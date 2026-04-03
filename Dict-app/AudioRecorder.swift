@@ -31,18 +31,16 @@ final class AudioRecorder {
             mScope: kAudioObjectPropertyScopeGlobal,
             mElement: kAudioObjectPropertyElementMain
         )
-        var name: Unmanaged<CFString>?
-        var nameSize = UInt32(MemoryLayout<Unmanaged<CFString>?>.size)
+        var name: CFString = "" as CFString
+        var nameSize = UInt32(MemoryLayout<CFString>.size)
         let nameStatus = AudioObjectGetPropertyData(
             deviceID,
             &nameAddress,
             0, nil,
             &nameSize, &name
         )
-        guard nameStatus == noErr, let cfName = name?.takeRetainedValue() else {
-            return "Unknown Microphone"
-        }
-        return cfName as String
+        guard nameStatus == noErr else { return "Unknown Microphone" }
+        return name as String
     }
 
     func startRecording() throws -> URL {

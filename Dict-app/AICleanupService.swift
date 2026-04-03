@@ -1,4 +1,6 @@
+#if canImport(FoundationModels)
 import FoundationModels
+#endif
 
 final class AICleanupService {
     private let systemPrompt = """
@@ -8,10 +10,15 @@ final class AICleanupService {
         """
 
     var isAvailable: Bool {
-        SystemLanguageModel.default.isAvailable
+        #if canImport(FoundationModels)
+        return SystemLanguageModel.default.isAvailable
+        #else
+        return false
+        #endif
     }
 
     func cleanup(rawTranscript: String) async throws -> String {
+        #if canImport(FoundationModels)
         guard isAvailable else {
             return rawTranscript
         }
@@ -19,5 +26,8 @@ final class AICleanupService {
         let session = LanguageModelSession(instructions: systemPrompt)
         let response = try await session.respond(to: rawTranscript)
         return response.content
+        #else
+        return rawTranscript
+        #endif
     }
 }

@@ -1,7 +1,7 @@
 import AppKit
 import SwiftUI
 
-final class MenuBarManager {
+final class MenuBarManager: NSObject, NSPopoverDelegate {
     private var statusItem: NSStatusItem?
     private var popover: NSPopover?
     private var eventMonitor: Any?
@@ -18,6 +18,7 @@ final class MenuBarManager {
         let popover = NSPopover()
         popover.contentSize = NSSize(width: 320, height: 400)
         popover.behavior = .transient
+        popover.delegate = self
         popover.contentViewController = NSHostingController(
             rootView: MenuBarPopover(appState: appState, onShowOnboarding: onShowOnboarding)
         )
@@ -32,16 +33,10 @@ final class MenuBarManager {
             popover.performClose(nil)
         } else {
             popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
-
-            // Close popover when clicking outside
-            eventMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] _ in
-                self?.popover?.performClose(nil)
-            }
         }
     }
 
-    func closePopover() {
-        popover?.performClose(nil)
+    func popoverDidClose(_ notification: Notification) {
         if let monitor = eventMonitor {
             NSEvent.removeMonitor(monitor)
             eventMonitor = nil

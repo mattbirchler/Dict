@@ -57,10 +57,9 @@ struct OnboardingView: View {
             }
             .buttonStyle(.borderedProminent)
             .controlSize(.large)
-            .disabled(!appState.permissionChecker.allGranted)
 
             if !appState.permissionChecker.allGranted {
-                Text("Grant all permissions to continue")
+                Text("Some features won't work without all permissions")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
