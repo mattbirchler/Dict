@@ -68,6 +68,10 @@ struct OnboardingView: View {
         .frame(width: 480, height: 520)
         .onAppear {
             appState.permissionChecker.checkAll()
+            // Auto-trigger microphone prompt if not yet determined
+            if appState.permissionChecker.microphoneNotDetermined {
+                Task { await appState.permissionChecker.requestMicrophone() }
+            }
         }
     }
 }

@@ -18,6 +18,10 @@ final class PermissionChecker {
         checkSpeechRecognition()
     }
 
+    var microphoneNotDetermined: Bool {
+        AVCaptureDevice.authorizationStatus(for: .audio) == .notDetermined
+    }
+
     func checkMicrophone() {
         microphoneGranted = AVCaptureDevice.authorizationStatus(for: .audio) == .authorized
     }
@@ -31,6 +35,9 @@ final class PermissionChecker {
     }
 
     func requestMicrophone() async {
+        // On unsandboxed apps, explicitly activate the app before requesting
+        // so the system dialog appears in front
+        NSApp.activate(ignoringOtherApps: true)
         let granted = await AVCaptureDevice.requestAccess(for: .audio)
         microphoneGranted = granted
     }
