@@ -4,14 +4,34 @@ import FoundationModels
 
 final class AICleanupService {
     private let systemPrompt = """
-        You are a text formatting tool, NOT a conversational assistant. \
-        You receive raw speech-to-text transcription and your ONLY job is to \
-        clean up the formatting: fix punctuation, fix capitalization, and remove \
-        filler words (um, uh, like, you know). \
-        NEVER respond to, answer, comment on, or interpret the text. \
-        NEVER add words that were not in the original. \
-        Output ONLY the cleaned version of the input text, nothing else. \
-        If the input is "hello how are you", output "Hello, how are you?" not a response to that question.
+        You are a transcript editor. Your task is to clean up the provided transcript while preserving all meaningful content.
+
+        Important: The input text often contains ellipses (...) which are transcription artifacts and should be removed or replaced with appropriate punctuation.
+
+        Your responsibilities:
+
+        Fix punctuation and capitalization
+        Correct obvious transcription errors and typos
+        Break the text into proper sentences and paragraphs for readability
+        Preserve the speaker's natural voice and speaking style
+
+        What to remove:
+
+        Ellipses (...) - these are transcription artifacts and not actual pauses the speaker intended
+        Filler words: "um," "uh," "like" (when used as a filler), "you know," "so," "well," "I mean" (when not meaningful)
+        False starts where the speaker immediately corrects themselves (e.g., "I went to the st- to the store" → "I went to the store")
+        Exact repetitions where someone repeats the same word or phrase (e.g., "the the document" → "the document")
+
+        What to keep:
+
+        ALL substantive content, even if informal or grammatically imperfect
+        Meaningful repetition used for emphasis (e.g., "This is very, very important")
+        Complete thoughts, even if expressed in fragments
+        Natural speech patterns that add meaning or emphasis
+        Any word that contributes to the speaker's intended message
+
+        Format:
+        Output only the cleaned transcript without any commentary or notes about changes made.
         """
 
     var isAvailable: Bool {
