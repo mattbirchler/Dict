@@ -6,6 +6,12 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		C96B0FF82F829E4B008ECDBA /* SpeakerKit in Frameworks */ = {isa = PBXBuildFile; productRef = C96B0FF72F829E4B008ECDBA /* SpeakerKit */; };
+		C96B0FFA2F829E4B008ECDBA /* TTSKit in Frameworks */ = {isa = PBXBuildFile; productRef = C96B0FF92F829E4B008ECDBA /* TTSKit */; };
+		C96B0FFC2F829E4B008ECDBA /* WhisperKit in Frameworks */ = {isa = PBXBuildFile; productRef = C96B0FFB2F829E4B008ECDBA /* WhisperKit */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		C95EB2BF2F7FF45300B3F4AE /* Dict-app.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Dict-app.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -23,6 +29,9 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C96B0FFC2F829E4B008ECDBA /* WhisperKit in Frameworks */,
+				C96B0FF82F829E4B008ECDBA /* SpeakerKit in Frameworks */,
+				C96B0FFA2F829E4B008ECDBA /* TTSKit in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -65,6 +74,9 @@
 			);
 			name = "Dict-app";
 			packageProductDependencies = (
+				C96B0FF72F829E4B008ECDBA /* SpeakerKit */,
+				C96B0FF92F829E4B008ECDBA /* TTSKit */,
+				C96B0FFB2F829E4B008ECDBA /* WhisperKit */,
 			);
 			productName = "Dict-app";
 			productReference = C95EB2BF2F7FF45300B3F4AE /* Dict-app.app */;
@@ -94,6 +106,9 @@
 			);
 			mainGroup = C95EB2B62F7FF45300B3F4AE;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				C96B0FF62F829E4B008ECDBA /* XCRemoteSwiftPackageReference "WhisperKit" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = C95EB2C02F7FF45300B3F4AE /* Products */;
 			projectDirPath = "";
@@ -343,6 +358,35 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		C96B0FF62F829E4B008ECDBA /* XCRemoteSwiftPackageReference "WhisperKit" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/argmaxinc/WhisperKit.git";
+			requirement = {
+				branch = main;
+				kind = branch;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		C96B0FF72F829E4B008ECDBA /* SpeakerKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C96B0FF62F829E4B008ECDBA /* XCRemoteSwiftPackageReference "WhisperKit" */;
+			productName = SpeakerKit;
+		};
+		C96B0FF92F829E4B008ECDBA /* TTSKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C96B0FF62F829E4B008ECDBA /* XCRemoteSwiftPackageReference "WhisperKit" */;
+			productName = TTSKit;
+		};
+		C96B0FFB2F829E4B008ECDBA /* WhisperKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C96B0FF62F829E4B008ECDBA /* XCRemoteSwiftPackageReference "WhisperKit" */;
+			productName = WhisperKit;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = C95EB2B72F7FF45300B3F4AE /* Project object */;
 }
