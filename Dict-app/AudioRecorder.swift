@@ -96,6 +96,6 @@ final class AudioRecorder {
             sum += sample * sample
         }
         let rms = sqrt(sum / Float(frames))
-        return min(rms * 5, 1.0)
+        return min(rms * 15, 1.0)
     }
 }
