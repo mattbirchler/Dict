@@ -42,6 +42,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self.appState.stopRecording()
         }
 
+        keyMonitor.onHandsFreeChanged = { [weak self] handsFree in
+            guard let self else { return }
+            if handsFree {
+                self.hudController.showHandsFree()
+            }
+        }
+
         appState.onProcessingComplete = { [weak self] in
             self?.hudController.dismiss()
         }
@@ -61,6 +68,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         if !appState.hasCompletedOnboarding {
             onboardingController.show(appState: appState)
+        } else {
+            appState.preloadWhisperModel()
         }
 
         permissionCheckTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { [weak self] _ in

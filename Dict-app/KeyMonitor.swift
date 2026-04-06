@@ -7,16 +7,20 @@ final class KeyMonitor {
     private var delayedStartWork: DispatchWorkItem?
     private var isKeyHeld = false
     private var recordingStarted = false
+    private var handsFreeMode = false
 
     var onRecordingStart: (() -> Void)?
     var onRecordingStop: (() -> Void)?
+    var onHandsFreeChanged: ((Bool) -> Void)?
 
     private static let rightCommandKeycode: Int64 = 54
     private static let rightControlKeycode: Int64 = 62
+    private static let spaceKeycode: Int64 = 49
     private static let holdThreshold: TimeInterval = 0.15
 
     func install() -> Bool {
         let eventMask: CGEventMask = (1 << CGEventType.flagsChanged.rawValue)
+            | (1 << CGEventType.keyDown.rawValue)
 
         let refcon = Unmanaged.passUnretained(self).toOpaque()
 
@@ -52,6 +56,7 @@ final class KeyMonitor {
         runLoopSource = nil
         isKeyHeld = false
         recordingStarted = false
+        handsFreeMode = false
     }
 
     nonisolated private static let eventCallback: CGEventTapCallBack = { _, type, event, refcon in
@@ -66,6 +71,20 @@ final class KeyMonitor {
         }
 
         let keycode = event.getIntegerValueField(.keyboardEventKeycode)
+
+        // Spacebar while recording: toggle hands-free mode
+        if type == .keyDown && keycode == spaceKeycode {
+            Task { @MainActor in
+                monitor.handleSpacebar()
+            }
+            // Only swallow the spacebar if we're actively recording
+            if monitor.recordingStarted && !monitor.handsFreeMode {
+                return nil
+            }
+            return Unmanaged.passUnretained(event)
+        }
+
+        // Only handle right command / right control for flagsChanged
         guard keycode == rightCommandKeycode || keycode == rightControlKeycode else {
             return Unmanaged.passUnretained(event)
         }
@@ -90,6 +109,15 @@ final class KeyMonitor {
     }
 
     private func handleKeyDown() {
+        // If in hands-free mode, right command stops recording
+        if handsFreeMode {
+            handsFreeMode = false
+            recordingStarted = false
+            onHandsFreeChanged?(false)
+            onRecordingStop?()
+            return
+        }
+
         isKeyHeld = true
         recordingStarted = false
 
@@ -107,9 +135,21 @@ final class KeyMonitor {
         delayedStartWork?.cancel()
         delayedStartWork = nil
 
+        // If hands-free mode is active, keep recording
+        if handsFreeMode {
+            return
+        }
+
         if recordingStarted {
             recordingStarted = false
             onRecordingStop?()
         }
+    }
+
+    private func handleSpacebar() {
+        // Only activate hands-free if currently recording by holding the key
+        guard recordingStarted, isKeyHeld, !handsFreeMode else { return }
+        handsFreeMode = true
+        onHandsFreeChanged?(true)
     }
 }

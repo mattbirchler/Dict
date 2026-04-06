@@ -14,11 +14,11 @@ final class HUDPanelController {
 
         let hostingView = NSHostingView(rootView:
             WaveformHUDContainer(state: hudState)
+                .fixedSize()
         )
-        hostingView.frame = NSRect(x: 0, y: 0, width: 320, height: 56)
 
         let panel = NSPanel(
-            contentRect: NSRect(x: 0, y: 0, width: 320, height: 56),
+            contentRect: .zero,
             styleMask: [.nonactivatingPanel, .hudWindow, .borderless],
             backing: .buffered,
             defer: false
@@ -32,9 +32,14 @@ final class HUDPanelController {
         panel.isMovableByWindowBackground = false
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
 
+        // Let SwiftUI determine the size, then position
+        hostingView.layoutSubtreeIfNeeded()
+        let fittingSize = hostingView.fittingSize
+        panel.setContentSize(fittingSize)
+
         if let screen = NSScreen.main {
             let screenFrame = screen.visibleFrame
-            let x = screenFrame.midX - 160
+            let x = screenFrame.midX - fittingSize.width / 2
             let y = screenFrame.minY + 80
             panel.setFrameOrigin(NSPoint(x: x, y: y))
         }
@@ -51,8 +56,28 @@ final class HUDPanelController {
         self.panel = panel
     }
 
+    func showHandsFree() {
+        hudState.mode = .recordingHandsFree
+        resizePanel()
+    }
+
     func showProcessing() {
         hudState.mode = .processing
+        resizePanel()
+    }
+
+    private func resizePanel() {
+        DispatchQueue.main.async { [weak self] in
+            guard let panel = self?.panel, let contentView = panel.contentView else { return }
+            contentView.layoutSubtreeIfNeeded()
+            let fittingSize = contentView.fittingSize
+            if let screen = NSScreen.main {
+                let screenFrame = screen.visibleFrame
+                let x = screenFrame.midX - fittingSize.width / 2
+                let y = screenFrame.minY + 80
+                panel.setFrame(NSRect(x: x, y: y, width: fittingSize.width, height: fittingSize.height), display: true, animate: false)
+            }
+        }
     }
 
     func dismiss() {

@@ -56,6 +56,53 @@ struct OnboardingView: View {
                     },
                     openSettings: appState.permissionChecker.openSpeechRecognitionSettings
                 )
+
+                // WhisperKit model download
+                HStack(spacing: 12) {
+                    Image(systemName: "arrow.down.circle.fill")
+                        .font(.title2)
+                        .foregroundStyle(appState.pipeline.whisperTranscriptionService.isModelLoaded ? .green : .secondary)
+                        .frame(width: 32)
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Whisper Model")
+                            .font(.headline)
+                        if appState.isLoadingWhisper {
+                            ProgressView(value: appState.whisperDownloadProgress)
+                                .progressViewStyle(.linear)
+                        } else if appState.pipeline.whisperTranscriptionService.isModelLoaded {
+                            Text("Ready")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        } else {
+                            Text("Download speech recognition model")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+
+                    Spacer()
+
+                    if appState.pipeline.whisperTranscriptionService.isModelLoaded {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundStyle(.green)
+                            .font(.title2)
+                    } else if appState.isLoadingWhisper {
+                        ProgressView()
+                            .controlSize(.small)
+                    } else {
+                        Button("Download") {
+                            appState.preloadWhisperModel()
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                    }
+                }
+                .padding(12)
+                .background(
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(appState.pipeline.whisperTranscriptionService.isModelLoaded ? Color.green.opacity(0.05) : Color.secondary.opacity(0.05))
+                )
             }
             .padding(.horizontal)
 
@@ -67,18 +114,18 @@ struct OnboardingView: View {
             }
             .buttonStyle(.borderedProminent)
             .controlSize(.large)
+            .disabled(!appState.pipeline.whisperTranscriptionService.isModelLoaded)
 
-            if !appState.permissionChecker.allGranted {
-                Text("Some features won't work without all permissions")
+            if !appState.permissionChecker.allGranted || !appState.pipeline.whisperTranscriptionService.isModelLoaded {
+                Text("Grant all permissions and download the model to continue")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
         }
         .padding(32)
-        .frame(width: 480, height: 520)
+        .frame(width: 480, height: 580)
         .onAppear {
             appState.permissionChecker.checkAll()
-            // Auto-trigger microphone prompt if not yet determined
             if appState.permissionChecker.microphoneNotDetermined {
                 Task { await appState.permissionChecker.requestMicrophone() }
             }

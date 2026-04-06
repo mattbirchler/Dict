@@ -4,6 +4,7 @@ import WhisperKit
 final class WhisperTranscriptionService {
     private var pipe: WhisperKit?
     private var isLoading = false
+    var isModelLoaded: Bool { pipe != nil }
     var onProgress: ((Double) -> Void)?
 
     func ensureLoaded() async throws {

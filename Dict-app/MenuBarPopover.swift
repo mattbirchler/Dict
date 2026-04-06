@@ -14,35 +14,6 @@ struct MenuBarPopover: View {
 
             Divider()
 
-            Picker("Transcription", selection: $appState.transcriptionEngine) {
-                ForEach(TranscriptionEngine.allCases, id: \.self) { engine in
-                    Text(engine.displayName).tag(engine)
-                }
-            }
-            .pickerStyle(.menu)
-            .padding(.horizontal, 16)
-            .padding(.vertical, 8)
-
-            if appState.isLoadingWhisper {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Downloading WhisperKit model…")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    ProgressView(value: appState.whisperDownloadProgress)
-                        .progressViewStyle(.linear)
-                }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 8)
-            }
-
-            Toggle("AI Cleanup", isOn: $appState.aiCleanupEnabled)
-                .toggleStyle(.switch)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 12)
-                .disabled(!appState.foundationModelsAvailable)
-
-            Divider()
-
             // Permission warning
             if !appState.permissionChecker.allGranted {
                 Button(action: onShowOnboarding) {
@@ -62,14 +33,14 @@ struct MenuBarPopover: View {
                 Divider()
             }
 
-            // Foundation Models warning
-            if !appState.foundationModelsAvailable {
-                HStack {
-                    Image(systemName: "info.circle")
-                        .foregroundStyle(.secondary)
-                    Text("AI cleanup unavailable on this system")
+            // Whisper model loading
+            if appState.isLoadingWhisper {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Downloading WhisperKit model…")
                         .font(.caption)
                         .foregroundStyle(.secondary)
+                    ProgressView(value: appState.whisperDownloadProgress)
+                        .progressViewStyle(.linear)
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 8)

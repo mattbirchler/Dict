@@ -1,17 +1,5 @@
 import Foundation
 
-enum TranscriptionEngine: String, CaseIterable {
-    case apple = "apple"
-    case whisper = "whisper"
-
-    var displayName: String {
-        switch self {
-        case .apple: return "Apple Speech"
-        case .whisper: return "WhisperKit"
-        }
-    }
-}
-
 @Observable
 final class AppState {
     let permissionChecker = PermissionChecker()
@@ -27,23 +15,6 @@ final class AppState {
     var isLoadingWhisper = false
     var whisperDownloadProgress: Double = 0
     var lastError: String?
-    var foundationModelsAvailable: Bool { pipeline.aiCleanupService.isAvailable }
-    var aiCleanupEnabled: Bool {
-        get { UserDefaults.standard.bool(forKey: "aiCleanupEnabled") }
-        set { UserDefaults.standard.set(newValue, forKey: "aiCleanupEnabled") }
-    }
-    var transcriptionEngine: TranscriptionEngine {
-        get {
-            let raw = UserDefaults.standard.string(forKey: "transcriptionEngine") ?? TranscriptionEngine.apple.rawValue
-            return TranscriptionEngine(rawValue: raw) ?? .apple
-        }
-        set {
-            UserDefaults.standard.set(newValue.rawValue, forKey: "transcriptionEngine")
-            if newValue == .whisper {
-                preloadWhisperModel()
-            }
-        }
-    }
     var hasCompletedOnboarding: Bool {
         get { UserDefaults.standard.bool(forKey: "hasCompletedOnboarding") }
         set { UserDefaults.standard.set(newValue, forKey: "hasCompletedOnboarding") }
@@ -81,10 +52,7 @@ final class AppState {
         isProcessing = true
 
         Task {
-            let result = await pipeline.stopRecordingAndProcess(
-                aiCleanupEnabled: aiCleanupEnabled,
-                transcriptionEngine: transcriptionEngine
-            )
+            let result = await pipeline.stopRecordingAndProcess()
             isProcessing = false
             onProcessingComplete?()
             if result == nil {
