@@ -14,7 +14,7 @@ final class WhisperTranscriptionService {
 
         print("[WhisperKit] Downloading model...")
         let modelURL = try await WhisperKit.download(
-            variant: "large-v3",
+            variant: "distil-large-v3",
             progressCallback: { [weak self] progress in
                 Task { @MainActor in
                     self?.onProgress?(progress.fractionCompleted)
