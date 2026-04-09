@@ -71,7 +71,7 @@ struct WaveformHUD: View {
     private func barHeight(for index: Int) -> CGFloat {
         let position = Double(index) / Double(barCount - 1)
         let wave = sin(position * .pi)
-        let level = CGFloat(pow(audioLevel, 0.4))
+        let level = CGFloat(pow(max(0, min(audioLevel, 1)), 0.4))
         let height = minBarHeight + (maxBarHeight - minBarHeight) * level * wave
         return max(minBarHeight, height)
     }

@@ -61,7 +61,7 @@ struct OnboardingView: View {
                 HStack(spacing: 12) {
                     Image(systemName: "arrow.down.circle.fill")
                         .font(.title2)
-                        .foregroundStyle(appState.pipeline.whisperTranscriptionService.isModelLoaded ? .green : .secondary)
+                        .foregroundStyle(appState.pipeline.transcriptionService.isModelLoaded ? .green : .secondary)
                         .frame(width: 32)
 
                     VStack(alignment: .leading, spacing: 2) {
@@ -70,7 +70,7 @@ struct OnboardingView: View {
                         if appState.isLoadingWhisper {
                             ProgressView(value: appState.whisperDownloadProgress)
                                 .progressViewStyle(.linear)
-                        } else if appState.pipeline.whisperTranscriptionService.isModelLoaded {
+                        } else if appState.pipeline.transcriptionService.isModelLoaded {
                             Text("Ready")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
@@ -83,7 +83,7 @@ struct OnboardingView: View {
 
                     Spacer()
 
-                    if appState.pipeline.whisperTranscriptionService.isModelLoaded {
+                    if appState.pipeline.transcriptionService.isModelLoaded {
                         Image(systemName: "checkmark.circle.fill")
                             .foregroundStyle(.green)
                             .font(.title2)
@@ -101,7 +101,7 @@ struct OnboardingView: View {
                 .padding(12)
                 .background(
                     RoundedRectangle(cornerRadius: 8)
-                        .fill(appState.pipeline.whisperTranscriptionService.isModelLoaded ? Color.green.opacity(0.05) : Color.secondary.opacity(0.05))
+                        .fill(appState.pipeline.transcriptionService.isModelLoaded ? Color.green.opacity(0.05) : Color.secondary.opacity(0.05))
                 )
             }
             .padding(.horizontal)
@@ -114,9 +114,9 @@ struct OnboardingView: View {
             }
             .buttonStyle(.borderedProminent)
             .controlSize(.large)
-            .disabled(!appState.pipeline.whisperTranscriptionService.isModelLoaded)
+            .disabled(!appState.pipeline.transcriptionService.isModelLoaded)
 
-            if !appState.permissionChecker.allGranted || !appState.pipeline.whisperTranscriptionService.isModelLoaded {
+            if !appState.permissionChecker.allGranted || !appState.pipeline.transcriptionService.isModelLoaded {
                 Text("Grant all permissions and download the model to continue")
                     .font(.caption)
                     .foregroundStyle(.secondary)

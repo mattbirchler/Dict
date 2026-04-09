@@ -1,5 +1,6 @@
 import Foundation
 
+@MainActor
 @Observable
 final class AppState {
     let permissionChecker = PermissionChecker()
@@ -24,18 +25,18 @@ final class AppState {
         guard !isLoadingWhisper else { return }
         isLoadingWhisper = true
         whisperDownloadProgress = 0
-        pipeline.whisperTranscriptionService.onProgress = { [weak self] progress in
+        pipeline.transcriptionService.onProgress = { [weak self] progress in
             self?.whisperDownloadProgress = progress
         }
         Task {
             do {
-                try await pipeline.whisperTranscriptionService.ensureLoaded()
+                try await pipeline.transcriptionService.ensureLoaded()
             } catch {
                 print("[AppState] WhisperKit model failed to load: \(error)")
                 lastError = "WhisperKit model failed to download."
             }
             isLoadingWhisper = false
-            pipeline.whisperTranscriptionService.onProgress = nil
+            pipeline.transcriptionService.onProgress = nil
         }
     }
 

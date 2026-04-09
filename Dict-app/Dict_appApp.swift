@@ -31,8 +31,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             guard let self else { return }
             self.appState.startRecording()
             self.hudController.show(
-                audioLevel: { [weak self] in self?.appState.pipeline.audioRecorder.currentLevel ?? 0 },
-                micName: { [weak self] in self?.appState.pipeline.audioRecorder.inputDeviceName ?? "Unknown" }
+                audioLevel: { [weak self] in
+                    // Drive the waveform bars from the tail of WhisperKit's
+                    // relativeEnergy array. Scale so normal speech pushes the
+                    // bars above the bottom without clipping at the top.
+                    let energy = self?.appState.pipeline.transcriptionService.audioEnergy ?? []
+                    guard let last = energy.last else { return 0 }
+                    return min(max(last * 2, 0), 1)
+                },
+                micName: { StreamingTranscriptionService.inputDeviceName }
             )
         }
 
