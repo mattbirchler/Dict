@@ -1,4 +1,5 @@
 import SwiftUI
+import Combine
 import Sparkle
 
 /// Bridges Sparkle's KVO-based `canCheckForUpdates` into SwiftUI so the
