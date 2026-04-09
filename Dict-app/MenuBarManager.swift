@@ -1,12 +1,13 @@
 import AppKit
 import SwiftUI
+import Sparkle
 
 final class MenuBarManager: NSObject, NSPopoverDelegate {
     private var statusItem: NSStatusItem?
     private var popover: NSPopover?
     private var eventMonitor: Any?
 
-    func setup(appState: AppState, onShowOnboarding: @escaping () -> Void) {
+    func setup(appState: AppState, updater: SPUUpdater, onShowOnboarding: @escaping () -> Void) {
         let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
 
         if let button = statusItem.button {
@@ -20,7 +21,11 @@ final class MenuBarManager: NSObject, NSPopoverDelegate {
         popover.behavior = .transient
         popover.delegate = self
         popover.contentViewController = NSHostingController(
-            rootView: MenuBarPopover(appState: appState, onShowOnboarding: onShowOnboarding)
+            rootView: MenuBarPopover(
+                appState: appState,
+                updater: updater,
+                onShowOnboarding: onShowOnboarding
+            )
         )
 
         self.statusItem = statusItem

@@ -10,6 +10,7 @@
 		C96B0FF82F829E4B008ECDBA /* SpeakerKit in Frameworks */ = {isa = PBXBuildFile; productRef = C96B0FF72F829E4B008ECDBA /* SpeakerKit */; };
 		C96B0FFA2F829E4B008ECDBA /* TTSKit in Frameworks */ = {isa = PBXBuildFile; productRef = C96B0FF92F829E4B008ECDBA /* TTSKit */; };
 		C96B0FFC2F829E4B008ECDBA /* WhisperKit in Frameworks */ = {isa = PBXBuildFile; productRef = C96B0FFB2F829E4B008ECDBA /* WhisperKit */; };
+		C9893E232F87284E00707FF3 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = C9893E222F87284E00707FF3 /* Sparkle */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -30,6 +31,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				C96B0FFC2F829E4B008ECDBA /* WhisperKit in Frameworks */,
+				C9893E232F87284E00707FF3 /* Sparkle in Frameworks */,
 				C96B0FF82F829E4B008ECDBA /* SpeakerKit in Frameworks */,
 				C96B0FFA2F829E4B008ECDBA /* TTSKit in Frameworks */,
 			);
@@ -77,6 +79,7 @@
 				C96B0FF72F829E4B008ECDBA /* SpeakerKit */,
 				C96B0FF92F829E4B008ECDBA /* TTSKit */,
 				C96B0FFB2F829E4B008ECDBA /* WhisperKit */,
+				C9893E222F87284E00707FF3 /* Sparkle */,
 			);
 			productName = "Dict-app";
 			productReference = C95EB2BF2F7FF45300B3F4AE /* Dict-app.app */;
@@ -108,6 +111,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				C96B0FF62F829E4B008ECDBA /* XCRemoteSwiftPackageReference "WhisperKit" */,
+				C9893E212F87284E00707FF3 /* XCRemoteSwiftPackageReference "Sparkle" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = C95EB2C02F7FF45300B3F4AE /* Products */;
@@ -281,11 +285,12 @@
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Dict needs microphone access to record your voice for dictation.";
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Dict uses on-device speech recognition to transcribe your dictation.";
+				INFOPLIST_KEY_SUFeedURL = "https://raw.githubusercontent.com/mattbirchler/Dict-app/main/appcast.xml";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 0.1;
 				PRODUCT_BUNDLE_IDENTIFIER = "birchtree.Dict-app";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -319,11 +324,12 @@
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Dict needs microphone access to record your voice for dictation.";
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Dict uses on-device speech recognition to transcribe your dictation.";
+				INFOPLIST_KEY_SUFeedURL = "https://raw.githubusercontent.com/mattbirchler/Dict-app/main/appcast.xml";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 0.1;
 				PRODUCT_BUNDLE_IDENTIFIER = "birchtree.Dict-app";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -368,6 +374,14 @@
 				kind = branch;
 			};
 		};
+		C9893E212F87284E00707FF3 /* XCRemoteSwiftPackageReference "Sparkle" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sparkle-project/Sparkle";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.9.1;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -385,6 +399,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = C96B0FF62F829E4B008ECDBA /* XCRemoteSwiftPackageReference "WhisperKit" */;
 			productName = WhisperKit;
+		};
+		C9893E222F87284E00707FF3 /* Sparkle */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C9893E212F87284E00707FF3 /* XCRemoteSwiftPackageReference "Sparkle" */;
+			productName = Sparkle;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

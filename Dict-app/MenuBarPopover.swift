@@ -1,8 +1,33 @@
 import SwiftUI
+import Sparkle
+
+/// Bridges Sparkle's KVO-based `canCheckForUpdates` into SwiftUI so the
+/// "Check for Updates…" button can dim while a check is already in flight.
+final class UpdaterViewModel: ObservableObject {
+    @Published var canCheckForUpdates = false
+    private let updater: SPUUpdater
+
+    init(updater: SPUUpdater) {
+        self.updater = updater
+        updater.publisher(for: \.canCheckForUpdates)
+            .assign(to: &$canCheckForUpdates)
+    }
+
+    func checkForUpdates() {
+        updater.checkForUpdates()
+    }
+}
 
 struct MenuBarPopover: View {
     @Bindable var appState: AppState
+    @StateObject private var updaterViewModel: UpdaterViewModel
     var onShowOnboarding: () -> Void
+
+    init(appState: AppState, updater: SPUUpdater, onShowOnboarding: @escaping () -> Void) {
+        self.appState = appState
+        self._updaterViewModel = StateObject(wrappedValue: UpdaterViewModel(updater: updater))
+        self.onShowOnboarding = onShowOnboarding
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -95,6 +120,18 @@ struct MenuBarPopover: View {
                 }
             }
             .frame(maxHeight: 300)
+
+            Divider()
+
+            // Check for updates
+            Button("Check for Updates…") {
+                updaterViewModel.checkForUpdates()
+            }
+            .disabled(!updaterViewModel.canCheckForUpdates)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .buttonStyle(.plain)
 
             Divider()
 

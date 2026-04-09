@@ -1,4 +1,5 @@
 import SwiftUI
+import Sparkle
 
 @main
 struct Dict_appApp: App {
@@ -19,10 +20,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     let onboardingController = OnboardingWindowController()
     private var permissionCheckTimer: Timer?
 
+    // Sparkle updater — starts on launch, runs automatic daily checks
+    // (controlled by SUEnableAutomaticChecks / SUScheduledCheckInterval in
+    // Info.plist, which default to on / 24h for menu bar apps).
+    let updaterController = SPUStandardUpdaterController(
+        startingUpdater: true,
+        updaterDelegate: nil,
+        userDriverDelegate: nil
+    )
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         appState.permissionChecker.checkAll()
 
-        menuBarManager.setup(appState: appState) { [weak self] in
+        menuBarManager.setup(appState: appState, updater: updaterController.updater) { [weak self] in
             guard let self else { return }
             self.onboardingController.show(appState: self.appState)
         }
