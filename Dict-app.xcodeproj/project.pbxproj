@@ -11,10 +11,12 @@
 		C96B0FFA2F829E4B008ECDBA /* TTSKit in Frameworks */ = {isa = PBXBuildFile; productRef = C96B0FF92F829E4B008ECDBA /* TTSKit */; };
 		C96B0FFC2F829E4B008ECDBA /* WhisperKit in Frameworks */ = {isa = PBXBuildFile; productRef = C96B0FFB2F829E4B008ECDBA /* WhisperKit */; };
 		C9893E232F87284E00707FF3 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = C9893E222F87284E00707FF3 /* Sparkle */; };
+		C9BD1CFE2FA8E32A00F2211F /* dict-icon.icon in Resources */ = {isa = PBXBuildFile; fileRef = C9BD1CFD2FA8E32A00F2211F /* dict-icon.icon */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		C95EB2BF2F7FF45300B3F4AE /* Dict-app.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Dict-app.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		C9BD1CFD2FA8E32A00F2211F /* dict-icon.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = "dict-icon.icon"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -45,6 +47,7 @@
 			children = (
 				C95EB2C12F7FF45400B3F4AE /* Dict-app */,
 				C95EB2C02F7FF45300B3F4AE /* Products */,
+				C9BD1CFD2FA8E32A00F2211F /* dict-icon.icon */,
 			);
 			sourceTree = "<group>";
 		};
@@ -128,6 +131,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C9BD1CFE2FA8E32A00F2211F /* dict-icon.icon in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -267,7 +271,7 @@
 		C95EB2CD2F7FF45500B3F4AE /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_APPICON_NAME = "dict-icon";
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = "Dict-app/Dict_app.entitlements";
 				CODE_SIGN_STYLE = Automatic;
@@ -306,7 +310,7 @@
 		C95EB2CE2F7FF45500B3F4AE /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_APPICON_NAME = "dict-icon";
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = "Dict-app/Dict_app.entitlements";
 				CODE_SIGN_STYLE = Automatic;
