@@ -11,18 +11,26 @@ enum TranscriptFormatterError: Error {
 /// error, timeout, sanity-check failure) returns the input unchanged —
 /// formatting must never block dictation output.
 final class TranscriptFormatter {
+    /// The worked example matters: the on-device model follows examples far
+    /// more reliably than rules, and without one it drops casual phrasing
+    /// ("you know", "so", "I mean") along with the fillers.
     static let instructions = """
-        You clean up raw dictation transcripts. Rewrite the user's text with:
-        - Correct punctuation and capitalization.
-        - Paragraph breaks (a blank line) where the topic or thought clearly shifts.
-        - Filler words removed ("um", "uh", "you know", "like" when used as filler).
-        - Obvious self-corrections stitched together: "send it Tuesday, no, \
-        Wednesday" becomes "send it Wednesday".
+        You are a transcription cleanup tool. Add punctuation and \
+        capitalization to raw dictation transcripts, and remove filler sounds \
+        ("um", "uh", "ah", "er", "hmm"). Make no other changes: every \
+        remaining word must appear exactly as spoken and in the same order — \
+        including "so", "you know", "like", "I mean", repeated words, and \
+        self-corrections. Insert a paragraph break (blank line) only where \
+        the topic clearly shifts. Never reword, summarize, or add content, \
+        and never answer questions that appear in the text.
 
-        Never add new content, never reword or summarize, never answer \
-        questions that appear in the text. Keep every technical term, name, \
-        and number exactly as spoken. Output only the cleaned-up text with \
-        no preamble or commentary.
+        Example input:
+        um so i think the update is you know really solid but uh we should like double check the numbers no wait the charts first
+
+        Example output:
+        So I think the update is, you know, really solid, but we should, like, double check the numbers. No wait, the charts first.
+
+        Output only the cleaned-up text with no preamble or commentary.
         """
 
     /// The on-device model's 4,096-token window is shared by instructions,
@@ -114,14 +122,15 @@ final class TranscriptFormatter {
         return chunks
     }
 
-    /// The formatter may remove fillers but must not eat or invent content:
-    /// reject output outside 75%–125% (+10 words slack for short inputs)
-    /// of the input's word count, or empty output.
+    /// The formatter may remove filler sounds but must not eat or invent
+    /// content: reject empty output, or output outside 85%–125% of the
+    /// input's word count (with a few words of slack so short utterances
+    /// can shed proportionally more fillers).
     static func isAcceptable(input: String, output: String) -> Bool {
         let inWords = input.split(separator: " ").count
         let outWords = output.split(separator: " ").count
         guard outWords > 0 else { return false }
-        return Float(outWords) >= Float(inWords) * 0.75
+        return Float(outWords) >= Float(inWords) * 0.85 - 3
             && Float(outWords) <= Float(inWords) * 1.25 + 10
     }
 }

@@ -44,6 +44,21 @@ struct TranscriptFormatterTests {
         #expect(!TranscriptFormatter.isAcceptable(input: input, output: output))
     }
 
+    @Test func rejectsMoreThanFillerLevelWordLoss() {
+        // Only ums/uhs should ever be removed, so losing 20% of a
+        // 100-word transcript means the model rewrote it — reject.
+        let input = [String](repeating: "word", count: 100).joined(separator: " ")
+        let output = [String](repeating: "word", count: 80).joined(separator: " ")
+        #expect(!TranscriptFormatter.isAcceptable(input: input, output: output))
+    }
+
+    @Test func allowsProportionallyLargerFillerLossOnShortInputs() {
+        // 2 fillers out of 12 words is 17% — fine on a short utterance.
+        let input = [String](repeating: "word", count: 12).joined(separator: " ")
+        let output = [String](repeating: "word", count: 10).joined(separator: " ")
+        #expect(TranscriptFormatter.isAcceptable(input: input, output: output))
+    }
+
     @Test func rejectsOutputThatAddedContent() {
         let input = [String](repeating: "word", count: 100).joined(separator: " ")
         let output = [String](repeating: "word", count: 160).joined(separator: " ")
