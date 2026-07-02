@@ -97,17 +97,26 @@ final class StreamingTranscriptionService {
 
         // VAD gate: if the recording contains no detectable voice, skip
         // Whisper entirely — decoding pure silence is what produces
-        // "Thank you." hallucinations.
+        // "Thank you." hallucinations. The threshold adapts to the
+        // recording's own noise floor (see VoiceGate).
         let frameDuration: Float = 0.1
         let frameSamples = Int(frameDuration * Float(WhisperKit.sampleRate))
-        let vad = EnergyVAD(
-            sampleRate: WhisperKit.sampleRate,
-            frameLength: frameDuration,
-            frameOverlap: 0,
-            energyThreshold: 0.02
-        )
-        let voiceActivity = vad.voiceActivity(in: samples)
-        guard let frameRange = VoiceGate.activeFrameRange(voiceActivity: voiceActivity, paddingFrames: 3) else {
+        let energies = VoiceGate.frameEnergies(samples: samples, frameSamples: frameSamples)
+        let voiceActivity = VoiceGate.voiceActivity(energies: energies)
+        let sortedEnergies = energies.sorted()
+        print(String(
+            format: "[Transcription] Energy floor=%.4f median=%.4f max=%.4f voiced=%d/%d",
+            sortedEnergies.first ?? 0,
+            sortedEnergies[sortedEnergies.count / 2],
+            sortedEnergies.last ?? 0,
+            voiceActivity.count(where: { $0 }),
+            voiceActivity.count
+        ))
+        guard let frameRange = VoiceGate.activeFrameRange(
+            voiceActivity: voiceActivity,
+            paddingFrames: 3,
+            minVoicedFrames: 2
+        ) else {
             print("[Transcription] No voice activity detected, skipping transcription")
             return ""
         }
