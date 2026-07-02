@@ -14,15 +14,31 @@
 		C9BD1CFE2FA8E32A00F2211F /* dict-icon.icon in Resources */ = {isa = PBXBuildFile; fileRef = C9BD1CFD2FA8E32A00F2211F /* dict-icon.icon */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		C9DD10072FB0000000000007 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = C95EB2B72F7FF45300B3F4AE /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = C95EB2BE2F7FF45300B3F4AE;
+			remoteInfo = "Dict-app";
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
 		C95EB2BF2F7FF45300B3F4AE /* Dict-app.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Dict-app.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		C9BD1CFD2FA8E32A00F2211F /* dict-icon.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = "dict-icon.icon"; sourceTree = "<group>"; };
+		C9DD10032FB0000000000003 /* Dict-appTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Dict-appTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		C95EB2C12F7FF45400B3F4AE /* Dict-app */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = "Dict-app";
+			sourceTree = "<group>";
+		};
+		C9DD10012FB0000000000001 /* Dict-appTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "Dict-appTests";
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -39,6 +55,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		C9DD10052FB0000000000005 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -46,6 +69,7 @@
 			isa = PBXGroup;
 			children = (
 				C95EB2C12F7FF45400B3F4AE /* Dict-app */,
+				C9DD10012FB0000000000001 /* Dict-appTests */,
 				C95EB2C02F7FF45300B3F4AE /* Products */,
 				C9BD1CFD2FA8E32A00F2211F /* dict-icon.icon */,
 			);
@@ -55,6 +79,7 @@
 			isa = PBXGroup;
 			children = (
 				C95EB2BF2F7FF45300B3F4AE /* Dict-app.app */,
+				C9DD10032FB0000000000003 /* Dict-appTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -87,6 +112,29 @@
 			productName = "Dict-app";
 			productReference = C95EB2BF2F7FF45300B3F4AE /* Dict-app.app */;
 			productType = "com.apple.product-type.application";
+		};
+		C9DD10022FB0000000000002 /* Dict-appTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = C9DD10092FB0000000000009 /* Build configuration list for PBXNativeTarget "Dict-appTests" */;
+			buildPhases = (
+				C9DD10042FB0000000000004 /* Sources */,
+				C9DD10052FB0000000000005 /* Frameworks */,
+				C9DD10062FB0000000000006 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				C9DD10082FB0000000000008 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				C9DD10012FB0000000000001 /* Dict-appTests */,
+			);
+			name = "Dict-appTests";
+			packageProductDependencies = (
+			);
+			productName = "Dict-appTests";
+			productReference = C9DD10032FB0000000000003 /* Dict-appTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
 		};
 /* End PBXNativeTarget section */
 
@@ -122,6 +170,7 @@
 			projectRoot = "";
 			targets = (
 				C95EB2BE2F7FF45300B3F4AE /* Dict-app */,
+				C9DD10022FB0000000000002 /* Dict-appTests */,
 			);
 		};
 /* End PBXProject section */
@@ -135,6 +184,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		C9DD10062FB0000000000006 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -145,7 +201,22 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		C9DD10042FB0000000000004 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		C9DD10082FB0000000000008 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = C95EB2BE2F7FF45300B3F4AE /* Dict-app */;
+			targetProxy = C9DD10072FB0000000000007 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		C95EB2CA2F7FF45500B3F4AE /* Debug */ = {
@@ -346,6 +417,46 @@
 			};
 			name = Release;
 		};
+		C9DD100A2FB000000000000A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = ZPU7B69KH3;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 26.4;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "birchtree.Dict-appTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Dict-app.app/Contents/MacOS/Dict-app";
+			};
+			name = Debug;
+		};
+		C9DD100B2FB000000000000B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = ZPU7B69KH3;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 26.4;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "birchtree.Dict-appTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Dict-app.app/Contents/MacOS/Dict-app";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -363,6 +474,15 @@
 			buildConfigurations = (
 				C95EB2CD2F7FF45500B3F4AE /* Debug */,
 				C95EB2CE2F7FF45500B3F4AE /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		C9DD10092FB0000000000009 /* Build configuration list for PBXNativeTarget "Dict-appTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C9DD100A2FB000000000000A /* Debug */,
+				C9DD100B2FB000000000000B /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
