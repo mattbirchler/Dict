@@ -14,12 +14,6 @@
 		C9BD1CFE2FA8E32A00F2211F /* dict-icon.icon in Resources */ = {isa = PBXBuildFile; fileRef = C9BD1CFD2FA8E32A00F2211F /* dict-icon.icon */; };
 /* End PBXBuildFile section */
 
-/* Begin PBXFileReference section */
-		C95EB2BF2F7FF45300B3F4AE /* Dict-app.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Dict-app.app"; sourceTree = BUILT_PRODUCTS_DIR; };
-		C9BD1CFD2FA8E32A00F2211F /* dict-icon.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = "dict-icon.icon"; sourceTree = "<group>"; };
-		C9DD10032FB0000000000003 /* Dict-appTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Dict-appTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
-/* End PBXFileReference section */
-
 /* Begin PBXContainerItemProxy section */
 		C9DD10072FB0000000000007 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -29,6 +23,12 @@
 			remoteInfo = "Dict-app";
 		};
 /* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		C95EB2BF2F7FF45300B3F4AE /* Dict-app.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Dict-app.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		C9BD1CFD2FA8E32A00F2211F /* dict-icon.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = "dict-icon.icon"; sourceTree = "<group>"; };
+		C9DD10032FB0000000000003 /* Dict-appTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Dict-appTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		C95EB2C12F7FF45400B3F4AE /* Dict-app */ = {
