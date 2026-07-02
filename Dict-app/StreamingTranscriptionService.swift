@@ -95,6 +95,31 @@ final class StreamingTranscriptionService {
             return ""
         }
 
+        // VAD gate: if the recording contains no detectable voice, skip
+        // Whisper entirely — decoding pure silence is what produces
+        // "Thank you." hallucinations.
+        let frameDuration: Float = 0.1
+        let frameSamples = Int(frameDuration * Float(WhisperKit.sampleRate))
+        let vad = EnergyVAD(
+            sampleRate: WhisperKit.sampleRate,
+            frameLength: frameDuration,
+            frameOverlap: 0,
+            energyThreshold: 0.02
+        )
+        let voiceActivity = vad.voiceActivity(in: samples)
+        guard let frameRange = VoiceGate.activeFrameRange(voiceActivity: voiceActivity, paddingFrames: 3) else {
+            print("[Transcription] No voice activity detected, skipping transcription")
+            return ""
+        }
+
+        // Trim leading/trailing silence (keeping 0.3s padding) so Whisper
+        // never decodes long silent stretches at the edges.
+        let sampleStart = frameRange.lowerBound * frameSamples
+        let sampleEnd = min(samples.count, frameRange.upperBound * frameSamples)
+        let trimmedSamples = Array(samples[sampleStart..<sampleEnd])
+        let trimmedVoiceActivity = Array(voiceActivity[frameRange])
+        print("[Transcription] Trimmed \(samples.count) samples to \(trimmedSamples.count)")
+
         do {
             let options = DecodingOptions(
                 language: "en",
@@ -103,13 +128,15 @@ final class StreamingTranscriptionService {
                 wordTimestamps: false
             )
             let results = try await pipe.transcribe(
-                audioArray: samples,
+                audioArray: trimmedSamples,
                 decodeOptions: options
             )
-            let text = results
-                .map { $0.text }
-                .joined(separator: " ")
-                .trimmingCharacters(in: .whitespacesAndNewlines)
+            let segments = results.flatMap { $0.segments }
+            let text = TranscriptFilter().filteredText(
+                segments: segments,
+                voiceActivity: trimmedVoiceActivity,
+                frameDuration: frameDuration
+            )
             print("[Transcription] Result: \"\(text)\"")
             return text
         } catch {
