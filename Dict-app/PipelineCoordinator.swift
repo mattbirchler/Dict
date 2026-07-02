@@ -5,6 +5,7 @@ final class PipelineCoordinator {
     let transcriptionService = StreamingTranscriptionService()
     let textInsertionService = TextInsertionService()
     let historyStore = HistoryStore()
+    private let formatter = TranscriptFormatter()
 
     func startRecording() {
         Task {
@@ -18,12 +19,14 @@ final class PipelineCoordinator {
     }
 
     func stopRecordingAndProcess() async -> String? {
-        let text = await transcriptionService.stop()
+        let rawText = await transcriptionService.stop()
 
-        guard !text.isEmpty else {
+        guard !rawText.isEmpty else {
             print("[Pipeline] No text produced, aborting")
             return nil
         }
+
+        let text = await formatter.format(rawText)
 
         historyStore.save(cleanedText: text)
         print("[Pipeline] Saved to history. Inserting text...")
