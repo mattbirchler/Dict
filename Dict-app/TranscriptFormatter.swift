@@ -6,31 +6,34 @@ enum TranscriptFormatterError: Error {
 }
 
 /// Formats a raw dictation transcript with the on-device Foundation Models
-/// LLM: punctuation, capitalization, paragraph breaks, filler-word removal,
-/// and stitched self-corrections. Every failure path (model unavailable,
-/// error, timeout, sanity-check failure) returns the input unchanged —
-/// formatting must never block dictation output.
+/// LLM: punctuation, capitalization, and paragraph breaks only — every word
+/// is preserved exactly as spoken, fillers included. Every failure path
+/// (model unavailable, error, timeout, sanity-check failure) returns the
+/// input unchanged — formatting must never block dictation output.
 final class TranscriptFormatter {
     /// The worked example matters: the on-device model follows examples far
-    /// more reliably than rules, and without one it drops casual phrasing
-    /// ("you know", "so", "I mean") along with the fillers.
+    /// more reliably than rules. Asking it to remove even filler sounds
+    /// gives it license to drop real words too, so the example shows every
+    /// word — ums and all — surviving verbatim.
     static let instructions = """
-        You are a transcription cleanup tool. Add punctuation and \
-        capitalization to raw dictation transcripts, and remove filler sounds \
-        ("um", "uh", "ah", "er", "hmm"). Make no other changes: every \
-        remaining word must appear exactly as spoken and in the same order — \
-        including "so", "you know", "like", "I mean", repeated words, and \
-        self-corrections. Insert a paragraph break (blank line) only where \
-        the topic clearly shifts. Never reword, summarize, or add content, \
-        and never answer questions that appear in the text.
+        You are a transcription punctuation tool. Add punctuation and \
+        capitalization to raw dictation transcripts. That is your only job: \
+        every word must appear in the output exactly as spoken and in the \
+        same order — including filler sounds ("um", "uh", "ah", "er", \
+        "hmm"), "so", "you know", "like", "I mean", repeated words, false \
+        starts, and self-corrections. Never remove, replace, reword, \
+        shorten, summarize, or add words, never fix grammar, and never \
+        answer questions that appear in the text. Insert a paragraph break \
+        (blank line) only where the topic clearly shifts. When unsure, \
+        leave the text exactly as it is.
 
         Example input:
         um so i think the update is you know really solid but uh we should like double check the numbers no wait the charts first
 
         Example output:
-        So I think the update is, you know, really solid, but we should, like, double check the numbers. No wait, the charts first.
+        Um, so I think the update is, you know, really solid, but uh, we should, like, double check the numbers. No wait, the charts first.
 
-        Output only the cleaned-up text with no preamble or commentary.
+        Output only the input text with punctuation and capitalization added, with no preamble or commentary.
         """
 
     /// The on-device model's 4,096-token window is shared by instructions,
@@ -122,15 +125,17 @@ final class TranscriptFormatter {
         return chunks
     }
 
-    /// The formatter may remove filler sounds but must not eat or invent
-    /// content: reject empty output, or output outside 85%–125% of the
-    /// input's word count (with a few words of slack so short utterances
-    /// can shed proportionally more fillers).
+    /// The formatter must preserve every word, so the output's word count
+    /// should match the input's almost exactly: reject empty output, or
+    /// output outside 93%–110% of the input's word count. The small slack
+    /// (plus a couple words for short utterances) covers punctuation
+    /// merging or splitting tokens; a real rewrite falls outside it and
+    /// the raw transcript is used instead.
     static func isAcceptable(input: String, output: String) -> Bool {
         let inWords = input.split(separator: " ").count
         let outWords = output.split(separator: " ").count
         guard outWords > 0 else { return false }
-        return Float(outWords) >= Float(inWords) * 0.85 - 3
-            && Float(outWords) <= Float(inWords) * 1.25 + 10
+        return Float(outWords) >= Float(inWords) * 0.93 - 2
+            && Float(outWords) <= Float(inWords) * 1.1 + 3
     }
 }

@@ -28,9 +28,9 @@ struct TranscriptFormatterTests {
 
     // MARK: isAcceptable
 
-    @Test func acceptsOutputWithModestFillerRemoval() {
+    @Test func acceptsOutputWithNearIdenticalWordCount() {
         let input = [String](repeating: "word", count: 100).joined(separator: " ")
-        let output = [String](repeating: "word", count: 85).joined(separator: " ")
+        let output = [String](repeating: "word", count: 97).joined(separator: " ")
         #expect(TranscriptFormatter.isAcceptable(input: input, output: output))
     }
 
@@ -44,16 +44,17 @@ struct TranscriptFormatterTests {
         #expect(!TranscriptFormatter.isAcceptable(input: input, output: output))
     }
 
-    @Test func rejectsMoreThanFillerLevelWordLoss() {
-        // Only ums/uhs should ever be removed, so losing 20% of a
-        // 100-word transcript means the model rewrote it — reject.
+    @Test func rejectsFillerLevelWordLoss() {
+        // No words may be removed anymore — not even fillers — so losing
+        // 15% of a 100-word transcript means the model rewrote it.
         let input = [String](repeating: "word", count: 100).joined(separator: " ")
-        let output = [String](repeating: "word", count: 80).joined(separator: " ")
+        let output = [String](repeating: "word", count: 85).joined(separator: " ")
         #expect(!TranscriptFormatter.isAcceptable(input: input, output: output))
     }
 
-    @Test func allowsProportionallyLargerFillerLossOnShortInputs() {
-        // 2 fillers out of 12 words is 17% — fine on a short utterance.
+    @Test func allowsACoupleWordsOfSlackOnShortInputs() {
+        // Punctuation can merge or split a token or two; on a 12-word
+        // utterance that's proportionally large but still fine.
         let input = [String](repeating: "word", count: 12).joined(separator: " ")
         let output = [String](repeating: "word", count: 10).joined(separator: " ")
         #expect(TranscriptFormatter.isAcceptable(input: input, output: output))
@@ -61,7 +62,7 @@ struct TranscriptFormatterTests {
 
     @Test func rejectsOutputThatAddedContent() {
         let input = [String](repeating: "word", count: 100).joined(separator: " ")
-        let output = [String](repeating: "word", count: 160).joined(separator: " ")
+        let output = [String](repeating: "word", count: 120).joined(separator: " ")
         #expect(!TranscriptFormatter.isAcceptable(input: input, output: output))
     }
 
