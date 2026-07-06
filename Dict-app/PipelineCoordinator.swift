@@ -7,6 +7,9 @@ final class PipelineCoordinator {
     let historyStore = HistoryStore()
     private let formatter = TranscriptFormatter()
 
+    /// Mirrors the user's "Format Transcripts" setting; owned by AppState.
+    var isFormattingEnabled = true
+
     func startRecording() {
         Task {
             do {
@@ -26,7 +29,7 @@ final class PipelineCoordinator {
             return nil
         }
 
-        let text = await formatter.format(rawText)
+        let text = isFormattingEnabled ? await formatter.format(rawText) : rawText
 
         historyStore.save(cleanedText: text)
         print("[Pipeline] Saved to history. Inserting text...")

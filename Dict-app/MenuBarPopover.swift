@@ -32,11 +32,16 @@ struct MenuBarPopover: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Enable/disable toggle
-            Toggle("Dictation Enabled", isOn: $appState.isEnabled)
-                .toggleStyle(.switch)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 12)
+            // Enable/disable toggles
+            VStack(alignment: .leading, spacing: 8) {
+                Toggle("Dictation Enabled", isOn: $appState.isEnabled)
+                    .toggleStyle(.switch)
+                Toggle("Format Transcripts", isOn: $appState.isFormattingEnabled)
+                    .toggleStyle(.switch)
+                    .help("Add punctuation and capitalization with the on-device Apple Intelligence model. Turn off to insert the raw transcript as spoken.")
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
 
             Divider()
 

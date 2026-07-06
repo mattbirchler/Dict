@@ -9,6 +9,12 @@ final class AppState {
     var isEnabled = true {
         didSet { onEnabledChanged?(isEnabled) }
     }
+    var isFormattingEnabled: Bool {
+        didSet {
+            UserDefaults.standard.set(isFormattingEnabled, forKey: "isFormattingEnabled")
+            pipeline.isFormattingEnabled = isFormattingEnabled
+        }
+    }
     var onEnabledChanged: ((Bool) -> Void)?
     var onProcessingComplete: (() -> Void)?
     var isRecording = false
@@ -19,6 +25,12 @@ final class AppState {
     var hasCompletedOnboarding: Bool {
         get { UserDefaults.standard.bool(forKey: "hasCompletedOnboarding") }
         set { UserDefaults.standard.set(newValue, forKey: "hasCompletedOnboarding") }
+    }
+
+    init() {
+        let formattingEnabled = UserDefaults.standard.object(forKey: "isFormattingEnabled") as? Bool ?? true
+        isFormattingEnabled = formattingEnabled
+        pipeline.isFormattingEnabled = formattingEnabled
     }
 
     func preloadWhisperModel() {
