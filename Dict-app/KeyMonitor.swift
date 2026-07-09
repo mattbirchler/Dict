@@ -4,19 +4,24 @@ import Foundation
 final class KeyMonitor {
     private var eventTap: CFMachPort?
     private var runLoopSource: CFRunLoopSource?
-    private var delayedStartWork: DispatchWorkItem?
+    private var keyDownTime: ContinuousClock.Instant?
     private var isKeyHeld = false
     private var recordingStarted = false
     private var handsFreeMode = false
 
     var onRecordingStart: (() -> Void)?
     var onRecordingStop: (() -> Void)?
+    /// Fired instead of onRecordingStop when the key is released before
+    /// holdThreshold — the recording should be discarded, not transcribed.
+    var onRecordingCancel: (() -> Void)?
     var onHandsFreeChanged: ((Bool) -> Void)?
 
     private static let rightCommandKeycode: Int64 = 54
     private static let rightControlKeycode: Int64 = 62
     private static let spaceKeycode: Int64 = 49
-    private static let holdThreshold: TimeInterval = 0.15
+    /// Recording starts immediately on key-down so no speech is lost;
+    /// releases shorter than this count as accidental taps and cancel it.
+    private static let holdThreshold: Duration = .milliseconds(150)
 
     func install() -> Bool {
         let eventMask: CGEventMask = (1 << CGEventType.flagsChanged.rawValue)
@@ -44,8 +49,7 @@ final class KeyMonitor {
     }
 
     func uninstall() {
-        delayedStartWork?.cancel()
-        delayedStartWork = nil
+        keyDownTime = nil
         if let source = runLoopSource {
             CFRunLoopRemoveSource(CFRunLoopGetMain(), source, .commonModes)
         }
@@ -119,30 +123,31 @@ final class KeyMonitor {
         }
 
         isKeyHeld = true
-        recordingStarted = false
-
-        let work = DispatchWorkItem { [weak self] in
-            guard let self, self.isKeyHeld else { return }
-            self.recordingStarted = true
-            self.onRecordingStart?()
-        }
-        delayedStartWork = work
-        DispatchQueue.main.asyncAfter(deadline: .now() + Self.holdThreshold, execute: work)
+        recordingStarted = true
+        keyDownTime = ContinuousClock().now
+        onRecordingStart?()
     }
 
     private func handleKeyUp() {
         isKeyHeld = false
-        delayedStartWork?.cancel()
-        delayedStartWork = nil
 
         // If hands-free mode is active, keep recording
         if handsFreeMode {
             return
         }
 
-        if recordingStarted {
-            recordingStarted = false
+        guard recordingStarted else { return }
+        recordingStarted = false
+
+        let heldLongEnough = keyDownTime.map {
+            ContinuousClock().now - $0 >= Self.holdThreshold
+        } ?? true
+        keyDownTime = nil
+
+        if heldLongEnough {
             onRecordingStop?()
+        } else {
+            onRecordingCancel?()
         }
     }
 

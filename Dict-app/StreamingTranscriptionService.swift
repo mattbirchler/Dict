@@ -11,6 +11,9 @@ final class StreamingTranscriptionService {
     private var pipe: WhisperKit?
     private var energyTimer: Timer?
     private var isLoading = false
+    /// Bumped by cancel()/stop() so an in-flight start() (suspended in
+    /// ensureLoaded) knows the session it was starting is already over.
+    private var session = 0
 
     // Published state the HUD binds to.
     var audioEnergy: [Float] = []
@@ -50,12 +53,15 @@ final class StreamingTranscriptionService {
     // MARK: - Recording lifecycle
 
     func start() async throws {
+        let startedSession = session
         try await ensureLoaded()
 
         guard let pipe else {
             throw StreamingTranscriptionError.modelNotLoaded
         }
-        guard !isRecording else { return }
+        // Cancelled or stopped while ensureLoaded was suspended — don't
+        // start an engine nobody will stop.
+        guard session == startedSession, !isRecording else { return }
 
         audioEnergy = []
 
@@ -76,7 +82,21 @@ final class StreamingTranscriptionService {
         print("[Transcription] Recording started")
     }
 
+    /// Stops the engine and throws the recording away without transcribing —
+    /// used when the hotkey was released before the accidental-tap threshold.
+    func cancel() {
+        session += 1
+        guard isRecording, let pipe else { return }
+        isRecording = false
+        energyTimer?.invalidate()
+        energyTimer = nil
+        pipe.audioProcessor.stopRecording()
+        audioEnergy = []
+        print("[Transcription] Recording cancelled — discarded")
+    }
+
     func stop() async -> String {
+        session += 1
         guard isRecording, let pipe else { return "" }
         isRecording = false
 
@@ -95,38 +115,13 @@ final class StreamingTranscriptionService {
             return ""
         }
 
-        // VAD gate: if the recording contains no detectable voice, skip
-        // Whisper entirely — decoding pure silence is what produces
-        // "Thank you." hallucinations. The threshold adapts to the
-        // recording's own noise floor (see VoiceGate).
-        let frameDuration: Float = 0.1
-        let frameSamples = Int(frameDuration * Float(WhisperKit.sampleRate))
-        let energies = VoiceGate.frameEnergies(samples: samples, frameSamples: frameSamples)
-        let voiceActivity = VoiceGate.voiceActivity(energies: energies)
-        let sortedEnergies = energies.sorted()
-        print(String(
-            format: "[Transcription] Energy floor=%.4f median=%.4f max=%.4f voiced=%d/%d",
-            sortedEnergies.first ?? 0,
-            sortedEnergies[sortedEnergies.count / 2],
-            sortedEnergies.last ?? 0,
-            voiceActivity.count(where: { $0 }),
-            voiceActivity.count
-        ))
-        guard let frameRange = VoiceGate.activeFrameRange(
-            voiceActivity: voiceActivity,
-            paddingFrames: 3,
-            minVoicedFrames: 2
-        ) else {
+        guard let gated = Self.gateAndTrim(samples: samples) else {
             print("[Transcription] No voice activity detected, skipping transcription")
             return ""
         }
-
-        // Trim leading/trailing silence (keeping 0.3s padding) so Whisper
-        // never decodes long silent stretches at the edges.
-        let sampleStart = frameRange.lowerBound * frameSamples
-        let sampleEnd = min(samples.count, frameRange.upperBound * frameSamples)
-        let trimmedSamples = Array(samples[sampleStart..<sampleEnd])
-        let trimmedVoiceActivity = Array(voiceActivity[frameRange])
+        let trimmedSamples = gated.samples
+        let trimmedVoiceActivity = gated.voiceActivity
+        let frameDuration = gated.frameDuration
         print("[Transcription] Trimmed \(samples.count) samples to \(trimmedSamples.count)")
 
         do {
@@ -152,6 +147,52 @@ final class StreamingTranscriptionService {
             print("[Transcription] Failed: \(error)")
             return ""
         }
+    }
+
+    // MARK: - Gate and trim
+
+    /// VAD gate: if the recording contains no detectable voice, skip
+    /// Whisper entirely — decoding pure silence is what produces
+    /// "Thank you." hallucinations. Otherwise trim leading/trailing
+    /// silence (keeping 0.3s leading and 1s trailing padding) so Whisper
+    /// never decodes long silent stretches at the edges. The threshold
+    /// adapts to the recording's own noise floor (see VoiceGate).
+    ///
+    /// Extracted from stop() so integration tests can run real audio
+    /// through the exact production path.
+    nonisolated static func gateAndTrim(
+        samples: [Float]
+    ) -> (samples: [Float], voiceActivity: [Bool], frameDuration: Float)? {
+        let frameDuration: Float = 0.1
+        let frameSamples = Int(frameDuration * Float(WhisperKit.sampleRate))
+        let energies = VoiceGate.frameEnergies(samples: samples, frameSamples: frameSamples)
+        let voiceActivity = VoiceGate.voiceActivity(energies: energies)
+        let sortedEnergies = energies.sorted()
+        if !sortedEnergies.isEmpty {
+            print(String(
+                format: "[Transcription] Energy floor=%.4f median=%.4f max=%.4f voiced=%d/%d",
+                sortedEnergies.first ?? 0,
+                sortedEnergies[sortedEnergies.count / 2],
+                sortedEnergies.last ?? 0,
+                voiceActivity.count(where: { $0 }),
+                voiceActivity.count
+            ))
+        }
+        guard let frameRange = VoiceGate.activeFrameRange(
+            voiceActivity: voiceActivity,
+            paddingFrames: 3,
+            trailingPaddingFrames: 10,
+            minVoicedFrames: 2
+        ) else {
+            return nil
+        }
+        let sampleStart = frameRange.lowerBound * frameSamples
+        let sampleEnd = min(samples.count, frameRange.upperBound * frameSamples)
+        return (
+            Array(samples[sampleStart..<sampleEnd]),
+            Array(voiceActivity[frameRange]),
+            frameDuration
+        )
     }
 
     // MARK: - Mic name (for HUD label)

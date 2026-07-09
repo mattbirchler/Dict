@@ -54,6 +54,46 @@ struct VoiceGateTests {
         #expect(activity.allSatisfy { !$0 })
     }
 
+    @Test func continuousSpeechKeepsSoftTrailingWords() {
+        // Push-to-talk regression: the user talks for nearly the whole
+        // recording, so the 25th-percentile "noise floor" lands on speech
+        // energy and 3× that puts the threshold above everything but the
+        // loudest peaks — trimming away the final, softer-spoken words.
+        // 6 frames lead-in silence, 42 frames of speech with loud peaks,
+        // 8 frames of soft trailing speech, 4 frames of release gap.
+        var energies = [Float](repeating: 0.0015, count: 6)
+        energies += (0..<42).map { [0.006, 0.009, 0.012, 0.02][$0 % 4] }
+        energies += [Float](repeating: 0.005, count: 8)
+        energies += [Float](repeating: 0.0015, count: 4)
+
+        let activity = VoiceGate.voiceActivity(energies: energies)
+
+        // The soft trailing words (frames 48...55) must count as voice so
+        // the trim doesn't cut them off.
+        #expect(activity[48...55].allSatisfy { $0 })
+        // Lead-in and release-gap silence must stay unvoiced.
+        #expect(activity[0...5].allSatisfy { !$0 })
+        #expect(activity[56...59].allSatisfy { !$0 })
+    }
+
+    @Test func fluentSpeechWithoutLoudPeaksIsNotRejected() {
+        // Same failure mode, worse outcome: fluent speech at an even
+        // 0.005–0.012 with almost no silence pushed the old threshold above
+        // every frame, so the gate rejected the entire recording.
+        var energies = [Float](repeating: 0.0015, count: 4)
+        energies += (0..<50).map { 0.005 + Float($0 % 4) * 0.002 }
+        energies += [Float](repeating: 0.0015, count: 4)
+
+        let activity = VoiceGate.voiceActivity(energies: energies)
+        #expect(activity.count(where: { $0 }) == 50)
+        let range = VoiceGate.activeFrameRange(
+            voiceActivity: activity,
+            paddingFrames: 3,
+            minVoicedFrames: 2
+        )
+        #expect(range != nil)
+    }
+
     // MARK: frameEnergies
 
     @Test func frameEnergiesComputesRMSPerFrame() {
@@ -100,6 +140,20 @@ struct VoiceGateTests {
         for i in 1...48 { frames[i] = true }
         let range = VoiceGate.activeFrameRange(voiceActivity: frames, paddingFrames: 3)
         #expect(range == 0..<50)
+    }
+
+    @Test func trailingPaddingCanExceedLeadingPadding() {
+        // The trim keeps extra audio after the last voiced frame: soft final
+        // syllables sit near the threshold, and Whisper needs trailing
+        // context to decode the last words.
+        var frames = [Bool](repeating: false, count: 50)
+        for i in 10...19 { frames[i] = true }
+        let range = VoiceGate.activeFrameRange(
+            voiceActivity: frames,
+            paddingFrames: 3,
+            trailingPaddingFrames: 10
+        )
+        #expect(range == 7..<30)
     }
 
     @Test func spansFromFirstToLastVoiceAcrossGaps() {

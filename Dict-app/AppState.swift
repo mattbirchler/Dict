@@ -59,6 +59,12 @@ final class AppState {
         pipeline.startRecording()
     }
 
+    func cancelRecording() {
+        guard isRecording else { return }
+        isRecording = false
+        pipeline.cancelRecording()
+    }
+
     func stopRecording() {
         guard isRecording else { return }
         isRecording = false

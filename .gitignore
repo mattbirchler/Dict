@@ -1,3 +1,5 @@
 .superpowers/
 Dict-app.xcodeproj/project.xcworkspace/xcuserdata/matt.xcuserdatad/UserInterfaceState.xcuserstate
 .DS_Store
+build/
+*.profraw

@@ -21,6 +21,11 @@ final class PipelineCoordinator {
         }
     }
 
+    func cancelRecording() {
+        transcriptionService.cancel()
+        print("[Pipeline] Recording cancelled")
+    }
+
     func stopRecordingAndProcess() async -> String? {
         let rawText = await transcriptionService.stop()
 

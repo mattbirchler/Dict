@@ -59,6 +59,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self.appState.stopRecording()
         }
 
+        keyMonitor.onRecordingCancel = { [weak self] in
+            guard let self else { return }
+            self.appState.cancelRecording()
+            self.hudController.dismiss()
+        }
+
         keyMonitor.onHandsFreeChanged = { [weak self] handsFree in
             guard let self else { return }
             if handsFree {
