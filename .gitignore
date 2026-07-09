@@ -3,3 +3,4 @@ Dict-app.xcodeproj/project.xcworkspace/xcuserdata/matt.xcuserdatad/UserInterface
 .DS_Store
 build/
 *.profraw
+xcuserdata/
