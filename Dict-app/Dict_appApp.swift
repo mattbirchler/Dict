@@ -7,7 +7,10 @@ struct Dict_appApp: App {
 
     var body: some Scene {
         Settings {
-            EmptyView()
+            SettingsView(
+                appState: appDelegate.appState,
+                updater: appDelegate.updaterController.updater
+            )
         }
     }
 }
