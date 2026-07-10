@@ -1,0 +1,111 @@
+import Foundation
+
+enum HotkeyChoice: String, CaseIterable {
+    case rightCommand, rightControl, rightOption, fn
+
+    var displayName: String {
+        switch self {
+        case .rightCommand: "Right Command (⌘)"
+        case .rightControl: "Right Control (⌃)"
+        case .rightOption: "Right Option (⌥)"
+        case .fn: "Fn / Globe (🌐)"
+        }
+    }
+}
+
+enum ActivationMode: String, CaseIterable {
+    case holdToTalk, toggle
+
+    var displayName: String {
+        switch self {
+        case .holdToTalk: "Press and hold"
+        case .toggle: "Press to start and stop"
+        }
+    }
+}
+
+enum HistoryLimit: String, CaseIterable {
+    case off, ten, fifty, twoHundred, unlimited
+
+    /// Maximum stored entries; nil means unlimited.
+    var maxEntries: Int? {
+        switch self {
+        case .off: 0
+        case .ten: 10
+        case .fifty: 50
+        case .twoHundred: 200
+        case .unlimited: nil
+        }
+    }
+
+    var savesHistory: Bool { self != .off }
+
+    var displayName: String {
+        switch self {
+        case .off: "Off"
+        case .ten: "Last 10"
+        case .fifty: "Last 50"
+        case .twoHundred: "Last 200"
+        case .unlimited: "Unlimited"
+        }
+    }
+}
+
+/// Owns every persisted preference. Each property writes UserDefaults on set
+/// and fires `onChange` so non-SwiftUI services (KeyMonitor, HistoryStore,
+/// PipelineCoordinator) can be reconfigured; SwiftUI observes directly.
+@MainActor
+@Observable
+final class SettingsStore {
+    enum Change { case hotkey, activationMode, formatting, historyLimit }
+
+    @ObservationIgnored var onChange: ((Change) -> Void)?
+    @ObservationIgnored private let defaults: UserDefaults
+
+    private enum Keys {
+        static let hotkey = "hotkey"
+        static let activationMode = "activationMode"
+        // Pre-existing key from earlier builds — do not rename.
+        static let isFormattingEnabled = "isFormattingEnabled"
+        static let historyLimit = "historyLimit"
+    }
+
+    var hotkey: HotkeyChoice {
+        didSet {
+            defaults.set(hotkey.rawValue, forKey: Keys.hotkey)
+            onChange?(.hotkey)
+        }
+    }
+
+    var activationMode: ActivationMode {
+        didSet {
+            defaults.set(activationMode.rawValue, forKey: Keys.activationMode)
+            onChange?(.activationMode)
+        }
+    }
+
+    var isFormattingEnabled: Bool {
+        didSet {
+            defaults.set(isFormattingEnabled, forKey: Keys.isFormattingEnabled)
+            onChange?(.formatting)
+        }
+    }
+
+    var historyLimit: HistoryLimit {
+        didSet {
+            defaults.set(historyLimit.rawValue, forKey: Keys.historyLimit)
+            onChange?(.historyLimit)
+        }
+    }
+
+    init(defaults: UserDefaults = .standard) {
+        self.defaults = defaults
+        self.hotkey = defaults.string(forKey: Keys.hotkey)
+            .flatMap(HotkeyChoice.init(rawValue:)) ?? .rightCommand
+        self.activationMode = defaults.string(forKey: Keys.activationMode)
+            .flatMap(ActivationMode.init(rawValue:)) ?? .holdToTalk
+        self.isFormattingEnabled = defaults.object(forKey: Keys.isFormattingEnabled) as? Bool ?? true
+        self.historyLimit = defaults.string(forKey: Keys.historyLimit)
+            .flatMap(HistoryLimit.init(rawValue:)) ?? .fifty
+    }
+}
