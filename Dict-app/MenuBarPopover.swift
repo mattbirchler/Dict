@@ -1,47 +1,20 @@
 import SwiftUI
-import Combine
-import Sparkle
-
-/// Bridges Sparkle's KVO-based `canCheckForUpdates` into SwiftUI so the
-/// "Check for Updates…" button can dim while a check is already in flight.
-final class UpdaterViewModel: ObservableObject {
-    @Published var canCheckForUpdates = false
-    private let updater: SPUUpdater
-
-    init(updater: SPUUpdater) {
-        self.updater = updater
-        updater.publisher(for: \.canCheckForUpdates)
-            .assign(to: &$canCheckForUpdates)
-    }
-
-    func checkForUpdates() {
-        updater.checkForUpdates()
-    }
-}
 
 struct MenuBarPopover: View {
     @Bindable var appState: AppState
-    @StateObject private var updaterViewModel: UpdaterViewModel
     var onShowOnboarding: () -> Void
-
-    init(appState: AppState, updater: SPUUpdater, onShowOnboarding: @escaping () -> Void) {
-        self.appState = appState
-        self._updaterViewModel = StateObject(wrappedValue: UpdaterViewModel(updater: updater))
-        self.onShowOnboarding = onShowOnboarding
-    }
+    /// Called after the Settings window is opened so the owner can close
+    /// the popover.
+    var onOpenedSettings: () -> Void
+    @Environment(\.openSettings) private var openSettings
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Enable/disable toggles
-            VStack(alignment: .leading, spacing: 8) {
-                Toggle("Dictation Enabled", isOn: $appState.isEnabled)
-                    .toggleStyle(.switch)
-                Toggle("Format Transcripts", isOn: $appState.isFormattingEnabled)
-                    .toggleStyle(.switch)
-                    .help("Add punctuation and capitalization with the on-device Apple Intelligence model. Turn off to insert the raw transcript as spoken.")
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
+            // Quick mute
+            Toggle("Dictation Enabled", isOn: $appState.isEnabled)
+                .toggleStyle(.switch)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
 
             Divider()
 
@@ -129,11 +102,11 @@ struct MenuBarPopover: View {
 
             Divider()
 
-            // Check for updates
-            Button("Check for Updates…") {
-                updaterViewModel.checkForUpdates()
+            Button("Settings…") {
+                NSApp.activate(ignoringOtherApps: true)
+                openSettings()
+                onOpenedSettings()
             }
-            .disabled(!updaterViewModel.canCheckForUpdates)
             .padding(.horizontal, 16)
             .padding(.vertical, 10)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -141,7 +114,6 @@ struct MenuBarPopover: View {
 
             Divider()
 
-            // Quit
             Button("Quit Dict") {
                 NSApp.terminate(nil)
             }

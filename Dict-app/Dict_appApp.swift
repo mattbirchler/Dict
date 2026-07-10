@@ -35,7 +35,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         appState.permissionChecker.checkAll()
 
-        menuBarManager.setup(appState: appState, updater: updaterController.updater) { [weak self] in
+        menuBarManager.setup(appState: appState) { [weak self] in
             guard let self else { return }
             self.onboardingController.show(appState: self.appState)
         }

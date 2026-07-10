@@ -10,12 +10,6 @@ final class AppState {
     var isEnabled = true {
         didSet { onEnabledChanged?(isEnabled) }
     }
-    /// Passthrough for the popover toggle; the stored value lives in
-    /// SettingsStore now (same UserDefaults key as before).
-    var isFormattingEnabled: Bool {
-        get { settings.isFormattingEnabled }
-        set { settings.isFormattingEnabled = newValue }
-    }
     var onEnabledChanged: ((Bool) -> Void)?
     var onProcessingComplete: (() -> Void)?
     /// Fired when the hotkey or activation mode setting changes so the

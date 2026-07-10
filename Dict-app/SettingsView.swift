@@ -1,5 +1,23 @@
 import SwiftUI
 import Sparkle
+import Combine
+
+/// Bridges Sparkle's KVO-based `canCheckForUpdates` into SwiftUI so the
+/// "Check for Updates…" button can dim while a check is already in flight.
+final class UpdaterViewModel: ObservableObject {
+    @Published var canCheckForUpdates = false
+    private let updater: SPUUpdater
+
+    init(updater: SPUUpdater) {
+        self.updater = updater
+        updater.publisher(for: \.canCheckForUpdates)
+            .assign(to: &$canCheckForUpdates)
+    }
+
+    func checkForUpdates() {
+        updater.checkForUpdates()
+    }
+}
 
 struct SettingsView: View {
     @Bindable var appState: AppState
