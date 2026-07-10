@@ -13,7 +13,7 @@ struct Dict_appApp: App {
 }
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
-    let appState = AppState()
+    let appState = AppState(settings: SettingsStore())
     let menuBarManager = MenuBarManager()
     let hudController = HUDPanelController()
     let keyMonitor = KeyMonitor()
@@ -74,6 +74,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         appState.onProcessingComplete = { [weak self] in
             self?.hudController.dismiss()
+        }
+
+        keyMonitor.hotkey = appState.settings.hotkey
+        keyMonitor.activationMode = appState.settings.activationMode
+        appState.onHotkeySettingsChanged = { [weak self] in
+            guard let self else { return }
+            self.keyMonitor.hotkey = self.appState.settings.hotkey
+            self.keyMonitor.activationMode = self.appState.settings.activationMode
         }
 
         if appState.permissionChecker.accessibilityGranted && appState.isEnabled {
