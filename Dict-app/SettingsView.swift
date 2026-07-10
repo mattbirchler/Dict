@@ -11,10 +11,13 @@ struct SettingsView: View {
                 GeneralSettingsTab(settings: appState.settings)
             }
             Tab("History", systemImage: "clock.arrow.circlepath") {
-                Text("History settings coming in Task 7")
+                HistorySettingsTab(
+                    settings: appState.settings,
+                    historyStore: appState.pipeline.historyStore
+                )
             }
             Tab("About", systemImage: "info.circle") {
-                Text("About coming in Task 7")
+                AboutSettingsTab(updater: updater)
             }
         }
         .frame(width: 480)
@@ -87,5 +90,88 @@ struct GeneralSettingsTab: View {
         case .toggle:
             "Press the hotkey to start recording; press it again to stop and insert."
         }
+    }
+}
+
+struct HistorySettingsTab: View {
+    @Bindable var settings: SettingsStore
+    let historyStore: HistoryStore
+    @State private var confirmingClear = false
+
+    var body: some View {
+        Form {
+            Section {
+                Picker("Keep history", selection: $settings.historyLimit) {
+                    ForEach(HistoryLimit.allCases, id: \.self) { limit in
+                        Text(limit.displayName).tag(limit)
+                    }
+                }
+                Text("Transcriptions are stored only on this Mac. “Off” stops saving new transcriptions; items already saved stay until you clear them.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Section {
+                Button("Clear History…", role: .destructive) {
+                    confirmingClear = true
+                }
+                .confirmationDialog(
+                    "Delete all saved transcriptions?",
+                    isPresented: $confirmingClear
+                ) {
+                    Button("Clear History", role: .destructive) {
+                        historyStore.clearAll()
+                    }
+                } message: {
+                    Text("This removes every saved transcription from this Mac. It can't be undone.")
+                }
+            }
+        }
+        .formStyle(.grouped)
+    }
+}
+
+struct AboutSettingsTab: View {
+    @StateObject private var updaterViewModel: UpdaterViewModel
+
+    init(updater: SPUUpdater) {
+        self._updaterViewModel = StateObject(wrappedValue: UpdaterViewModel(updater: updater))
+    }
+
+    private var versionString: String {
+        let info = Bundle.main.infoDictionary
+        let version = info?["CFBundleShortVersionString"] as? String ?? "?"
+        let build = info?["CFBundleVersion"] as? String ?? "?"
+        return "Version \(version) (\(build))"
+    }
+
+    var body: some View {
+        VStack(spacing: 12) {
+            Image(nsImage: NSApp.applicationIconImage)
+                .resizable()
+                .frame(width: 64, height: 64)
+            Text("Dict")
+                .font(.title2.bold())
+            Text(versionString)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            Text("100% on-device: transcription, formatting, and history never leave this Mac.")
+                .font(.callout)
+                .multilineTextAlignment(.center)
+                .foregroundStyle(.secondary)
+                .padding(.horizontal)
+
+            Button("Check for Updates…") {
+                updaterViewModel.checkForUpdates()
+            }
+            .disabled(!updaterViewModel.canCheckForUpdates)
+
+            Text("Built with WhisperKit and Sparkle.")
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
+        }
+        .padding(24)
+        .frame(maxWidth: .infinity)
     }
 }
