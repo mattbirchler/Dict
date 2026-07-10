@@ -6,7 +6,6 @@ struct MenuBarPopover: View {
     /// Called after the Settings window is opened so the owner can close
     /// the popover.
     var onOpenedSettings: () -> Void
-    @Environment(\.openSettings) private var openSettings
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -104,7 +103,7 @@ struct MenuBarPopover: View {
 
             Button("Settings…") {
                 NSApp.activate(ignoringOtherApps: true)
-                openSettings()
+                NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
                 onOpenedSettings()
             }
             .padding(.horizontal, 16)

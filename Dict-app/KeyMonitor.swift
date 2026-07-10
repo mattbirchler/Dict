@@ -102,7 +102,7 @@ final class KeyMonitor {
 
         // Spacebar while holding the hotkey: switch to hands-free mode.
         if type == .keyDown && keycode == spaceKeycode {
-            let swallow = monitor.logic.shouldSwallowSpace && !monitor.logic.handsFreeMode
+            let swallow = monitor.logic.shouldSwallowSpace
             monitor.perform(monitor.logic.spaceDown())
             return swallow ? nil : Unmanaged.passUnretained(event)
         }
@@ -123,12 +123,17 @@ final class KeyMonitor {
 
     private func perform(_ action: DictationKeyLogic.Action?) {
         guard let action else { return }
-        Task { @MainActor in
+        // The event-tap callback and resetLogic() both run on the main thread
+        // (the tap's run-loop source is on the main run loop), so deliver the
+        // callback synchronously on the main actor. This also guarantees a
+        // synchronous .start-then-.stop pair (fast hold-release) fires in order,
+        // which separate unstructured Tasks would not.
+        MainActor.assumeIsolated {
             switch action {
-            case .start: self.onRecordingStart?()
-            case .stop: self.onRecordingStop?()
-            case .cancel: self.onRecordingCancel?()
-            case .enterHandsFree: self.onHandsFreeChanged?(true)
+            case .start: onRecordingStart?()
+            case .stop: onRecordingStop?()
+            case .cancel: onRecordingCancel?()
+            case .enterHandsFree: onHandsFreeChanged?(true)
             }
         }
     }
