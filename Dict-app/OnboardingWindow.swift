@@ -57,25 +57,56 @@ struct OnboardingView: View {
                     openSettings: appState.permissionChecker.openSpeechRecognitionSettings
                 )
 
-                // WhisperKit model download
+                // Transcription engine picker
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Transcription engine")
+                        .font(.headline)
+                    Picker("", selection: Binding(
+                        get: { appState.settings.transcriptionEngine },
+                        set: { appState.settings.transcriptionEngine = $0 }
+                    )) {
+                        ForEach(TranscriptionEngineChoice.allCases, id: \.self) { choice in
+                            Text(choice.displayName).tag(choice)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    .labelsHidden()
+                    Text(appState.settings.transcriptionEngine.blurb)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .padding(12)
+                .background(RoundedRectangle(cornerRadius: 8).fill(Color.secondary.opacity(0.05)))
+
+                // Adaptive engine-readiness row
                 HStack(spacing: 12) {
                     Image(systemName: "arrow.down.circle.fill")
                         .font(.title2)
-                        .foregroundStyle(appState.pipeline.transcriptionService.isModelLoaded ? .green : .secondary)
+                        .foregroundStyle(appState.isEngineReady ? .green : .secondary)
                         .frame(width: 32)
 
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Whisper Model")
+                        Text(appState.settings.transcriptionEngine == .whisper ? "Whisper Model" : "Apple Speech")
                             .font(.headline)
-                        if appState.isLoadingWhisper {
-                            ProgressView(value: appState.whisperDownloadProgress)
-                                .progressViewStyle(.linear)
-                        } else if appState.pipeline.transcriptionService.isModelLoaded {
+                        if appState.isEngineReady {
                             Text("Ready")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
+                        } else if appState.isPreparingEngine {
+                            if appState.settings.transcriptionEngine == .whisper {
+                                ProgressView(value: appState.engineDownloadProgress)
+                                    .progressViewStyle(.linear)
+                            } else {
+                                Text("Preparing…")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        } else if appState.settings.transcriptionEngine == .whisper {
+                            Text("Download speech model (~1 GB)")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
                         } else {
-                            Text("Download speech recognition model")
+                            Text("Preparing…")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
@@ -83,25 +114,23 @@ struct OnboardingView: View {
 
                     Spacer()
 
-                    if appState.pipeline.transcriptionService.isModelLoaded {
+                    if appState.isEngineReady {
                         Image(systemName: "checkmark.circle.fill")
                             .foregroundStyle(.green)
                             .font(.title2)
-                    } else if appState.isLoadingWhisper {
+                    } else if appState.isPreparingEngine {
                         ProgressView()
                             .controlSize(.small)
-                    } else {
-                        Button("Download") {
-                            appState.preloadWhisperModel()
-                        }
-                        .buttonStyle(.bordered)
-                        .controlSize(.small)
+                    } else if appState.settings.transcriptionEngine == .whisper {
+                        Button("Download") { appState.prepareEngine() }
+                            .buttonStyle(.bordered)
+                            .controlSize(.small)
                     }
                 }
                 .padding(12)
                 .background(
                     RoundedRectangle(cornerRadius: 8)
-                        .fill(appState.pipeline.transcriptionService.isModelLoaded ? Color.green.opacity(0.05) : Color.secondary.opacity(0.05))
+                        .fill(appState.isEngineReady ? Color.green.opacity(0.05) : Color.secondary.opacity(0.05))
                 )
             }
             .padding(.horizontal)
@@ -114,9 +143,9 @@ struct OnboardingView: View {
             }
             .buttonStyle(.borderedProminent)
             .controlSize(.large)
-            .disabled(!appState.pipeline.transcriptionService.isModelLoaded)
+            .disabled(!appState.isEngineReady)
 
-            if !appState.permissionChecker.allGranted || !appState.pipeline.transcriptionService.isModelLoaded {
+            if !appState.permissionChecker.allGranted || !appState.isEngineReady {
                 Text("Grant all permissions and download the model to continue")
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -128,6 +157,17 @@ struct OnboardingView: View {
             appState.permissionChecker.checkAll()
             if appState.permissionChecker.microphoneNotDetermined {
                 Task { await appState.permissionChecker.requestMicrophone() }
+            }
+            appState.refreshEngineReadiness()
+            if appState.settings.transcriptionEngine == .apple
+                && !appState.isEngineReady && !appState.isPreparingEngine {
+                appState.prepareEngine()
+            }
+        }
+        .onChange(of: appState.settings.transcriptionEngine) { _, newValue in
+            appState.refreshEngineReadiness()
+            if newValue == .apple && !appState.isEngineReady && !appState.isPreparingEngine {
+                appState.prepareEngine()
             }
         }
     }
