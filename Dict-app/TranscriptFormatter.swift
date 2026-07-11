@@ -36,6 +36,37 @@ final class TranscriptFormatter {
         Output only the input text with punctuation and capitalization added, with no preamble or commentary.
         """
 
+    /// Coding-context variant: everything the verbatim prompt does, PLUS
+    /// correcting coding/terminal homophones and jargon. Used only when the
+    /// user is dictating into a known coding app, so the word-changing behavior
+    /// is scoped away from general dictation. The worked example carries the
+    /// intent — the model imitates it far more reliably than it follows rules.
+    static let codingInstructions = """
+        You are a transcription tool for a developer dictating into a coding or \
+        terminal app. Add punctuation and capitalization to the raw dictation \
+        transcript, AND correct words that were clearly meant as programming or \
+        command-line terms: fix homophones and mis-hearings ("Maine" → "main", \
+        "get" → "git" when it means the tool, "jason" → "JSON", "no js" → \
+        "Node.js"), spell out spoken acronyms ("a p i" → "API", "u r l" → \
+        "URL"), and use the conventional casing for technical terms ("github", \
+        "async", "npm", "sudo"). Preserve every spoken word and its order \
+        otherwise — including filler sounds ("um", "uh"), "so", "you know", \
+        "like", repeated words, false starts, and self-corrections. Only change \
+        a word when it is clearly a technical term; when unsure, leave it \
+        exactly as spoken. Never reword, summarize, add, or drop words, never \
+        fix grammar, and never answer questions that appear in the text. \
+        Insert a paragraph break (blank line) only where the topic clearly \
+        shifts.
+
+        Example input:
+        lets merge into maine after we get commit the jason config and rerun the a p i tests
+
+        Example output:
+        Let's merge into main after we git commit the JSON config and rerun the API tests.
+
+        Output only the corrected text with punctuation and capitalization added, with no preamble or commentary.
+        """
+
     /// The on-device model's 4,096-token window is shared by instructions,
     /// prompt, and output (output ≈ input size for this task), so cap
     /// chunks well below half the window.
@@ -43,7 +74,7 @@ final class TranscriptFormatter {
 
     private let timeoutSeconds: UInt64 = 15
 
-    func format(_ raw: String) async -> String {
+    func format(_ raw: String, context: FormattingContext = .general) async -> String {
         let input = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !input.isEmpty else { return raw }
 
@@ -52,10 +83,12 @@ final class TranscriptFormatter {
             return raw
         }
 
+        let instructions = context == .coding ? Self.codingInstructions : Self.instructions
+
         do {
             var formattedChunks: [String] = []
             for chunk in Self.chunked(input, maxWords: Self.maxChunkWords) {
-                let formatted = try await respondWithTimeout(to: chunk)
+                let formatted = try await respondWithTimeout(to: chunk, instructions: instructions)
                 formattedChunks.append(formatted.trimmingCharacters(in: .whitespacesAndNewlines))
             }
             let output = formattedChunks.joined(separator: "\n\n")
@@ -72,10 +105,10 @@ final class TranscriptFormatter {
 
     /// One fresh single-turn session per chunk, raced against a timeout so
     /// a hung model call can't stall dictation indefinitely.
-    private func respondWithTimeout(to chunk: String) async throws -> String {
+    private func respondWithTimeout(to chunk: String, instructions: String) async throws -> String {
         try await withThrowingTaskGroup(of: String.self) { group in
             group.addTask {
-                let session = LanguageModelSession(instructions: Self.instructions)
+                let session = LanguageModelSession(instructions: instructions)
                 let options = GenerationOptions(temperature: 0.1)
                 return try await session.respond(to: chunk, options: options).content
             }

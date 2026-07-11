@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 
 @MainActor
@@ -49,7 +50,9 @@ final class PipelineCoordinator {
             return nil
         }
 
-        let text = isFormattingEnabled ? await formatter.format(rawText) : rawText
+        let bundleID = NSWorkspace.shared.frontmostApplication?.bundleIdentifier
+        let context: FormattingContext = CodingAppCatalog.isCodingApp(bundleID) ? .coding : .general
+        let text = isFormattingEnabled ? await formatter.format(rawText, context: context) : rawText
 
         historyStore.save(cleanedText: text)
         print("[Pipeline] Saved to history. Inserting text...")

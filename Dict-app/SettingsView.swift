@@ -90,7 +90,7 @@ struct GeneralSettingsTab: View {
 
             Section {
                 Toggle("Format transcripts", isOn: $settings.isFormattingEnabled)
-                Text("Add punctuation and capitalization with the on-device Apple Intelligence model. Turn off to insert the raw transcript as spoken.")
+                Text("Add punctuation and capitalization with the on-device Apple Intelligence model. In coding and terminal apps, it also fixes technical terms like \u{201C}main\u{201D} and \u{201C}git.\u{201D} Turn off to insert the raw transcript as spoken.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
