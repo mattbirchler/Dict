@@ -64,7 +64,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     // Drive the waveform bars from the tail of WhisperKit's
                     // relativeEnergy array. Scale so normal speech pushes the
                     // bars above the bottom without clipping at the top.
-                    let energy = self?.appState.pipeline.transcriptionService.audioEnergy ?? []
+                    let energy = self?.appState.pipeline.activeEngine.audioEnergy ?? []
                     guard let last = energy.last else { return 0 }
                     return min(max(last * 2, 0), 1)
                 },
@@ -119,7 +119,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if !appState.hasCompletedOnboarding {
             onboardingController.show(appState: appState)
         } else {
-            appState.preloadWhisperModel()
+            appState.prepareEngine()
         }
 
         permissionCheckTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { [weak self] _ in

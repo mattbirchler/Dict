@@ -12,13 +12,17 @@ final class AppState {
     }
     var onEnabledChanged: ((Bool) -> Void)?
     var onProcessingComplete: (() -> Void)?
-    /// Fired when the hotkey or activation mode setting changes so the
-    /// AppDelegate can reconfigure the KeyMonitor.
     var onHotkeySettingsChanged: (() -> Void)?
     var isRecording = false
     var isProcessing = false
-    var isLoadingWhisper = false
-    var whisperDownloadProgress: Double = 0
+
+    // Mirror of the active engine's readiness, so SwiftUI observes concrete
+    // AppState state rather than a type-erased TranscriptionEngine existential.
+    var isPreparingEngine = false
+    var isEngineReady = false
+    var engineNeedsDownload = false
+    var engineDownloadProgress: Double = 0
+
     var lastError: String?
     var hasCompletedOnboarding: Bool {
         get { UserDefaults.standard.bool(forKey: "hasCompletedOnboarding") }
@@ -29,6 +33,8 @@ final class AppState {
         self.settings = settings
         pipeline.isFormattingEnabled = settings.isFormattingEnabled
         pipeline.historyStore.limit = settings.historyLimit
+        pipeline.engineChoice = settings.transcriptionEngine
+        refreshEngineReadiness()
         settings.onChange = { [weak self] change in
             guard let self else { return }
             switch change {
@@ -38,31 +44,59 @@ final class AppState {
                 self.pipeline.historyStore.limit = self.settings.historyLimit
             case .hotkey, .activationMode:
                 self.onHotkeySettingsChanged?()
+            case .transcriptionEngine:
+                self.handleEngineChange()
             }
         }
     }
 
-    func preloadWhisperModel() {
-        guard !isLoadingWhisper else { return }
-        isLoadingWhisper = true
-        whisperDownloadProgress = 0
-        pipeline.transcriptionService.onProgress = { [weak self] progress in
-            self?.whisperDownloadProgress = progress
+    /// Read readiness from the active engine without starting any work.
+    func refreshEngineReadiness() {
+        let engine = pipeline.activeEngine
+        isEngineReady = engine.isReady
+        engineNeedsDownload = engine.needsDownload && !engine.isReady
+    }
+
+    private func handleEngineChange() {
+        pipeline.engineChoice = settings.transcriptionEngine
+        engineDownloadProgress = 0
+        refreshEngineReadiness()
+        // Apple prepares cheaply (no big download) — do it automatically.
+        // Whisper's 1 GB download stays explicit (user taps Download in the UI).
+        if settings.transcriptionEngine == .apple && !isEngineReady {
+            prepareEngine()
+        }
+    }
+
+    /// Download/install + load the active engine, mirroring progress/readiness.
+    func prepareEngine() {
+        guard !isPreparingEngine else { return }
+        let engine = pipeline.activeEngine
+        if engine.isReady {
+            refreshEngineReadiness()
+            return
+        }
+        isPreparingEngine = true
+        engineDownloadProgress = 0
+        engineNeedsDownload = engine.needsDownload
+        engine.onProgress = { [weak self] progress in
+            self?.engineDownloadProgress = progress
         }
         Task {
             do {
-                try await pipeline.transcriptionService.ensureLoaded()
+                try await engine.prepare()
             } catch {
-                print("[AppState] WhisperKit model failed to load: \(error)")
-                lastError = "WhisperKit model failed to download."
+                print("[AppState] Engine failed to prepare: \(error)")
+                lastError = "Speech engine failed to prepare."
             }
-            isLoadingWhisper = false
-            pipeline.transcriptionService.onProgress = nil
+            isPreparingEngine = false
+            refreshEngineReadiness()
+            engine.onProgress = nil
         }
     }
 
     func startRecording() {
-        guard isEnabled, !isRecording, !isProcessing, !isLoadingWhisper else { return }
+        guard isEnabled, !isRecording, !isProcessing, !isPreparingEngine else { return }
         isRecording = true
         lastError = nil
         pipeline.startRecording()
