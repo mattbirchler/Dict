@@ -11,6 +11,9 @@ final class PipelineCoordinator {
     /// Mirrors the user's "Format Transcripts" setting; owned by AppState.
     var isFormattingEnabled = true
 
+    /// Mirrors the user's "space after each dictation" setting; owned by AppState.
+    var appendTrailingSpace = false
+
     /// Mirrors the user's transcription-engine setting; owned by AppState.
     var engineChoice: TranscriptionEngineChoice = .apple
 
@@ -50,7 +53,10 @@ final class PipelineCoordinator {
 
         historyStore.save(cleanedText: text)
         print("[Pipeline] Saved to history. Inserting text...")
-        await textInsertionService.insertText(text)
+        // Append the separator space to the inserted text only — History keeps
+        // the clean text so the list stays tidy.
+        let textToInsert = appendTrailingSpace ? text + " " : text
+        await textInsertionService.insertText(textToInsert)
         print("[Pipeline] Text inserted")
 
         return text

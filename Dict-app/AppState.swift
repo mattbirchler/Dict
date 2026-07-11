@@ -32,6 +32,7 @@ final class AppState {
     init(settings: SettingsStore) {
         self.settings = settings
         pipeline.isFormattingEnabled = settings.isFormattingEnabled
+        pipeline.appendTrailingSpace = settings.appendTrailingSpace
         pipeline.historyStore.limit = settings.historyLimit
         pipeline.engineChoice = settings.transcriptionEngine
         refreshEngineReadiness()
@@ -40,6 +41,8 @@ final class AppState {
             switch change {
             case .formatting:
                 self.pipeline.isFormattingEnabled = self.settings.isFormattingEnabled
+            case .appendTrailingSpace:
+                self.pipeline.appendTrailingSpace = self.settings.appendTrailingSpace
             case .historyLimit:
                 self.pipeline.historyStore.limit = self.settings.historyLimit
             case .hotkey, .activationMode:

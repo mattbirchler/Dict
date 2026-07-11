@@ -19,6 +19,7 @@ struct SettingsStoreTests {
         #expect(store.activationMode == .holdToTalk)
         #expect(store.isFormattingEnabled == true)
         #expect(store.historyLimit == .fifty)
+        #expect(store.appendTrailingSpace == false)
     }
 
     @Test func persistsAndReloads() {
@@ -28,12 +29,14 @@ struct SettingsStoreTests {
         store.activationMode = .toggle
         store.isFormattingEnabled = false
         store.historyLimit = .unlimited
+        store.appendTrailingSpace = true
 
         let reloaded = SettingsStore(defaults: defaults)
         #expect(reloaded.hotkey == .fn)
         #expect(reloaded.activationMode == .toggle)
         #expect(reloaded.isFormattingEnabled == false)
         #expect(reloaded.historyLimit == .unlimited)
+        #expect(reloaded.appendTrailingSpace == true)
     }
 
     @Test func migratesExistingFormattingKey() {
@@ -61,7 +64,8 @@ struct SettingsStoreTests {
         store.activationMode = .toggle
         store.isFormattingEnabled = false
         store.historyLimit = .ten
-        #expect(changes == [.hotkey, .activationMode, .formatting, .historyLimit])
+        store.appendTrailingSpace = true
+        #expect(changes == [.hotkey, .activationMode, .formatting, .historyLimit, .appendTrailingSpace])
     }
 
     @Test func defaultEngineIsAppleOnFreshInstall() {

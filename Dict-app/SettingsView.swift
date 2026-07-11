@@ -93,6 +93,11 @@ struct GeneralSettingsTab: View {
                 Text("Add punctuation and capitalization with the on-device Apple Intelligence model. Turn off to insert the raw transcript as spoken.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+
+                Toggle("Add a space after each dictation", isOn: $settings.appendTrailingSpace)
+                Text("Inserts a space after each result so you can dictate several sentences in separate chunks without pressing space between them.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
         }
         .formStyle(.grouped)

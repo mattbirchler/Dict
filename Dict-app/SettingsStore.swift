@@ -76,7 +76,7 @@ enum TranscriptionEngineChoice: String, CaseIterable {
 @MainActor
 @Observable
 final class SettingsStore {
-    enum Change { case hotkey, activationMode, formatting, historyLimit, transcriptionEngine }
+    enum Change { case hotkey, activationMode, formatting, historyLimit, transcriptionEngine, appendTrailingSpace }
 
     @ObservationIgnored var onChange: ((Change) -> Void)?
     @ObservationIgnored private let defaults: UserDefaults
@@ -88,6 +88,7 @@ final class SettingsStore {
         static let isFormattingEnabled = "isFormattingEnabled"
         static let historyLimit = "historyLimit"
         static let transcriptionEngine = "transcriptionEngine"
+        static let appendTrailingSpace = "appendTrailingSpace"
     }
 
     var hotkey: HotkeyChoice {
@@ -125,6 +126,13 @@ final class SettingsStore {
         }
     }
 
+    var appendTrailingSpace: Bool {
+        didSet {
+            defaults.set(appendTrailingSpace, forKey: Keys.appendTrailingSpace)
+            onChange?(.appendTrailingSpace)
+        }
+    }
+
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
         self.hotkey = defaults.string(forKey: Keys.hotkey)
@@ -144,5 +152,6 @@ final class SettingsStore {
             // Fresh install: default to Apple (no 1 GB download to get started).
             self.transcriptionEngine = .apple
         }
+        self.appendTrailingSpace = defaults.object(forKey: Keys.appendTrailingSpace) as? Bool ?? false
     }
 }
