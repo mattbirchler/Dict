@@ -73,4 +73,12 @@ struct TranscriptFormatterTests {
         let result = await formatter.format("   ")
         #expect(result == "   ")
     }
+
+    @Test func formatReturnsBlankInputUnchangedInCodingContext() async {
+        // The empty-input guard runs before any model call, so it must hold
+        // regardless of the context passed in.
+        let formatter = TranscriptFormatter()
+        let result = await formatter.format("   ", context: .coding)
+        #expect(result == "   ")
+    }
 }
