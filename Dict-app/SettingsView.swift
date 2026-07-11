@@ -19,29 +19,6 @@ final class UpdaterViewModel: ObservableObject {
     }
 }
 
-struct SettingsView: View {
-    @Bindable var appState: AppState
-    let updater: SPUUpdater
-
-    var body: some View {
-        TabView {
-            Tab("General", systemImage: "gearshape") {
-                GeneralSettingsTab(settings: appState.settings)
-            }
-            Tab("History", systemImage: "clock.arrow.circlepath") {
-                HistorySettingsTab(
-                    settings: appState.settings,
-                    historyStore: appState.pipeline.historyStore
-                )
-            }
-            Tab("About", systemImage: "info.circle") {
-                AboutSettingsTab(updater: updater)
-            }
-        }
-        .frame(width: 480)
-    }
-}
-
 struct GeneralSettingsTab: View {
     @Bindable var settings: SettingsStore
     @State private var loginItem = LoginItemManager()
@@ -108,44 +85,6 @@ struct GeneralSettingsTab: View {
         case .toggle:
             "Press the hotkey to start recording; press it again to stop and insert."
         }
-    }
-}
-
-struct HistorySettingsTab: View {
-    @Bindable var settings: SettingsStore
-    let historyStore: HistoryStore
-    @State private var confirmingClear = false
-
-    var body: some View {
-        Form {
-            Section {
-                Picker("Keep history", selection: $settings.historyLimit) {
-                    ForEach(HistoryLimit.allCases, id: \.self) { limit in
-                        Text(limit.displayName).tag(limit)
-                    }
-                }
-                Text("Transcriptions are stored only on this Mac. “Off” stops saving new transcriptions; items already saved stay until you clear them.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-
-            Section {
-                Button("Clear History…", role: .destructive) {
-                    confirmingClear = true
-                }
-                .confirmationDialog(
-                    "Delete all saved transcriptions?",
-                    isPresented: $confirmingClear
-                ) {
-                    Button("Clear History", role: .destructive) {
-                        historyStore.clearAll()
-                    }
-                } message: {
-                    Text("This removes every saved transcription from this Mac. It can't be undone.")
-                }
-            }
-        }
-        .formStyle(.grouped)
     }
 }
 

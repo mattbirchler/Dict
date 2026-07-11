@@ -6,11 +6,12 @@ struct Dict_appApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 
     var body: some Scene {
+        // The real Settings UI is presented by SettingsWindowController (an
+        // AppKit window), because the menu-bar popover lives outside the
+        // SwiftUI scene graph and can't open a `Settings` scene. This scene
+        // exists only to satisfy the App's scene requirement.
         Settings {
-            SettingsView(
-                appState: appDelegate.appState,
-                updater: appDelegate.updaterController.updater
-            )
+            EmptyView()
         }
     }
 }
@@ -21,6 +22,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     let hudController = HUDPanelController()
     let keyMonitor = KeyMonitor()
     let onboardingController = OnboardingWindowController()
+    let mainWindowController = MainWindowController()
     private var permissionCheckTimer: Timer?
 
     // Sparkle updater — starts on launch, runs automatic daily checks
@@ -35,10 +37,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         appState.permissionChecker.checkAll()
 
-        menuBarManager.setup(appState: appState) { [weak self] in
-            guard let self else { return }
-            self.onboardingController.show(appState: self.appState)
-        }
+        menuBarManager.setup(
+            appState: appState,
+            onOpen: { [weak self] section in
+                guard let self else { return }
+                self.mainWindowController.show(
+                    section: section,
+                    appState: self.appState,
+                    updater: self.updaterController.updater
+                )
+            },
+            onShowOnboarding: { [weak self] in
+                guard let self else { return }
+                self.onboardingController.show(appState: self.appState)
+            },
+            onCheckForUpdates: { [weak self] in
+                self?.updaterController.updater.checkForUpdates()
+            }
+        )
 
         keyMonitor.onRecordingStart = { [weak self] in
             guard let self else { return }
