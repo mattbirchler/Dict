@@ -231,6 +231,12 @@ final class StreamingTranscriptionService {
     }
 }
 
+extension StreamingTranscriptionService: TranscriptionEngine {
+    var isReady: Bool { isModelLoaded }
+    var needsDownload: Bool { true }
+    func prepare() async throws { try await ensureLoaded() }
+}
+
 enum StreamingTranscriptionError: LocalizedError {
     case modelNotLoaded
 

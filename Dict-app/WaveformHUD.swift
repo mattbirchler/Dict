@@ -57,7 +57,7 @@ struct WaveformHUD: View {
         }
         .padding(.horizontal, 24)
         .padding(.vertical, 12)
-        .background(.ultraThinMaterial, in: Capsule())
+        .glassEffect(.regular, in: .capsule)
     }
 
     private var statusText: String {

@@ -21,6 +21,7 @@ final class UpdaterViewModel: ObservableObject {
 
 struct GeneralSettingsTab: View {
     @Bindable var settings: SettingsStore
+    var appState: AppState
     @State private var loginItem = LoginItemManager()
 
     var body: some View {
@@ -68,14 +69,49 @@ struct GeneralSettingsTab: View {
             }
 
             Section {
+                Picker("Transcription engine", selection: $settings.transcriptionEngine) {
+                    ForEach(TranscriptionEngineChoice.allCases, id: \.self) { choice in
+                        Text(choice.displayName).tag(choice)
+                    }
+                }
+                Text(engineStatusCaption)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                if settings.transcriptionEngine == .whisper
+                    && !appState.isEngineReady && !appState.isPreparingEngine {
+                    Button("Download Whisper model (~1 GB)") { appState.prepareEngine() }
+                        .controlSize(.small)
+                }
+                if appState.isPreparingEngine && settings.transcriptionEngine == .whisper {
+                    ProgressView(value: appState.engineDownloadProgress)
+                        .progressViewStyle(.linear)
+                }
+            }
+
+            Section {
                 Toggle("Format transcripts", isOn: $settings.isFormattingEnabled)
                 Text("Add punctuation and capitalization with the on-device Apple Intelligence model. Turn off to insert the raw transcript as spoken.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                Toggle("Add a space after each dictation", isOn: $settings.appendTrailingSpace)
+                Text("Inserts a space after each result so you can dictate several sentences in separate chunks without pressing space between them.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
         }
         .formStyle(.grouped)
         .onAppear { loginItem.refresh() }
+    }
+
+    private var engineStatusCaption: String {
+        if appState.isPreparingEngine {
+            return settings.transcriptionEngine == .whisper ? "Downloading…" : "Preparing…"
+        }
+        if appState.isEngineReady {
+            return "\(settings.transcriptionEngine.displayName) is ready. \(settings.transcriptionEngine.blurb)"
+        }
+        return settings.transcriptionEngine.blurb
     }
 
     private var activationCaption: String {

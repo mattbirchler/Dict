@@ -44,7 +44,7 @@ struct MainWindow: View {
             case .history:
                 HistoryView(appState: appState)
             case .general:
-                GeneralSettingsTab(settings: appState.settings)
+                GeneralSettingsTab(settings: appState.settings, appState: appState)
                     .navigationTitle("General")
             case .about:
                 AboutSettingsTab(updater: updater)

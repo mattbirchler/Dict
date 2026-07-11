@@ -19,6 +19,7 @@ struct SettingsStoreTests {
         #expect(store.activationMode == .holdToTalk)
         #expect(store.isFormattingEnabled == true)
         #expect(store.historyLimit == .fifty)
+        #expect(store.appendTrailingSpace == false)
     }
 
     @Test func persistsAndReloads() {
@@ -28,12 +29,14 @@ struct SettingsStoreTests {
         store.activationMode = .toggle
         store.isFormattingEnabled = false
         store.historyLimit = .unlimited
+        store.appendTrailingSpace = true
 
         let reloaded = SettingsStore(defaults: defaults)
         #expect(reloaded.hotkey == .fn)
         #expect(reloaded.activationMode == .toggle)
         #expect(reloaded.isFormattingEnabled == false)
         #expect(reloaded.historyLimit == .unlimited)
+        #expect(reloaded.appendTrailingSpace == true)
     }
 
     @Test func migratesExistingFormattingKey() {
@@ -61,7 +64,38 @@ struct SettingsStoreTests {
         store.activationMode = .toggle
         store.isFormattingEnabled = false
         store.historyLimit = .ten
-        #expect(changes == [.hotkey, .activationMode, .formatting, .historyLimit])
+        store.appendTrailingSpace = true
+        #expect(changes == [.hotkey, .activationMode, .formatting, .historyLimit, .appendTrailingSpace])
+    }
+
+    @Test func defaultEngineIsAppleOnFreshInstall() {
+        let store = SettingsStore(defaults: makeDefaults())
+        #expect(store.transcriptionEngine == .apple)
+    }
+
+    @Test func existingUserMigratesToWhisper() {
+        // An upgrading user has already completed onboarding but has no engine
+        // key yet — they must keep Whisper, not be moved onto Apple.
+        let defaults = makeDefaults()
+        defaults.set(true, forKey: "hasCompletedOnboarding")
+        let store = SettingsStore(defaults: defaults)
+        #expect(store.transcriptionEngine == .whisper)
+    }
+
+    @Test func enginePersistsAndReloads() {
+        let defaults = makeDefaults()
+        let store = SettingsStore(defaults: defaults)
+        store.transcriptionEngine = .whisper
+        let reloaded = SettingsStore(defaults: defaults)
+        #expect(reloaded.transcriptionEngine == .whisper)
+    }
+
+    @Test func firesOnChangeForEngine() {
+        let store = SettingsStore(defaults: makeDefaults())
+        var changes: [SettingsStore.Change] = []
+        store.onChange = { changes.append($0) }
+        store.transcriptionEngine = .whisper
+        #expect(changes == [.transcriptionEngine])
     }
 
     @Test func historyLimitMapping() {
