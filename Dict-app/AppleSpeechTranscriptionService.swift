@@ -59,7 +59,10 @@ final class AppleSpeechTranscriptionService: TranscriptionEngine {
             }
         }
 
-        analyzerFormat = await SpeechAnalyzer.bestAvailableAudioFormat(compatibleWith: [transcriber])
+        guard let format = await SpeechAnalyzer.bestAvailableAudioFormat(compatibleWith: [transcriber]) else {
+            throw AppleSpeechError.audioFormatUnavailable
+        }
+        analyzerFormat = format
         isReady = true
     }
 
@@ -100,17 +103,28 @@ final class AppleSpeechTranscriptionService: TranscriptionEngine {
         let tapFormat = audioEngine.inputNode.outputFormat(forBus: 0)
         let converter = AVAudioConverter(from: tapFormat, to: analyzerFormat)
         let format = analyzerFormat
-        audioEngine.inputNode.installTap(onBus: 0, bufferSize: 4096, format: tapFormat) { [weak self] buffer, _ in
-            let level = Self.rmsLevel(buffer)
-            Task { @MainActor [weak self] in self?.appendEnergy(level) }
-            if let converter, let converted = Self.convert(buffer, using: converter, to: format) {
-                builder.yield(AnalyzerInput(buffer: converted))
+        do {
+            audioEngine.inputNode.installTap(onBus: 0, bufferSize: 4096, format: tapFormat) { [weak self] buffer, _ in
+                let level = Self.rmsLevel(buffer)
+                Task { @MainActor [weak self] in self?.appendEnergy(level) }
+                if let converter, let converted = Self.convert(buffer, using: converter, to: format) {
+                    builder.yield(AnalyzerInput(buffer: converted))
+                }
             }
+            audioEngine.prepare()
+            try audioEngine.start()
+            try await analyzer.start(inputSequence: inputSequence)
+        } catch {
+            // Roll back everything start() created so a failed attempt can't
+            // leak the tap (a second installTap on the same bus crashes) or
+            // orphan the results task / analyzer.
+            teardownAudio()
+            resultsTask?.cancel()
+            resultsTask = nil
+            self.analyzer = nil
+            print("[AppleSpeech] start failed, rolled back: \(error)")
+            throw error
         }
-        audioEngine.prepare()
-        try audioEngine.start()
-
-        try await analyzer.start(inputSequence: inputSequence)
         isRecording = true
         print("[AppleSpeech] Recording started")
     }
@@ -217,11 +231,13 @@ final class AppleSpeechTranscriptionService: TranscriptionEngine {
 enum AppleSpeechError: LocalizedError {
     case localeUnsupported
     case notPrepared
+    case audioFormatUnavailable
 
     var errorDescription: String? {
         switch self {
         case .localeUnsupported: "This language isn't supported by Apple's on-device speech engine."
         case .notPrepared: "The Apple speech engine isn't ready yet."
+        case .audioFormatUnavailable: "Couldn't find a compatible audio format for Apple's speech engine."
         }
     }
 }

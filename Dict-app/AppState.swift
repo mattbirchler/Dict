@@ -58,6 +58,20 @@ final class AppState {
     }
 
     private func handleEngineChange() {
+        // If the user switches engines mid-recording (the Settings picker is
+        // reachable during hands-free recording), tear down the engine that's
+        // actually recording before it becomes unreachable via `activeEngine`
+        // — otherwise its mic session is orphaned and the transcript is lost.
+        let previous = pipeline.activeEngine
+        if previous.isRecording {
+            previous.cancel()
+            if isRecording || isProcessing {
+                isRecording = false
+                isProcessing = false
+                onProcessingComplete?()   // dismiss the recording HUD
+            }
+        }
+
         pipeline.engineChoice = settings.transcriptionEngine
         engineDownloadProgress = 0
         refreshEngineReadiness()
@@ -89,9 +103,17 @@ final class AppState {
                 print("[AppState] Engine failed to prepare: \(error)")
                 lastError = "Speech engine failed to prepare."
             }
+            engine.onProgress = nil
             isPreparingEngine = false
             refreshEngineReadiness()
-            engine.onProgress = nil
+            // The user may have switched engines while this prepare was in
+            // flight (the shared `isPreparingEngine` flag made concurrent
+            // prepares no-op). If the now-active engine still needs preparing
+            // and it's the auto-prepared one (Apple), kick it off now so the
+            // UI can't get stuck "not ready, not preparing".
+            if !isEngineReady && settings.transcriptionEngine == .apple {
+                prepareEngine()
+            }
         }
     }
 
