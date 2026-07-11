@@ -51,13 +51,32 @@ enum HistoryLimit: String, CaseIterable {
     }
 }
 
+enum TranscriptionEngineChoice: String, CaseIterable {
+    case apple, whisper
+
+    var displayName: String {
+        switch self {
+        case .apple: "Apple"
+        case .whisper: "Whisper"
+        }
+    }
+
+    /// One-line tradeoff shown in onboarding / settings.
+    var blurb: String {
+        switch self {
+        case .apple: "Fast, already on your Mac. No download."
+        case .whisper: "More accurate, slower. ~1 GB download."
+        }
+    }
+}
+
 /// Owns every persisted preference. Each property writes UserDefaults on set
 /// and fires `onChange` so non-SwiftUI services (KeyMonitor, HistoryStore,
 /// PipelineCoordinator) can be reconfigured; SwiftUI observes directly.
 @MainActor
 @Observable
 final class SettingsStore {
-    enum Change { case hotkey, activationMode, formatting, historyLimit }
+    enum Change { case hotkey, activationMode, formatting, historyLimit, transcriptionEngine }
 
     @ObservationIgnored var onChange: ((Change) -> Void)?
     @ObservationIgnored private let defaults: UserDefaults
@@ -68,6 +87,7 @@ final class SettingsStore {
         // Pre-existing key from earlier builds — do not rename.
         static let isFormattingEnabled = "isFormattingEnabled"
         static let historyLimit = "historyLimit"
+        static let transcriptionEngine = "transcriptionEngine"
     }
 
     var hotkey: HotkeyChoice {
@@ -98,6 +118,13 @@ final class SettingsStore {
         }
     }
 
+    var transcriptionEngine: TranscriptionEngineChoice {
+        didSet {
+            defaults.set(transcriptionEngine.rawValue, forKey: Keys.transcriptionEngine)
+            onChange?(.transcriptionEngine)
+        }
+    }
+
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
         self.hotkey = defaults.string(forKey: Keys.hotkey)
@@ -107,5 +134,15 @@ final class SettingsStore {
         self.isFormattingEnabled = defaults.object(forKey: Keys.isFormattingEnabled) as? Bool ?? true
         self.historyLimit = defaults.string(forKey: Keys.historyLimit)
             .flatMap(HistoryLimit.init(rawValue:)) ?? .fifty
+        if let raw = defaults.string(forKey: Keys.transcriptionEngine),
+           let choice = TranscriptionEngineChoice(rawValue: raw) {
+            self.transcriptionEngine = choice
+        } else if defaults.bool(forKey: "hasCompletedOnboarding") {
+            // Existing user upgrading: keep Whisper so nothing changes for them.
+            self.transcriptionEngine = .whisper
+        } else {
+            // Fresh install: default to Apple (no 1 GB download to get started).
+            self.transcriptionEngine = .apple
+        }
     }
 }

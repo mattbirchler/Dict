@@ -64,6 +64,36 @@ struct SettingsStoreTests {
         #expect(changes == [.hotkey, .activationMode, .formatting, .historyLimit])
     }
 
+    @Test func defaultEngineIsAppleOnFreshInstall() {
+        let store = SettingsStore(defaults: makeDefaults())
+        #expect(store.transcriptionEngine == .apple)
+    }
+
+    @Test func existingUserMigratesToWhisper() {
+        // An upgrading user has already completed onboarding but has no engine
+        // key yet — they must keep Whisper, not be moved onto Apple.
+        let defaults = makeDefaults()
+        defaults.set(true, forKey: "hasCompletedOnboarding")
+        let store = SettingsStore(defaults: defaults)
+        #expect(store.transcriptionEngine == .whisper)
+    }
+
+    @Test func enginePersistsAndReloads() {
+        let defaults = makeDefaults()
+        let store = SettingsStore(defaults: defaults)
+        store.transcriptionEngine = .whisper
+        let reloaded = SettingsStore(defaults: defaults)
+        #expect(reloaded.transcriptionEngine == .whisper)
+    }
+
+    @Test func firesOnChangeForEngine() {
+        let store = SettingsStore(defaults: makeDefaults())
+        var changes: [SettingsStore.Change] = []
+        store.onChange = { changes.append($0) }
+        store.transcriptionEngine = .whisper
+        #expect(changes == [.transcriptionEngine])
+    }
+
     @Test func historyLimitMapping() {
         #expect(HistoryLimit.off.maxEntries == 0)
         #expect(HistoryLimit.ten.maxEntries == 10)
