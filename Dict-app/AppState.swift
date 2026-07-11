@@ -3,20 +3,18 @@ import Foundation
 @MainActor
 @Observable
 final class AppState {
+    let settings: SettingsStore
     let permissionChecker = PermissionChecker()
     let pipeline = PipelineCoordinator()
 
     var isEnabled = true {
         didSet { onEnabledChanged?(isEnabled) }
     }
-    var isFormattingEnabled: Bool {
-        didSet {
-            UserDefaults.standard.set(isFormattingEnabled, forKey: "isFormattingEnabled")
-            pipeline.isFormattingEnabled = isFormattingEnabled
-        }
-    }
     var onEnabledChanged: ((Bool) -> Void)?
     var onProcessingComplete: (() -> Void)?
+    /// Fired when the hotkey or activation mode setting changes so the
+    /// AppDelegate can reconfigure the KeyMonitor.
+    var onHotkeySettingsChanged: (() -> Void)?
     var isRecording = false
     var isProcessing = false
     var isLoadingWhisper = false
@@ -27,10 +25,21 @@ final class AppState {
         set { UserDefaults.standard.set(newValue, forKey: "hasCompletedOnboarding") }
     }
 
-    init() {
-        let formattingEnabled = UserDefaults.standard.object(forKey: "isFormattingEnabled") as? Bool ?? true
-        isFormattingEnabled = formattingEnabled
-        pipeline.isFormattingEnabled = formattingEnabled
+    init(settings: SettingsStore) {
+        self.settings = settings
+        pipeline.isFormattingEnabled = settings.isFormattingEnabled
+        pipeline.historyStore.limit = settings.historyLimit
+        settings.onChange = { [weak self] change in
+            guard let self else { return }
+            switch change {
+            case .formatting:
+                self.pipeline.isFormattingEnabled = self.settings.isFormattingEnabled
+            case .historyLimit:
+                self.pipeline.historyStore.limit = self.settings.historyLimit
+            case .hotkey, .activationMode:
+                self.onHotkeySettingsChanged?()
+            }
+        }
     }
 
     func preloadWhisperModel() {

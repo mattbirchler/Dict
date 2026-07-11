@@ -1,16 +1,27 @@
 import Foundation
 import SwiftData
 
+@MainActor
 @Observable
 final class HistoryStore {
     private let container: ModelContainer
-    private let maxEntries = 50
+
+    /// Retention policy, pushed in from SettingsStore. Lowering the limit
+    /// prunes immediately; .off stops saving but keeps existing entries.
+    var limit: HistoryLimit = .fifty {
+        didSet {
+            guard limit != oldValue else { return }
+            pruneOldEntries(context: container.mainContext)
+            try? container.mainContext.save()
+            fetchEntries()
+        }
+    }
 
     var recentEntries: [TranscriptionEntry] = []
 
-    init() {
+    init(inMemory: Bool = false) {
         let schema = Schema([TranscriptionEntry.self])
-        let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
+        let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: inMemory)
         do {
             self.container = try ModelContainer(for: schema, configurations: [config])
         } catch {
@@ -19,17 +30,23 @@ final class HistoryStore {
         fetchEntries()
     }
 
-    @MainActor
-    func save(cleanedText: String) {
+    func save(cleanedText: String, timestamp: Date = Date()) {
+        guard limit.savesHistory else { return }
         let context = container.mainContext
-        let entry = TranscriptionEntry(cleanedText: cleanedText)
+        let entry = TranscriptionEntry(cleanedText: cleanedText, timestamp: timestamp)
         context.insert(entry)
         pruneOldEntries(context: context)
         try? context.save()
         fetchEntries()
     }
 
-    @MainActor
+    func clearAll() {
+        let context = container.mainContext
+        try? context.delete(model: TranscriptionEntry.self)
+        try? context.save()
+        fetchEntries()
+    }
+
     func fetchEntries() {
         let context = container.mainContext
         let descriptor = FetchDescriptor<TranscriptionEntry>(
@@ -38,8 +55,8 @@ final class HistoryStore {
         recentEntries = (try? context.fetch(descriptor)) ?? []
     }
 
-    @MainActor
     private func pruneOldEntries(context: ModelContext) {
+        guard let maxEntries = limit.maxEntries, maxEntries > 0 else { return }
         let descriptor = FetchDescriptor<TranscriptionEntry>(
             sortBy: [SortDescriptor(\.timestamp, order: .reverse)]
         )
