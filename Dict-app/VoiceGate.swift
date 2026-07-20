@@ -27,7 +27,7 @@ enum VoiceGate {
 
     /// RMS energy per frame (the quantity WhisperKit's VAD thresholds).
     /// The final frame may be shorter than `frameSamples`.
-    static func frameEnergies(samples: [Float], frameSamples: Int) -> [Float] {
+    nonisolated static func frameEnergies(samples: [Float], frameSamples: Int) -> [Float] {
         guard frameSamples > 0, !samples.isEmpty else { return [] }
         var energies: [Float] = []
         energies.reserveCapacity(samples.count / frameSamples + 1)
@@ -46,7 +46,7 @@ enum VoiceGate {
 
     /// Voiced flags via an adaptive threshold:
     /// `max(absoluteFloor, min(floorMultiplier × 10th-pct, loudFraction × 90th-pct))`.
-    static func voiceActivity(energies: [Float]) -> [Bool] {
+    nonisolated static func voiceActivity(energies: [Float]) -> [Bool] {
         guard !energies.isEmpty else { return [] }
         let sorted = energies.sorted()
         let noiseFloor = sorted[min(sorted.count - 1, sorted.count / 10)]
@@ -66,7 +66,7 @@ enum VoiceGate {
     /// `trailingPaddingFrames` (defaults to `paddingFrames`) can be larger:
     /// trailing speech tends to be softer and Whisper needs context after
     /// the final word, so under-trimming the tail is the safe direction.
-    static func activeFrameRange(
+    nonisolated static func activeFrameRange(
         voiceActivity: [Bool],
         paddingFrames: Int,
         trailingPaddingFrames: Int? = nil,
