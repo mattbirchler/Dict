@@ -73,6 +73,21 @@ struct TranscriptAssemblerTests {
         #expect(!out.contains("  "))
     }
 
+    @Test func punctuationOnlyTokensDoNotCountAsOverlap() {
+        // "..." and "---" both normalize to the empty string (normalized()
+        // strips everything but letters/numbers), so without the
+        // `!lhs.isEmpty` guard in `matchingWindows` these two unrelated
+        // punctuation-only tokens would compare equal purely because both
+        // normalize to "", letting a 3-word run of punctuation falsely
+        // count as a repeated boundary phrase and get stripped from `next`.
+        // With the guard, punctuation-only tokens can never match, so no
+        // overlap is found here and nothing should be stripped.
+        let previous = "the meeting ended well ... ... ..."
+        let next = "--- --- --- we start the recap"
+        let out = TranscriptAssembler.assemble([previous, next])
+        #expect(out == previous + " " + next)
+    }
+
     @Test func overlapLongerThanComparisonWindowIsNotFullyDetected() {
         // The real repeated run here is 20 words, longer than
         // `comparisonWindow` (15). Because both sides of the comparison are

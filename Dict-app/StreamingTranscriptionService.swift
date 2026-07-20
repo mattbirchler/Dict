@@ -131,6 +131,21 @@ final class StreamingTranscriptionService {
         // this decode resolves after a NEW recording has already started
         // (and reset contextText), it doesn't append this stale session's
         // text into the new session's prompt context.
+        //
+        // This context carry-over is best-effort by design, not guaranteed:
+        // the NEXT chunk is enqueued as soon as the segmenter finds its
+        // boundary, whether or not THIS chunk's decode (awaited below) has
+        // resolved yet. If it hasn't, chunk N+1 gets enqueued with whatever
+        // contextText held before this append runs, so it's prompted with a
+        // stale (or, for the first two chunks, empty) tail instead of this
+        // chunk's actual text — and at stop() the final tail may miss the
+        // most recent chunk's text entirely. Blocking chunk N+1's enqueue on
+        // chunk N's decode would fix that but would also serialize chunk
+        // boundaries behind decode latency, defeating the point of
+        // streaming. It degrades gracefully instead: a missing/stale prompt
+        // just means TranscriptAssembler.deduplicated finds no boundary
+        // overlap to strip, so the seam is left un-deduplicated rather than
+        // wrong.
         let startedSession = session
         Task { @MainActor [weak self] in
             guard let text = await handle.value, !text.isEmpty else { return }
@@ -185,7 +200,6 @@ final class StreamingTranscriptionService {
         // decode can still be in flight.
         let tail = segmenter.finish()
         let queue = decodeQueue
-        decodeQueue = nil
 
         var streamedChunks: [String] = []
         var streamingFailed = false
@@ -199,7 +213,6 @@ final class StreamingTranscriptionService {
                     threshold: segmenter.sessionThreshold
                 ))
             }
-            streamingFailed = queue?.hasFailed ?? false
             if let queue {
                 streamedChunks = await queue.drain()
                 streamingFailed = streamingFailed || queue.hasFailed
@@ -217,6 +230,23 @@ final class StreamingTranscriptionService {
             // pipeline.
             if let queue { _ = await queue.chainTail().value }
             print("[Streaming] No chunk boundaries this session, using one-shot decode")
+        }
+        // Mirror cancel(): don't null out decodeQueue until this queue's
+        // work is actually finished (the drain()/chainTail() awaits above
+        // are suspension points). If a start() races in on this run loop
+        // while we're suspended there — a fast restart, same as cancel()
+        // guards against — it reads decodeQueue as `outgoingQueue` to seed
+        // its replacement via ChunkDecodeQueue.init(after:), so decodes
+        // stay serialized on the shared WhisperKit pipeline across the stop
+        // boundary too. Nilling it out early would make that seed empty,
+        // letting the new session's first decode run concurrently with a
+        // decode this queue still has in flight.
+        //
+        // If that race happened, decodeQueue now points at the NEW
+        // session's queue, not `queue` — leave it alone so stop() doesn't
+        // clobber a recording that's already started.
+        if decodeQueue === queue {
+            decodeQueue = nil
         }
         segmenter.reset()
         sampleCursor = 0
