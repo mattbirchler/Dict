@@ -24,10 +24,10 @@ struct TranscriptAssemblerTests {
 
     @Test func ignoresCaseAndPunctuationWhenMatching() {
         let out = TranscriptAssembler.assemble([
-            "the deadline is Friday.",
-            "Friday, and we cannot move it"
+            "we agreed the deadline is Friday.",
+            "The Deadline Is Friday, and we cannot move it"
         ])
-        #expect(out == "the deadline is Friday. and we cannot move it")
+        #expect(out == "we agreed the deadline is Friday. and we cannot move it")
     }
 
     @Test func doesNotStripShortIncidentalOverlap() {
