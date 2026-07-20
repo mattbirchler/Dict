@@ -22,6 +22,11 @@ final class StreamingTranscriptionService {
     /// Text decoded so far this session, used as decoder context for the
     /// next chunk.
     private var contextText = ""
+    /// Whether the segmenter ever completed a chunk mid-recording this
+    /// session (as opposed to only the final tail at stop()). A recording
+    /// short enough to never split gains nothing from streaming, so stop()
+    /// takes the one-shot fallback path for it instead of the chunk path.
+    private var hadStreamedChunk = false
 
     // Published state the HUD binds to.
     var audioEnergy: [Float] = []
@@ -78,8 +83,14 @@ final class StreamingTranscriptionService {
         segmenter.reset()
         sampleCursor = 0
         contextText = ""
+        hadStreamedChunk = false
         let pipeForDecode = pipe
-        decodeQueue = ChunkDecodeQueue { request in
+        // Seed the new queue's serialization chain from the outgoing one
+        // (if any) so a decode enqueued here can never run concurrently
+        // with an in-flight decode orphaned by a fast cancel()-then-start()
+        // (e.g. AppState.handleEngineChange switching engines mid-recording).
+        let outgoingQueue = decodeQueue
+        decodeQueue = ChunkDecodeQueue(after: outgoingQueue) { request in
             await Self.decodeChunk(pipe: pipeForDecode, request: request)
         }
 
@@ -109,17 +120,22 @@ final class StreamingTranscriptionService {
         let fresh = Array(all[sampleCursor..<all.count])
         sampleCursor = all.count
         guard let chunk = segmenter.append(fresh), let queue = decodeQueue else { return }
+        hadStreamedChunk = true
         let handle = queue.enqueue(ChunkDecodeQueue.Request(
             samples: chunk,
             promptText: contextText,
             threshold: segmenter.sessionThreshold
         ))
         // Extend the decoder context as soon as this chunk lands so the next
-        // chunk is prompted with it.
+        // chunk is prompted with it. Snapshot the session counter so that if
+        // this decode resolves after a NEW recording has already started
+        // (and reset contextText), it doesn't append this stale session's
+        // text into the new session's prompt context.
+        let startedSession = session
         Task { @MainActor [weak self] in
-            if let text = await handle.value, !text.isEmpty {
-                self?.contextText += (self?.contextText.isEmpty == true ? "" : " ") + text
-            }
+            guard let text = await handle.value, !text.isEmpty else { return }
+            guard let self, self.session == startedSession else { return }
+            self.contextText += (self.contextText.isEmpty ? "" : " ") + text
         }
         print("[Streaming] Chunk enqueued: \(chunk.count) samples")
     }
@@ -133,10 +149,15 @@ final class StreamingTranscriptionService {
         energyTimer?.invalidate()
         energyTimer = nil
         decodeQueue?.cancelAll()
-        decodeQueue = nil
+        // Deliberately NOT nilled out here: an already-running Core ML
+        // decode on this queue's chain can't be interrupted by cancelAll(),
+        // so the next start() seeds its replacement queue from this one
+        // (see ChunkDecodeQueue.init(after:decode:)) to keep decodes on the
+        // shared WhisperKit pipeline serialized across the cancel boundary.
         segmenter.reset()
         sampleCursor = 0
         contextText = ""
+        hadStreamedChunk = false
         pipe.audioProcessor.stopRecording()
         audioEnergy = []
         print("[Transcription] Recording cancelled — discarded")
@@ -155,27 +176,52 @@ final class StreamingTranscriptionService {
         pipe.audioProcessor.stopRecording()
         audioEnergy = []
 
+        // Consume everything captured since the last 0.05s timer tick —
+        // otherwise those samples never reach the segmenter and the tail
+        // chunk (and therefore the streamed result) clips the final words.
+        consumeNewAudio(from: pipe)
+
         // Take the tail and let it jump ahead of nothing: at most one chunk
         // decode can still be in flight.
         let tail = segmenter.finish()
         let queue = decodeQueue
         decodeQueue = nil
-        if let tail, let queue {
-            queue.enqueue(ChunkDecodeQueue.Request(
-                samples: tail,
-                promptText: contextText,
-                threshold: segmenter.sessionThreshold
-            ))
-        }
+
         var streamedChunks: [String] = []
-        var streamingFailed = queue?.hasFailed ?? false
-        if let queue {
-            streamedChunks = await queue.drain()
-            streamingFailed = streamingFailed || queue.hasFailed
+        var streamingFailed = false
+        if hadStreamedChunk {
+            // This session actually split into multiple chunks, so
+            // streaming bought something — run the real chunk path.
+            if let tail, let queue {
+                queue.enqueue(ChunkDecodeQueue.Request(
+                    samples: tail,
+                    promptText: contextText,
+                    threshold: segmenter.sessionThreshold
+                ))
+            }
+            streamingFailed = queue?.hasFailed ?? false
+            if let queue {
+                streamedChunks = await queue.drain()
+                streamingFailed = streamingFailed || queue.hasFailed
+            }
+        } else {
+            // The recording never produced a chunk boundary, so it's short
+            // enough that streaming gained nothing. Take the exact one-shot
+            // path below (with its VAD gate) instead of decoding the tail
+            // through the chunk path — per the spec, a recording that never
+            // split should be "naturally identical to today's behavior".
+            // A prior session's decode may still be seeded into this
+            // queue's chain (see cancel()) even though nothing was ever
+            // enqueued on it here; wait for that tail so the one-shot
+            // decode below never overlaps it on the shared WhisperKit
+            // pipeline.
+            if let queue { _ = await queue.chainTail().value }
+            print("[Streaming] No chunk boundaries this session, using one-shot decode")
         }
         segmenter.reset()
         sampleCursor = 0
         contextText = ""
+        hadStreamedChunk = false
 
         if !streamingFailed, !streamedChunks.isEmpty {
             let assembled = TranscriptAssembler.assemble(streamedChunks)
@@ -184,7 +230,9 @@ final class StreamingTranscriptionService {
                 return assembled
             }
         }
-        print("[Streaming] Falling back to one-shot decode (failed=\(streamingFailed), chunks=\(streamedChunks.count))")
+        if streamingFailed || !streamedChunks.isEmpty {
+            print("[Streaming] Falling back to one-shot decode (failed=\(streamingFailed), chunks=\(streamedChunks.count))")
+        }
 
         print("[Transcription] Recording stopped — \(samples.count) samples, transcribing...")
 

@@ -32,6 +32,32 @@ final class ChunkDecodeQueue {
         self.decode = decode
     }
 
+    /// Seeds this queue's serialization chain from a predecessor queue's
+    /// current chain tail, so the first decode enqueued here still waits
+    /// for whatever that predecessor had in flight. Needed because a
+    /// caller may replace the queue (e.g. cancel() followed by a fast
+    /// restart) while an uninterruptible Core ML decode from the outgoing
+    /// queue is still running on the shared WhisperKit pipeline — without
+    /// this, the new queue's chain starts empty and a decode enqueued on
+    /// it could run concurrently with that orphaned decode. Awaiting
+    /// `previous` happens inside a detached `Task`, so construction itself
+    /// never blocks on the predecessor.
+    init(after previous: ChunkDecodeQueue?, decode: @escaping @Sendable (Request) async -> String?) {
+        self.decode = decode
+        if let previous {
+            let tail = previous.chainTail()
+            chain = Task { _ = await tail.value }
+        }
+    }
+
+    /// The current tail of the serialization chain: resolves once every
+    /// decode enqueued so far (including any in-flight decode folded in by
+    /// `cancelAll()`) has actually finished. Exposed so a replacement queue
+    /// can seed its own chain from it (see `init(after:decode:)`).
+    func chainTail() -> Task<Void, Never> {
+        chain
+    }
+
     @discardableResult
     func enqueue(_ request: Request) -> Task<String?, Never> {
         let previous = chain
