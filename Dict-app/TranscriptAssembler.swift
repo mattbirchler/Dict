@@ -20,7 +20,14 @@ enum TranscriptAssembler {
                 result = trimmed
                 continue
             }
-            result += " " + deduplicated(previous: result, next: trimmed)
+            let remainder = deduplicated(previous: result, next: trimmed)
+            // A chunk can be entirely consumed by the boundary overlap (e.g.
+            // previous ends "...the new build" and next is exactly "the new
+            // build"). When that happens there's nothing left to append, so
+            // skip both the remainder and the separator space to avoid a
+            // stray double space in the transcript.
+            guard !remainder.isEmpty else { continue }
+            result += " " + remainder
         }
         return result
     }
@@ -38,7 +45,7 @@ enum TranscriptAssembler {
 
         var overlap = 0
         for length in stride(from: min(tail.count, head.count), through: minimumMatchWords, by: -1) {
-            if Array(tail.suffix(length)) == Array(head.prefix(length)) {
+            if matchingWindows(Array(tail.suffix(length)), Array(head.prefix(length))) {
                 overlap = length
                 break
             }
@@ -53,5 +60,15 @@ enum TranscriptAssembler {
 
     private static func normalized(_ word: String) -> String {
         word.lowercased().filter { $0.isLetter || $0.isNumber }
+    }
+
+    /// Compares two equal-length windows of normalized words, treating empty
+    /// normalized tokens (punctuation-only words like "-" or "...") as
+    /// unmatchable. Without this, two unrelated punctuation-only tokens would
+    /// both normalize to "" and compare equal, letting them falsely
+    /// contribute to a boundary overlap.
+    private static func matchingWindows(_ a: [String], _ b: [String]) -> Bool {
+        guard a.count == b.count else { return false }
+        return zip(a, b).allSatisfy { lhs, rhs in !lhs.isEmpty && lhs == rhs }
     }
 }

@@ -44,4 +44,45 @@ struct TranscriptAssemblerTests {
     @Test func handlesNoChunks() {
         #expect(TranscriptAssembler.assemble([]) == "")
     }
+
+    @Test func fullyConsumedChunkLeavesNoDoubleSpace() {
+        // The middle chunk is entirely swallowed as a boundary repeat of the
+        // previous chunk's tail, and the chunk after it must still join
+        // cleanly with a single space, not a stray double space.
+        let out = TranscriptAssembler.assemble([
+            "we should ship the new build",
+            "the new build",
+            "as long as tests pass"
+        ])
+        #expect(out == "we should ship the new build as long as tests pass")
+        #expect(!out.contains("  "))
+    }
+
+    @Test func assemblesThreeOrMoreChunksInSequence() {
+        let out = TranscriptAssembler.assemble([
+            "the meeting starts at nine am",
+            "at nine am we will review budget",
+            "we will review budget then adjourn"
+        ])
+        #expect(out == "the meeting starts at nine am we will review budget then adjourn")
+    }
+
+    @Test func skipsWhitespaceOnlyChunk() {
+        let out = TranscriptAssembler.assemble(["hello there", "   ", "world class"])
+        #expect(out == "hello there world class")
+        #expect(!out.contains("  "))
+    }
+
+    @Test func overlapLongerThanComparisonWindowIsNotFullyDetected() {
+        // The real repeated run here is 20 words, longer than
+        // `comparisonWindow` (15). Because both sides of the comparison are
+        // truncated to the window, the shifted 20-word run never lines up
+        // within the 15-word slices that get compared, so no overlap is
+        // found. The behavior is still sane: no crash, no partial/garbled
+        // words, just an un-deduplicated (fully duplicated) join.
+        let previous = "alpha bravo charlie delta echo foxtrot golf hotel india juliet kilo lima mike november oscar papa quebec romeo sierra tango uniform victor whiskey xray yankee"
+        let next = "foxtrot golf hotel india juliet kilo lima mike november oscar papa quebec romeo sierra tango uniform victor whiskey xray yankee"
+        let out = TranscriptAssembler.assemble([previous, next])
+        #expect(out == previous + " " + next)
+    }
 }
