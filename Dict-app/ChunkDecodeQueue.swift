@@ -17,6 +17,14 @@ final class ChunkDecodeQueue {
 
     private let decode: @Sendable (Request) async -> String?
     private var chain: Task<Void, Never> = Task {}
+    // Cleared by every `drain()` or `cancelAll()`, which are the only two
+    // ways a caller ever finishes with this queue: it is created fresh per
+    // recording session and one of those two is always called at the end of
+    // that session, so entries never accumulate beyond one session's worth
+    // of chunks. Each entry is just a `Task<String?, Never>` handle; the
+    // `Request` (including its `[Float]` sample buffer) is captured only by
+    // the task's operation closure, which releases it once the closure body
+    // returns, well before `drain()`/`cancelAll()` clears the array.
     private var handles: [Task<String?, Never>] = []
     private(set) var hasFailed = false
 
@@ -56,7 +64,18 @@ final class ChunkDecodeQueue {
 
     func cancelAll() {
         for handle in handles { handle.cancel() }
+        // A decode already past its cancellation check is running an
+        // uninterruptible Core ML inference and will keep running until it
+        // returns. Fold the cancelled handles into the replacement chain so
+        // any decode enqueued after this call still waits for that in-flight
+        // decode to actually finish, preserving the one-decode-at-a-time
+        // guarantee across the cancel boundary.
+        let cancelled = handles
         handles = []
-        chain = Task {}
+        chain = Task {
+            for handle in cancelled {
+                _ = await handle.value
+            }
+        }
     }
 }
