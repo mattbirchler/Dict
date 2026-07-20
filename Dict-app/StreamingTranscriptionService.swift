@@ -124,6 +124,7 @@ final class StreamingTranscriptionService {
         let frameDuration = gated.frameDuration
         print("[Transcription] Trimmed \(samples.count) samples to \(trimmedSamples.count)")
 
+        let decodeStarted = ProcessInfo.processInfo.systemUptime
         do {
             let options = DecodingOptions(
                 language: "en",
@@ -141,6 +142,12 @@ final class StreamingTranscriptionService {
                 voiceActivity: trimmedVoiceActivity,
                 frameDuration: frameDuration
             )
+            print(String(
+                format: "[Timing] oneshot decode=%.3fs audio=%.1fs chars=%d",
+                ProcessInfo.processInfo.systemUptime - decodeStarted,
+                Float(trimmedSamples.count) / Float(WhisperKit.sampleRate),
+                text.count
+            ))
             print("[Transcription] Result: \"\(text)\"")
             return text
         } catch {
