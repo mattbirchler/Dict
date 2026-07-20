@@ -284,7 +284,11 @@ final class StreamingTranscriptionService {
 
     /// Decodes one chunk with the previous chunk's text as decoder context.
     /// Returns nil on failure so the queue can mark the session degraded.
-    private nonisolated static func decodeChunk(
+    ///
+    /// Internal (not private) so StreamingEquivalenceTests can call the real
+    /// decode-and-context-carry path via `@testable import` instead of
+    /// re-implementing it, keeping the streaming ship gate honest.
+    nonisolated static func decodeChunk(
         pipe: WhisperKit,
         request: ChunkDecodeQueue.Request
     ) async -> String? {

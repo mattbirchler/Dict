@@ -57,26 +57,22 @@ struct StreamingEquivalenceTests {
             modelFolder: modelURL.path, load: true, download: false
         ))
 
-        // Chunked path, with context carry-over, mirroring decodeChunk.
+        // Chunked path, with context carry-over, calling the REAL production
+        // decodeChunk (internal for exactly this reason) instead of a copy of
+        // its body, so a regression in the actual decode-and-context-carry
+        // path is caught here.
         var context = ""
         var chunkTexts: [String] = []
         for chunk in chunks {
-            var options = DecodingOptions(
-                language: "en", temperature: 0.0,
-                skipSpecialTokens: true, wordTimestamps: false
+            let request = ChunkDecodeQueue.Request(
+                samples: chunk,
+                promptText: context,
+                threshold: segmenter.sessionThreshold
             )
-            if !context.isEmpty, let tokenizer = pipe.tokenizer {
-                options.promptTokens = Array(tokenizer.encode(text: String(context.suffix(200))).suffix(100))
-                options.usePrefillPrompt = true
+            guard let text = await StreamingTranscriptionService.decodeChunk(pipe: pipe, request: request) else {
+                Issue.record("decodeChunk returned nil for a chunk")
+                continue
             }
-            let results = try await pipe.transcribe(audioArray: chunk, decodeOptions: options)
-            let frameSamples = Int(0.1 * Float(WhisperKit.sampleRate))
-            let energies = VoiceGate.frameEnergies(samples: chunk, frameSamples: frameSamples)
-            let text = TranscriptFilter().filteredText(
-                segments: results.flatMap { $0.segments },
-                voiceActivity: VoiceGate.voiceActivity(energies: energies, threshold: segmenter.sessionThreshold),
-                frameDuration: 0.1
-            )
             if !text.isEmpty {
                 chunkTexts.append(text)
                 context += (context.isEmpty ? "" : " ") + text
@@ -85,12 +81,28 @@ struct StreamingEquivalenceTests {
         let streamed = TranscriptAssembler.assemble(chunkTexts).lowercased()
         print("[EQUIV] streamed: \"\(streamed)\"")
 
-        // Every sentence's distinctive words must survive chunking.
-        for phrase in ["ship the new build", "integration tests", "monday morning"] {
+        // Every sentence's distinctive words must survive chunking,
+        // including at chunk boundaries (start AND end), which is exactly
+        // where clipping happens. Leading words of sentence 1 and trailing
+        // words of every sentence are asserted so a regression that clips
+        // the head or tail of a chunk is actually caught.
+        for phrase in [
+            "i think", "ship the new build", "afternoon",
+            "integration tests", "release branch",
+            "monday morning", "try again",
+        ] {
             #expect(streamed.contains(phrase), "streamed output lost \"\(phrase)\"")
         }
     }
 
+    /// `isRecording` going false after stop() is near-tautological (stop()
+    /// always sets it), and there is no other production-observable state to
+    /// assert on without widening access purely for this test. This test's
+    /// real purpose is crash/state-leak detection: it repeatedly starts and
+    /// stops real recording sessions on real mic hardware and demands that
+    /// nothing crashes or wedges (e.g. a leaked segmenter/queue/context from
+    /// one session corrupting the next). It requires microphone access to
+    /// run.
     @Test func repeatedSessionsLeaveNoState() async throws {
         let service = await StreamingTranscriptionService()
         for session in 1...3 {
