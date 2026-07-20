@@ -11,6 +11,9 @@ struct SpeechSegmenterTests {
     private func silent(seconds: Double) -> [Float] {
         [Float](repeating: 0.0, count: Int(Double(WhisperKit.sampleRate) * seconds))
     }
+    private func tone(amplitude: Float, seconds: Double) -> [Float] {
+        [Float](repeating: amplitude, count: Int(Double(WhisperKit.sampleRate) * seconds))
+    }
 
     @Test func doesNotSplitBeforeMinimumChunkDuration() {
         var s = SpeechSegmenter()
@@ -58,5 +61,40 @@ struct SpeechSegmenterTests {
         _ = s.append(voiced(seconds: 2.0))
         s.reset()
         #expect(s.finish() == nil)
+    }
+
+    @Test func sessionThresholdSurvivesChunkBoundaryAndResetClearsIt() {
+        var s = SpeechSegmenter()
+
+        // First chunk: loud speech long enough to force a natural split
+        // once the trailing silence exceeds 0.6s.
+        #expect(s.append(voiced(seconds: 5.0)) == nil)
+        let firstChunk = s.append(silent(seconds: 1.0))
+        #expect(firstChunk != nil) // confirms the boundary was really crossed
+
+        // Second chunk, appended after the split: much quieter but still
+        // above the absolute floor, and long enough that its own frames
+        // would outnumber the first chunk's if the threshold only looked
+        // at this chunk in isolation.
+        let quieterChunk = tone(amplitude: 0.01, seconds: 20.0)
+        _ = s.append(quieterChunk)
+        let sessionWideThreshold = s.sessionThreshold
+
+        // A segmenter that only ever saw the quieter second chunk has no
+        // memory of the louder first chunk's energies.
+        var freshOnSecondChunkOnly = SpeechSegmenter()
+        _ = freshOnSecondChunkOnly.append(quieterChunk)
+        let secondChunkOnlyThreshold = freshOnSecondChunkOnly.sessionThreshold
+
+        // If the chunk boundary had reset `energies`, these would be equal.
+        // Instead the accumulated session is still shaped by the louder
+        // first chunk, pulling the threshold above both what the quiet
+        // chunk alone would produce and the absolute floor.
+        #expect(sessionWideThreshold > secondChunkOnlyThreshold)
+        #expect(sessionWideThreshold > VoiceGate.absoluteFloor)
+
+        // reset() is the only thing that clears the session-wide energies.
+        s.reset()
+        #expect(s.sessionThreshold == VoiceGate.absoluteFloor)
     }
 }

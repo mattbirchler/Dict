@@ -57,12 +57,25 @@ struct SpeechSegmenter {
         guard !samples.isEmpty else { return nil }
         pending.append(contentsOf: samples)
 
+        // Snapshot the threshold once per call rather than reading the
+        // `sessionThreshold` computed property inside the loop: that
+        // property sorts the entire session's `energies` every time, and
+        // this loop can run once per timer tick (every 0.05s) for the
+        // whole recording, so a per-frame sort makes append() cost grow
+        // quadratically with session length. The snapshot is taken here,
+        // before this call's frames are folded into `energies`, so it
+        // reflects everything known through the previous call; this call's
+        // own frames start influencing the threshold on the next call, a
+        // lag of at most one timer tick, which is immaterial to a value
+        // meant to track the session's noise floor over time.
+        let threshold = sessionThreshold
+
         while pending.count - analyzed >= frameSamples {
             let frame = Array(pending[analyzed..<(analyzed + frameSamples)])
             analyzed += frameSamples
             let rms = VoiceGate.frameEnergies(samples: frame, frameSamples: frameSamples).first ?? 0
             energies.append(rms)
-            if rms > sessionThreshold {
+            if rms > threshold {
                 hasVoice = true
                 voicedSamples += frameSamples
                 trailingSilenceSamples = 0
