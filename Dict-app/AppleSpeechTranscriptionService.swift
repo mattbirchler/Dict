@@ -28,15 +28,25 @@ final class AppleSpeechTranscriptionService: TranscriptionEngine {
 
     // MARK: - Prepare (asset install)
 
-    func prepare() async throws {
-        if isReady { return }
-        let transcriber = SpeechTranscriber(
+    /// A `SpeechTranscriber` may only ever be attached to one `SpeechAnalyzer`.
+    /// Reusing one across sessions traps inside `SpeechAnalyzer.setWorkers`, so
+    /// every analyzer gets a freshly built module. Construction is cheap — the
+    /// expensive part is asset installation, which is system-wide and already
+    /// done by `prepare()`.
+    private func makeTranscriber() -> SpeechTranscriber {
+        SpeechTranscriber(
             locale: locale,
             transcriptionOptions: [],
             reportingOptions: [.volatileResults],
             attributeOptions: []
         )
-        self.transcriber = transcriber
+    }
+
+    func prepare() async throws {
+        if isReady { return }
+        // Only used here to resolve locale support, asset state and audio
+        // format; the recording session builds its own in start().
+        let transcriber = makeTranscriber()
 
         let supported = await SpeechTranscriber.supportedLocales.contains {
             $0.identifier(.bcp47) == locale.identifier(.bcp47)
@@ -70,11 +80,15 @@ final class AppleSpeechTranscriptionService: TranscriptionEngine {
 
     func start() async throws {
         guard !isRecording else { return }
-        guard isReady, let transcriber, let analyzerFormat else {
+        guard isReady, let analyzerFormat else {
             throw AppleSpeechError.notPrepared
         }
         finalizedText = AttributedString()
         audioEnergy = []
+
+        // Fresh module per session — see makeTranscriber().
+        let transcriber = makeTranscriber()
+        self.transcriber = transcriber
 
         let analyzer = SpeechAnalyzer(modules: [transcriber])
         self.analyzer = analyzer
@@ -137,6 +151,7 @@ final class AppleSpeechTranscriptionService: TranscriptionEngine {
         resultsTask = nil
         let analyzer = self.analyzer
         self.analyzer = nil
+        self.transcriber = nil
         finalizedText = AttributedString()
         audioEnergy = []
         Task { await analyzer?.cancelAndFinishNow() }
@@ -157,6 +172,7 @@ final class AppleSpeechTranscriptionService: TranscriptionEngine {
         await resultsTask?.value
         resultsTask = nil
         analyzer = nil
+        transcriber = nil
         audioEnergy = []
 
         let text = Self.plainText(finalizedText).trimmingCharacters(in: .whitespacesAndNewlines)
