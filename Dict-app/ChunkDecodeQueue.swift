@@ -70,9 +70,23 @@ final class ChunkDecodeQueue {
         // any decode enqueued after this call still waits for that in-flight
         // decode to actually finish, preserving the one-decode-at-a-time
         // guarantee across the cancel boundary.
+        //
+        // Also fold in the OUTGOING `chain`, not just `handles`. A prior
+        // `cancelAll()` may already have folded an in-flight decode into
+        // `chain` while `handles` was cleared to []; if this call only
+        // considered `handles`, it would rebuild `chain` from an empty list
+        // that resolves immediately, silently orphaning that earlier fold
+        // and letting a subsequently enqueued decode start while the
+        // original in-flight decode is still running. Awaiting the prior
+        // chain here is safe from deadlock: `chain` is always replaced with
+        // a brand new `Task` before capture, so `priorChain` is always a
+        // distinct, already-in-flight (or already-resolved) task, never
+        // this new task itself.
+        let priorChain = chain
         let cancelled = handles
         handles = []
         chain = Task {
+            _ = await priorChain.value
             for handle in cancelled {
                 _ = await handle.value
             }

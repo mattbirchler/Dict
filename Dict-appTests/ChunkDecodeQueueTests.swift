@@ -125,6 +125,41 @@ struct ChunkDecodeQueueTests {
         _ = await slowHandle.value
         #expect(await counter.maxConcurrent == 1)
     }
+
+    /// Proves the double-`cancelAll()` fix: the first `cancelAll()` folds
+    /// the in-flight "slow" decode into a replacement chain; a second
+    /// `cancelAll()` called before that chain resolves must fold the
+    /// OUTGOING chain too, not just the (now empty) `handles` array. If it
+    /// doesn't, the second chain resolves immediately from an empty list,
+    /// orphaning the first chain, and a decode enqueued afterward starts
+    /// while "slow" is still executing.
+    @Test func doubleCancelAllStillWaitsForInFlightDecode() async {
+        let counter = Counter()
+        let gate = StartGate()
+        let queue = ChunkDecodeQueue { req in
+            await counter.enter()
+            if req.promptText == "slow" {
+                await gate.signalStarted()
+                try? await Task.sleep(for: .milliseconds(150))
+            } else {
+                try? await Task.sleep(for: .milliseconds(10))
+            }
+            await counter.leave()
+            return req.promptText
+        }
+
+        let slowHandle = queue.enqueue(request("slow"))
+        // Wait until "slow" is genuinely past its cancellation guard and
+        // running the uninterruptible work.
+        await gate.waitForStart()
+        queue.cancelAll()
+        queue.cancelAll()
+        let fastHandle = queue.enqueue(request("fast"))
+
+        _ = await fastHandle.value
+        _ = await slowHandle.value
+        #expect(await counter.maxConcurrent == 1)
+    }
 }
 
 /// Tracks peak concurrency to prove the queue serializes.
