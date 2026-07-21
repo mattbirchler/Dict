@@ -44,18 +44,24 @@ enum VoiceGate {
         return energies
     }
 
-    /// Voiced flags via an adaptive threshold:
+    /// The adaptive voiced/unvoiced threshold for a set of frame energies:
     /// `max(absoluteFloor, min(floorMultiplier × 10th-pct, loudFraction × 90th-pct))`.
-    static func voiceActivity(energies: [Float]) -> [Bool] {
-        guard !energies.isEmpty else { return [] }
+    /// Extracted so the live segmenter and the batch gate agree on one formula.
+    static func threshold(energies: [Float]) -> Float {
+        guard !energies.isEmpty else { return absoluteFloor }
         let sorted = energies.sorted()
         let noiseFloor = sorted[min(sorted.count - 1, sorted.count / 10)]
         let loud = sorted[min(sorted.count - 1, sorted.count * 9 / 10)]
-        let threshold = max(
-            absoluteFloor,
-            min(noiseFloor * floorMultiplier, loud * loudFraction)
-        )
-        return energies.map { $0 > threshold }
+        return max(absoluteFloor, min(noiseFloor * floorMultiplier, loud * loudFraction))
+    }
+
+    static func voiceActivity(energies: [Float], threshold: Float) -> [Bool] {
+        energies.map { $0 > threshold }
+    }
+
+    static func voiceActivity(energies: [Float]) -> [Bool] {
+        guard !energies.isEmpty else { return [] }
+        return voiceActivity(energies: energies, threshold: threshold(energies: energies))
     }
 
     /// The frame range spanning first-to-last voice activity, padded on
