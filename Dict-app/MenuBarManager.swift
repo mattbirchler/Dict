@@ -10,6 +10,12 @@ final class MenuBarManager: NSObject, NSMenuDelegate {
     private var onOpen: ((MainSection) -> Void)?
     private var onShowOnboarding: (() -> Void)?
     private var onCheckForUpdates: (() -> Void)?
+    /// Mirrors "a model download is running" so the status icon and the menu
+    /// can show it. Kept as stored state (rather than reading AppState in
+    /// menuNeedsUpdate only) because the icon must also update while the
+    /// menu is closed.
+    private var isDownloadingModel = false
+    private var downloadPercent = 0
 
     func setup(
         appState: AppState,
@@ -34,6 +40,54 @@ final class MenuBarManager: NSObject, NSMenuDelegate {
         statusItem.menu = menu
 
         self.statusItem = statusItem
+        observeDownloadState()
+    }
+
+    // MARK: - Model-download indicator
+
+    /// Re-registers observation of AppState's download mirror so the status
+    /// icon reflects an in-flight model download even while the menu is
+    /// closed. `withObservationTracking` fires its onChange once, so each
+    /// change re-arms the observation after refreshing.
+    private func observeDownloadState() {
+        guard let appState else { return }
+        withObservationTracking {
+            _ = appState.isPreparingEngine
+            _ = appState.engineNeedsDownload
+            _ = appState.engineDownloadProgress
+        } onChange: { [weak self] in
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                self.refreshDownloadIndicator()
+                self.observeDownloadState()
+            }
+        }
+        refreshDownloadIndicator()
+    }
+
+    private func refreshDownloadIndicator() {
+        guard let appState, let button = statusItem?.button else { return }
+        let downloading = appState.isPreparingEngine && appState.engineNeedsDownload
+        let percent = min(100, max(0, Int(appState.engineDownloadProgress * 100)))
+        guard downloading != isDownloadingModel || (downloading && percent != downloadPercent) else {
+            return
+        }
+        isDownloadingModel = downloading
+        downloadPercent = percent
+
+        if downloading {
+            button.image = NSImage(
+                systemSymbolName: "arrow.down.circle",
+                accessibilityDescription: "Dict: downloading speech model"
+            )
+            button.toolTip = "Downloading speech model: \(percent)%"
+        } else {
+            button.image = NSImage(
+                systemSymbolName: "waveform",
+                accessibilityDescription: "Dict"
+            )
+            button.toolTip = nil
+        }
     }
 
     /// Rebuilt each time the menu opens, so the Dictation-Enabled checkmark and
@@ -41,6 +95,17 @@ final class MenuBarManager: NSObject, NSMenuDelegate {
     func menuNeedsUpdate(_ menu: NSMenu) {
         menu.removeAllItems()
         guard let appState else { return }
+
+        if isDownloadingModel {
+            let downloading = NSMenuItem(
+                title: "Downloading speech model: \(downloadPercent)%",
+                action: nil,
+                keyEquivalent: ""
+            )
+            downloading.isEnabled = false
+            menu.addItem(downloading)
+            menu.addItem(.separator())
+        }
 
         let enabled = NSMenuItem(
             title: "Dictation Enabled",
