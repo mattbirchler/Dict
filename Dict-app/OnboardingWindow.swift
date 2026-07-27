@@ -86,14 +86,14 @@ struct OnboardingView: View {
                         .frame(width: 32)
 
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(appState.settings.transcriptionEngine == .whisper ? "Whisper Model" : "Apple Speech")
+                        Text(appState.settings.transcriptionEngine.modelDisplayName)
                             .font(.headline)
                         if appState.isEngineReady {
                             Text("Ready")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         } else if appState.isPreparingEngine {
-                            if appState.settings.transcriptionEngine == .whisper {
+                            if appState.engineNeedsDownload {
                                 ProgressView(value: appState.engineDownloadProgress)
                                     .progressViewStyle(.linear)
                             } else {
@@ -101,8 +101,9 @@ struct OnboardingView: View {
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                             }
-                        } else if appState.settings.transcriptionEngine == .whisper {
-                            Text("Download speech model (~1 GB)")
+                        } else if let downloadPrompt = appState.settings.transcriptionEngine.downloadPrompt,
+                                  appState.engineNeedsDownload {
+                            Text(downloadPrompt)
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         } else {
@@ -121,7 +122,7 @@ struct OnboardingView: View {
                     } else if appState.isPreparingEngine {
                         ProgressView()
                             .controlSize(.small)
-                    } else if appState.settings.transcriptionEngine == .whisper {
+                    } else if appState.engineNeedsDownload {
                         Button("Download") { appState.prepareEngine() }
                             .buttonStyle(.bordered)
                             .controlSize(.small)
@@ -159,14 +160,13 @@ struct OnboardingView: View {
                 Task { await appState.permissionChecker.requestMicrophone() }
             }
             appState.refreshEngineReadiness()
-            if appState.settings.transcriptionEngine == .apple
-                && !appState.isEngineReady && !appState.isPreparingEngine {
+            if appState.canAutoPrepare && !appState.isEngineReady && !appState.isPreparingEngine {
                 appState.prepareEngine()
             }
         }
-        .onChange(of: appState.settings.transcriptionEngine) { _, newValue in
+        .onChange(of: appState.settings.transcriptionEngine) { _, _ in
             appState.refreshEngineReadiness()
-            if newValue == .apple && !appState.isEngineReady && !appState.isPreparingEngine {
+            if appState.canAutoPrepare && !appState.isEngineReady && !appState.isPreparingEngine {
                 appState.prepareEngine()
             }
         }

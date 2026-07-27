@@ -52,11 +52,12 @@ enum HistoryLimit: String, CaseIterable {
 }
 
 enum TranscriptionEngineChoice: String, CaseIterable {
-    case apple, whisper
+    case apple, parakeet, whisper
 
     var displayName: String {
         switch self {
         case .apple: "Apple"
+        case .parakeet: "Parakeet"
         case .whisper: "Whisper"
         }
     }
@@ -65,7 +66,26 @@ enum TranscriptionEngineChoice: String, CaseIterable {
     var blurb: String {
         switch self {
         case .apple: "Fast, already on your Mac. No download."
-        case .whisper: "More accurate, slower. ~1 GB download."
+        case .parakeet: "Most accurate, near-instant results. ~500 MB download."
+        case .whisper: "Accurate but slower. ~1 GB download."
+        }
+    }
+
+    /// Name of the engine's model shown in the onboarding readiness row.
+    var modelDisplayName: String {
+        switch self {
+        case .apple: "Apple Speech"
+        case .parakeet: "Parakeet Model"
+        case .whisper: "Whisper Model"
+        }
+    }
+
+    /// Label for the explicit download step; nil when the engine has none.
+    var downloadPrompt: String? {
+        switch self {
+        case .apple: nil
+        case .parakeet: "Download Parakeet model (~500 MB)"
+        case .whisper: "Download Whisper model (~1 GB)"
         }
     }
 }

@@ -78,10 +78,23 @@ final class AppState {
         pipeline.engineChoice = settings.transcriptionEngine
         engineDownloadProgress = 0
         refreshEngineReadiness()
-        // Apple prepares cheaply (no big download) — do it automatically.
-        // Whisper's 1 GB download stays explicit (user taps Download in the UI).
-        if settings.transcriptionEngine == .apple && !isEngineReady {
+        // Engines that can prepare cheaply (no big download pending) do so
+        // automatically: Apple always, Parakeet once its model is on disk.
+        // First-time model downloads stay explicit (user taps Download in
+        // the UI).
+        if canAutoPrepare && !isEngineReady {
             prepareEngine()
+        }
+    }
+
+    /// True when preparing the selected engine involves no user-visible
+    /// model download, so it can be kicked off without an explicit tap.
+    /// Internal so OnboardingWindow's auto-prepare hooks share the policy.
+    var canAutoPrepare: Bool {
+        switch settings.transcriptionEngine {
+        case .apple: true
+        case .parakeet: !engineNeedsDownload
+        case .whisper: false
         }
     }
 
@@ -112,9 +125,9 @@ final class AppState {
             // The user may have switched engines while this prepare was in
             // flight (the shared `isPreparingEngine` flag made concurrent
             // prepares no-op). If the now-active engine still needs preparing
-            // and it's the auto-prepared one (Apple), kick it off now so the
-            // UI can't get stuck "not ready, not preparing".
-            if !isEngineReady && settings.transcriptionEngine == .apple {
+            // and it's one that auto-prepares, kick it off now so the UI
+            // can't get stuck "not ready, not preparing".
+            if !isEngineReady && canAutoPrepare {
                 prepareEngine()
             }
         }

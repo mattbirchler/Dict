@@ -77,12 +77,13 @@ struct GeneralSettingsTab: View {
                 Text(engineStatusCaption)
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                if settings.transcriptionEngine == .whisper
-                    && !appState.isEngineReady && !appState.isPreparingEngine {
-                    Button("Download Whisper model (~1 GB)") { appState.prepareEngine() }
+                if let downloadPrompt = settings.transcriptionEngine.downloadPrompt,
+                   appState.engineNeedsDownload,
+                   !appState.isEngineReady, !appState.isPreparingEngine {
+                    Button(downloadPrompt) { appState.prepareEngine() }
                         .controlSize(.small)
                 }
-                if appState.isPreparingEngine && settings.transcriptionEngine == .whisper {
+                if appState.isPreparingEngine && appState.engineNeedsDownload {
                     ProgressView(value: appState.engineDownloadProgress)
                         .progressViewStyle(.linear)
                 }
@@ -106,7 +107,7 @@ struct GeneralSettingsTab: View {
 
     private var engineStatusCaption: String {
         if appState.isPreparingEngine {
-            return settings.transcriptionEngine == .whisper ? "Downloading…" : "Preparing…"
+            return appState.engineNeedsDownload ? "Downloading…" : "Preparing…"
         }
         if appState.isEngineReady {
             return "\(settings.transcriptionEngine.displayName) is ready. \(settings.transcriptionEngine.blurb)"
@@ -160,7 +161,7 @@ struct AboutSettingsTab: View {
             }
             .disabled(!updaterViewModel.canCheckForUpdates)
 
-            Text("Built with WhisperKit and Sparkle.")
+            Text("Built with WhisperKit, FluidAudio, and Sparkle.")
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
         }

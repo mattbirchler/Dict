@@ -5,6 +5,7 @@ import Foundation
 final class PipelineCoordinator {
     let whisperEngine = StreamingTranscriptionService()
     let appleEngine = AppleSpeechTranscriptionService()
+    let parakeetEngine = ParakeetTranscriptionService()
     let textInsertionService = TextInsertionService()
     let historyStore = HistoryStore()
     private let formatter = TranscriptFormatter()
@@ -21,6 +22,7 @@ final class PipelineCoordinator {
     var activeEngine: any TranscriptionEngine {
         switch engineChoice {
         case .apple: appleEngine
+        case .parakeet: parakeetEngine
         case .whisper: whisperEngine
         }
     }
