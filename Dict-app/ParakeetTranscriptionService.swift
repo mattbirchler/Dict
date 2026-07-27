@@ -129,7 +129,7 @@ final class ParakeetTranscriptionService: TranscriptionEngine {
 
     func stop() async -> String {
         session += 1
-        guard isRecording, let manager else { return "" }
+        guard isRecording, manager != nil else { return "" }
         isRecording = false
         teardownAudio()
         audioEnergy = []
@@ -146,6 +146,14 @@ final class ParakeetTranscriptionService: TranscriptionEngine {
         }
 
         print("[Parakeet] Recording stopped — \(samples.count) samples, transcribing...")
+        return await transcribeRecording(samples)
+    }
+
+    /// Decodes one full recording with a fresh decoder state. Internal (not
+    /// private) so the end-to-end test can drive the exact production decode
+    /// path via `@testable import` instead of re-implementing it.
+    func transcribeRecording(_ samples: [Float]) async -> String {
+        guard let manager else { return "" }
         let decodeStarted = ProcessInfo.processInfo.systemUptime
         do {
             var decoderState = try TdtDecoderState(decoderLayers: await manager.decoderLayerCount)
