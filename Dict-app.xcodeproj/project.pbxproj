@@ -108,6 +108,7 @@
 				C96B0FF92F829E4B008ECDBA /* TTSKit */,
 				C96B0FFB2F829E4B008ECDBA /* WhisperKit */,
 				C9893E222F87284E00707FF3 /* Sparkle */,
+				C9FA0D022FB2000000000002 /* FluidAudio */,
 			);
 			productName = "Dict-app";
 			productReference = C95EB2BF2F7FF45300B3F4AE /* Dict-app.app */;
@@ -163,6 +164,7 @@
 			packageReferences = (
 				C96B0FF62F829E4B008ECDBA /* XCRemoteSwiftPackageReference "WhisperKit" */,
 				C9893E212F87284E00707FF3 /* XCRemoteSwiftPackageReference "Sparkle" */,
+				C9FA0D012FB2000000000001 /* XCRemoteSwiftPackageReference "FluidAudio" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = C95EB2C02F7FF45300B3F4AE /* Products */;
@@ -504,6 +506,14 @@
 				minimumVersion = 2.9.1;
 			};
 		};
+		C9FA0D012FB2000000000001 /* XCRemoteSwiftPackageReference "FluidAudio" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/FluidInference/FluidAudio.git";
+			requirement = {
+				kind = exactVersion;
+				version = 0.15.5;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -526,6 +536,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = C9893E212F87284E00707FF3 /* XCRemoteSwiftPackageReference "Sparkle" */;
 			productName = Sparkle;
+		};
+		C9FA0D022FB2000000000002 /* FluidAudio */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C9FA0D012FB2000000000001 /* XCRemoteSwiftPackageReference "FluidAudio" */;
+			productName = FluidAudio;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
