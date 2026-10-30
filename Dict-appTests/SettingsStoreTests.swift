@@ -20,6 +20,22 @@ struct SettingsStoreTests {
         #expect(store.isFormattingEnabled == true)
         #expect(store.historyLimit == .fifty)
         #expect(store.appendTrailingSpace == false)
+        #expect(store.smartLeadingSpace == true)
+        #expect(store.wordReplacements.isEmpty)
+    }
+
+    @Test func spacingAndReplacementsPersistAndReload() {
+        let defaults = makeDefaults()
+        let store = SettingsStore(defaults: defaults)
+        var changes: [SettingsStore.Change] = []
+        store.onChange = { changes.append($0) }
+        store.smartLeadingSpace = false
+        store.wordReplacements = [WordReplacement(spoken: "clod code", replacement: "Claude Code")]
+        #expect(changes == [.smartLeadingSpace, .wordReplacements])
+
+        let reloaded = SettingsStore(defaults: defaults)
+        #expect(reloaded.smartLeadingSpace == false)
+        #expect(reloaded.wordReplacements == store.wordReplacements)
     }
 
     @Test func persistsAndReloads() {

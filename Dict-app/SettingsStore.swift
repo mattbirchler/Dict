@@ -96,7 +96,7 @@ enum TranscriptionEngineChoice: String, CaseIterable {
 @MainActor
 @Observable
 final class SettingsStore {
-    enum Change { case hotkey, activationMode, formatting, historyLimit, transcriptionEngine, appendTrailingSpace }
+    enum Change { case hotkey, activationMode, formatting, historyLimit, transcriptionEngine, appendTrailingSpace, smartLeadingSpace, wordReplacements }
 
     @ObservationIgnored var onChange: ((Change) -> Void)?
     @ObservationIgnored private let defaults: UserDefaults
@@ -109,6 +109,8 @@ final class SettingsStore {
         static let historyLimit = "historyLimit"
         static let transcriptionEngine = "transcriptionEngine"
         static let appendTrailingSpace = "appendTrailingSpace"
+        static let smartLeadingSpace = "smartLeadingSpace"
+        static let wordReplacements = "wordReplacements"
     }
 
     var hotkey: HotkeyChoice {
@@ -153,6 +155,24 @@ final class SettingsStore {
         }
     }
 
+    var smartLeadingSpace: Bool {
+        didSet {
+            defaults.set(smartLeadingSpace, forKey: Keys.smartLeadingSpace)
+            onChange?(.smartLeadingSpace)
+        }
+    }
+
+    /// Stored as JSON; rules with an empty spoken phrase are kept so a row
+    /// being edited in the UI doesn't vanish, and skipped when applied.
+    var wordReplacements: [WordReplacement] {
+        didSet {
+            if let data = try? JSONEncoder().encode(wordReplacements) {
+                defaults.set(data, forKey: Keys.wordReplacements)
+            }
+            onChange?(.wordReplacements)
+        }
+    }
+
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
         self.hotkey = defaults.string(forKey: Keys.hotkey)
@@ -173,5 +193,8 @@ final class SettingsStore {
             self.transcriptionEngine = .apple
         }
         self.appendTrailingSpace = defaults.object(forKey: Keys.appendTrailingSpace) as? Bool ?? false
+        self.smartLeadingSpace = defaults.object(forKey: Keys.smartLeadingSpace) as? Bool ?? true
+        self.wordReplacements = defaults.data(forKey: Keys.wordReplacements)
+            .flatMap { try? JSONDecoder().decode([WordReplacement].self, from: $0) } ?? []
     }
 }

@@ -34,4 +34,18 @@ struct PipelineEngineSelectionTests {
         #expect(pipeline.engineChoice == .apple)
         #expect(pipeline.activeEngine === pipeline.appleEngine)
     }
+
+    @Test func parakeetSkipsFormattingOutsideCodingApps() {
+        #expect(!PipelineCoordinator.shouldFormat(enabled: true, engine: .parakeet, context: .general))
+        #expect(PipelineCoordinator.shouldFormat(enabled: true, engine: .parakeet, context: .coding))
+        #expect(PipelineCoordinator.shouldFormat(enabled: true, engine: .apple, context: .general))
+        #expect(PipelineCoordinator.shouldFormat(enabled: true, engine: .whisper, context: .general))
+        #expect(!PipelineCoordinator.shouldFormat(enabled: false, engine: .apple, context: .coding))
+    }
+
+    @Test func parakeetPadsBothEdgesWithSilence() {
+        let samples: [Float] = [0.5, -0.5]
+        let padded = ParakeetTranscriptionService.padded(samples, seconds: 0.25, sampleRate: 16)
+        #expect(padded == [0, 0, 0, 0, 0.5, -0.5, 0, 0, 0, 0])
+    }
 }

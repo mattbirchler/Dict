@@ -16,6 +16,12 @@ final class PipelineCoordinator {
     /// Mirrors the user's "space after each dictation" setting; owned by AppState.
     var appendTrailingSpace = false
 
+    /// Mirrors the user's "space before dictation when needed" setting; owned by AppState.
+    var smartLeadingSpace = true
+
+    /// Mirrors the user's word-replacement list; owned by AppState.
+    var wordReplacements: [WordReplacement] = []
+
     /// Mirrors the user's transcription-engine setting; owned by AppState.
     var engineChoice: TranscriptionEngineChoice = .apple
 
@@ -54,16 +60,30 @@ final class PipelineCoordinator {
 
         let bundleID = NSWorkspace.shared.frontmostApplication?.bundleIdentifier
         let context: FormattingContext = CodingAppCatalog.isCodingApp(bundleID) ? .coding : .general
-        let text = isFormattingEnabled ? await formatter.format(rawText, context: context) : rawText
+        let shouldFormat = Self.shouldFormat(enabled: isFormattingEnabled, engine: engineChoice, context: context)
+        let formatted = shouldFormat ? await formatter.format(rawText, context: context) : rawText
+        let text = WordReplacement.apply(wordReplacements, to: formatted)
 
         historyStore.save(cleanedText: text)
         print("[Pipeline] Saved to history. Inserting text...")
-        // Append the separator space to the inserted text only — History keeps
+        // Add separator spaces to the inserted text only — History keeps
         // the clean text so the list stays tidy.
-        let textToInsert = appendTrailingSpace ? text + " " : text
-        await textInsertionService.insertText(textToInsert)
+        var textToInsert = appendTrailingSpace ? text + " " : text
+        if smartLeadingSpace,
+           SmartSpacing.needsLeadingSpace(preceding: textInsertionService.characterBeforeCursor(), text: text) {
+            textToInsert = " " + textToInsert
+        }
+        textInsertionService.insertText(textToInsert)
         print("[Pipeline] Text inserted")
 
         return text
+    }
+
+    /// Parakeet already punctuates and capitalizes, so outside coding apps
+    /// the LLM pass only adds latency and a chance of dropped words. In
+    /// coding apps it still earns its keep fixing technical terms.
+    static func shouldFormat(enabled: Bool, engine: TranscriptionEngineChoice, context: FormattingContext) -> Bool {
+        guard enabled else { return false }
+        return engine != .parakeet || context == .coding
     }
 }

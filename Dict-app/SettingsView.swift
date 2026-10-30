@@ -91,7 +91,12 @@ struct GeneralSettingsTab: View {
 
             Section {
                 Toggle("Format transcripts", isOn: $settings.isFormattingEnabled)
-                Text("Add punctuation and capitalization with the on-device Apple Intelligence model. In coding and terminal apps, it also fixes technical terms like \u{201C}main\u{201D} and \u{201C}git.\u{201D} Turn off to insert the raw transcript as spoken.")
+                Text("Add punctuation and capitalization with the on-device Apple Intelligence model. In coding and terminal apps, it also fixes technical terms like \u{201C}main\u{201D} and \u{201C}git.\u{201D} Parakeet punctuates on its own, so with Parakeet this only runs in coding and terminal apps. Turn off to insert the raw transcript as spoken.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                Toggle("Add a space before dictation when needed", isOn: $settings.smartLeadingSpace)
+                Text("Checks the character before the cursor and adds a space if the text would otherwise run into the previous word. Some apps, including many terminals, don\u{2019}t expose this; there nothing is added.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
 

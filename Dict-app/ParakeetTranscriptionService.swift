@@ -18,6 +18,13 @@ final class ParakeetTranscriptionService: TranscriptionEngine {
     private static let modelVersion = AsrModelVersion.v3
     private static let sampleRate = 16_000
     private let maxEnergySamples = 64
+    /// People release the hotkey while still finishing their last word, so
+    /// keep capturing this long after stop() before shutting the mic off.
+    static let releaseTail: Duration = .milliseconds(250)
+    /// Silence added to both ends of the recording before decoding. The
+    /// recording starts and stops abruptly at the hotkey, and Parakeet drops
+    /// or garbles words that sit right at a hard edge.
+    static let edgePaddingSeconds = 0.2
 
     private var manager: AsrManager?
     private var isPreparing = false
@@ -61,6 +68,7 @@ final class ParakeetTranscriptionService: TranscriptionEngine {
         try await manager.loadModels(models)
         self.manager = manager
         print("[Parakeet] Model loaded")
+        warmUpAudio()
     }
 
     // MARK: - Recording lifecycle
@@ -130,6 +138,9 @@ final class ParakeetTranscriptionService: TranscriptionEngine {
     func stop() async -> String {
         session += 1
         guard isRecording, manager != nil else { return "" }
+        // Keep capturing through the release tail. A cancel() during the
+        // sleep tears down and empties the buffer, so this stop returns "".
+        try? await Task.sleep(for: Self.releaseTail)
         isRecording = false
         teardownAudio()
         audioEnergy = []
@@ -157,7 +168,8 @@ final class ParakeetTranscriptionService: TranscriptionEngine {
         let decodeStarted = ProcessInfo.processInfo.systemUptime
         do {
             var decoderState = try TdtDecoderState(decoderLayers: await manager.decoderLayerCount)
-            let result = try await manager.transcribe(samples, decoderState: &decoderState)
+            let padded = Self.padded(samples, seconds: Self.edgePaddingSeconds, sampleRate: Self.sampleRate)
+            let result = try await manager.transcribe(padded, decoderState: &decoderState)
             let text = result.text.trimmingCharacters(in: .whitespacesAndNewlines)
             print(String(
                 format: "[Timing] parakeet decode=%.3fs audio=%.1fs chars=%d",
@@ -176,6 +188,16 @@ final class ParakeetTranscriptionService: TranscriptionEngine {
     private func teardownAudio() {
         audioEngine.inputNode.removeTap(onBus: 0)
         if audioEngine.isRunning { audioEngine.stop() }
+        warmUpAudio()
+    }
+
+    /// Creates the input node and allocates the engine's resources ahead of
+    /// the next key press, so start() only has to begin IO and the first
+    /// syllable isn't lost to engine setup. Preparing doesn't start capture,
+    /// so the mic-in-use indicator stays off.
+    private func warmUpAudio() {
+        _ = audioEngine.inputNode
+        audioEngine.prepare()
     }
 
     private func appendEnergy(_ level: Float) {
@@ -191,6 +213,12 @@ final class ParakeetTranscriptionService: TranscriptionEngine {
     /// waveform expects, matching the Apple engine's scaling.
     nonisolated static func normalizedEnergy(rms: Float) -> Float {
         min(max(rms * 6, 0), 1)
+    }
+
+    /// The recording with `seconds` of silence on each end.
+    nonisolated static func padded(_ samples: [Float], seconds: Double, sampleRate: Int) -> [Float] {
+        let silence = [Float](repeating: 0, count: Int(seconds * Double(sampleRate)))
+        return silence + samples + silence
     }
 
     /// RMS of the first channel of a PCM buffer.

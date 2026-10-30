@@ -7,6 +7,7 @@ import Sparkle
 enum MainSection: Hashable {
     case history
     case general
+    case replacements
     case about
 }
 
@@ -34,6 +35,8 @@ struct MainWindow: View {
                 Section("Settings") {
                     Label("General", systemImage: "gearshape")
                         .tag(MainSection.general)
+                    Label("Replacements", systemImage: "character.cursor.ibeam")
+                        .tag(MainSection.replacements)
                     Label("About", systemImage: "info.circle")
                         .tag(MainSection.about)
                 }
@@ -46,6 +49,9 @@ struct MainWindow: View {
             case .general:
                 GeneralSettingsTab(settings: appState.settings, appState: appState)
                     .navigationTitle("General")
+            case .replacements:
+                ReplacementsView(settings: appState.settings)
+                    .navigationTitle("Replacements")
             case .about:
                 AboutSettingsTab(updater: updater)
                     .navigationTitle("About")
