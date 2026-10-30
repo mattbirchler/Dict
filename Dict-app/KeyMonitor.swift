@@ -47,8 +47,13 @@ final class KeyMonitor {
     /// holdThreshold — the recording should be discarded, not transcribed.
     var onRecordingCancel: (() -> Void)?
     var onHandsFreeChanged: ((Bool) -> Void)?
+    /// Whether a transcription is in flight, so Escape knows to cancel it.
+    var isProcessing: (() -> Bool)?
+    /// Fired when Escape is pressed while a transcription is in flight.
+    var onProcessingCancel: (() -> Void)?
 
     private static let spaceKeycode: Int64 = 49
+    private static let escapeKeycode: Int64 = 53
 
     func install() -> Bool {
         let eventMask: CGEventMask = (1 << CGEventType.flagsChanged.rawValue)
@@ -99,6 +104,21 @@ final class KeyMonitor {
         }
 
         let keycode = event.getIntegerValueField(.keyboardEventKeycode)
+
+        // Escape cancels a recording, or a transcription that's in flight.
+        // Swallowed only when it did something.
+        if type == .keyDown && keycode == escapeKeycode {
+            if let action = monitor.logic.escapeDown() {
+                monitor.perform(action)
+                return nil
+            }
+            let processing = MainActor.assumeIsolated { monitor.isProcessing?() ?? false }
+            if processing {
+                MainActor.assumeIsolated { monitor.onProcessingCancel?() }
+                return nil
+            }
+            return Unmanaged.passUnretained(event)
+        }
 
         // Spacebar while holding the hotkey: switch to hands-free mode.
         if type == .keyDown && keycode == spaceKeycode {

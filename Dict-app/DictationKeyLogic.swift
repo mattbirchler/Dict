@@ -59,6 +59,17 @@ struct DictationKeyLogic {
         return .enterHandsFree
     }
 
+    /// Escape abandons a recording in progress in any mode — held,
+    /// hands-free, or toggle. Returns nil when nothing is recording so the
+    /// key passes through to the frontmost app.
+    mutating func escapeDown() -> Action? {
+        guard isRecording else { return nil }
+        isRecording = false
+        handsFreeMode = false
+        keyDownTime = nil
+        return .cancel
+    }
+
     /// Whether a Space key-down should be swallowed instead of passed to the
     /// frontmost app (it's about to switch us into hands-free mode).
     var shouldSwallowSpace: Bool {

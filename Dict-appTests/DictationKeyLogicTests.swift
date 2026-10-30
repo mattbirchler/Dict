@@ -101,4 +101,38 @@ struct DictationKeyLogicTests {
         var logic = DictationKeyLogic(mode: .holdToTalk)
         #expect(logic.reset() == nil)
     }
+
+    // MARK: Escape
+
+    @Test func escapeCancelsHandsFreeAndNextPressStartsFresh() {
+        var logic = DictationKeyLogic(mode: .holdToTalk)
+        _ = logic.hotkeyDown(now: t0)
+        _ = logic.spaceDown()
+        _ = logic.hotkeyUp(now: t0 + .milliseconds(300))
+        #expect(logic.escapeDown() == .cancel)
+        #expect(!logic.isRecording)
+        #expect(!logic.handsFreeMode)
+        #expect(logic.hotkeyDown(now: t0 + .seconds(2)) == .start)
+    }
+
+    @Test func escapeWhileHoldingCancelsAndReleaseDoesNothing() {
+        var logic = DictationKeyLogic(mode: .holdToTalk)
+        _ = logic.hotkeyDown(now: t0)
+        #expect(logic.escapeDown() == .cancel)
+        #expect(logic.hotkeyUp(now: t0 + .milliseconds(500)) == nil)
+    }
+
+    @Test func escapeCancelsToggleRecording() {
+        var logic = DictationKeyLogic(mode: .toggle)
+        _ = logic.hotkeyDown(now: t0)
+        _ = logic.hotkeyUp(now: t0 + .milliseconds(100))
+        #expect(logic.escapeDown() == .cancel)
+        _ = logic.hotkeyDown(now: t0 + .seconds(1))
+        #expect(logic.isRecording)
+    }
+
+    @Test func escapePassesThroughWhenIdle() {
+        var logic = DictationKeyLogic(mode: .holdToTalk)
+        #expect(logic.escapeDown() == nil)
+    }
 }

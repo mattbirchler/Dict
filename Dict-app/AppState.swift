@@ -11,10 +11,15 @@ final class AppState {
         didSet { onEnabledChanged?(isEnabled) }
     }
     var onEnabledChanged: ((Bool) -> Void)?
-    var onProcessingComplete: (() -> Void)?
+    /// Called with whether text was produced and inserted.
+    var onProcessingComplete: ((Bool) -> Void)?
     var onHotkeySettingsChanged: (() -> Void)?
     var isRecording = false
     var isProcessing = false
+    private var processingTask: Task<Void, Never>?
+    /// Bumped when processing is cancelled, so a transcription that finishes
+    /// afterwards can tell its result is no longer wanted.
+    private var processingSession = 0
 
     // Mirror of the active engine's readiness, so SwiftUI observes concrete
     // AppState state rather than a type-erased TranscriptionEngine existential.
@@ -77,7 +82,7 @@ final class AppState {
             if isRecording || isProcessing {
                 isRecording = false
                 isProcessing = false
-                onProcessingComplete?()   // dismiss the recording HUD
+                onProcessingComplete?(false)   // dismiss the recording HUD
             }
         }
 
@@ -156,14 +161,32 @@ final class AppState {
         guard isRecording else { return }
         isRecording = false
         isProcessing = true
+        let session = processingSession
 
-        Task {
+        processingTask = Task {
             let result = await pipeline.stopRecordingAndProcess()
+            // Cancelled with Escape while this was in flight — the HUD and
+            // state were already reset, possibly for a newer recording.
+            guard session == processingSession else { return }
+            processingTask = nil
             isProcessing = false
-            onProcessingComplete?()
+            onProcessingComplete?(result != nil)
             if result == nil {
                 lastError = "Transcription failed. Please try again."
             }
         }
+    }
+
+    /// Abandons an in-flight transcription (Escape) so a hung engine or
+    /// formatter can't wedge the app. Cancelling the task stops it before
+    /// it inserts anything; if it never returns, it's simply ignored.
+    func cancelProcessing() {
+        guard isProcessing else { return }
+        processingSession += 1
+        processingTask?.cancel()
+        processingTask = nil
+        isProcessing = false
+        onProcessingComplete?(false)
+        print("[AppState] Processing cancelled")
     }
 }

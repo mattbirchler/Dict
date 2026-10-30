@@ -64,6 +64,12 @@ final class PipelineCoordinator {
         let formatted = shouldFormat ? await formatter.format(rawText, context: context) : rawText
         let text = WordReplacement.apply(wordReplacements, to: formatted)
 
+        // Escape cancelled processing while we were transcribing/formatting.
+        guard !Task.isCancelled else {
+            print("[Pipeline] Cancelled, discarding result")
+            return nil
+        }
+
         historyStore.save(cleanedText: text)
         print("[Pipeline] Saved to history. Inserting text...")
         // Add separator spaces to the inserted text only — History keeps

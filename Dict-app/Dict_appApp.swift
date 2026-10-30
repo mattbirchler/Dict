@@ -60,13 +60,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             guard let self else { return }
             self.appState.startRecording()
             self.hudController.show(
-                audioLevel: { [weak self] in
-                    // Drive the waveform bars from the tail of WhisperKit's
-                    // relativeEnergy array. Scale so normal speech pushes the
-                    // bars above the bottom without clipping at the top.
+                audioLevels: { [weak self] in
+                    // The engine's rolling level history, oldest first. Scale
+                    // so normal speech pushes the bars above the bottom
+                    // without clipping at the top.
                     let energy = self?.appState.pipeline.activeEngine.audioEnergy ?? []
-                    guard let last = energy.last else { return 0 }
-                    return min(max(last * 2, 0), 1)
+                    return energy.map { min(max($0 * 2, 0), 1) }
                 },
                 micName: { StreamingTranscriptionService.inputDeviceName }
             )
@@ -84,6 +83,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self.hudController.dismiss()
         }
 
+        keyMonitor.isProcessing = { [weak self] in
+            self?.appState.isProcessing ?? false
+        }
+
+        keyMonitor.onProcessingCancel = { [weak self] in
+            self?.appState.cancelProcessing()
+        }
+
         keyMonitor.onHandsFreeChanged = { [weak self] handsFree in
             guard let self else { return }
             if handsFree {
@@ -91,8 +98,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
 
-        appState.onProcessingComplete = { [weak self] in
-            self?.hudController.dismiss()
+        appState.onProcessingComplete = { [weak self] success in
+            self?.hudController.finish(success: success)
         }
 
         keyMonitor.hotkey = appState.settings.hotkey
