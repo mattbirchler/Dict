@@ -1,6 +1,6 @@
+import AVFoundation
 import Foundation
 import Testing
-import WhisperKit
 @testable import Dict_app
 
 /// Drives the production Parakeet decode path with real synthesized speech
@@ -23,7 +23,7 @@ struct ParakeetEndToEndTests {
         say.waitUntilExit()
         #expect(say.terminationStatus == 0)
 
-        let speech = try AudioProcessor.loadAudioAsFloatArray(fromPath: wavURL.path)
+        let speech = try loadSamples(from: wavURL)
         #expect(speech.count > 16_000) // at least 1s of audio
 
         // Push-to-talk shape: brief silence after key-down, speech, then
@@ -38,9 +38,27 @@ struct ParakeetEndToEndTests {
 
         // Semantic equivalence, not verbatim: synthesized audio plus ASR
         // can wobble on small words, but the key phrases must survive.
-        let normalized = TranscriptFilter.normalize(text)
+        let normalized = normalize(text)
         #expect(normalized.contains("ship the new build"))
         #expect(normalized.contains("before the deadline"))
         #expect(normalized.contains("friday afternoon"))
     }
+}
+
+/// Lowercased words only, so the comparison ignores punctuation and case.
+private func normalize(_ text: String) -> String {
+    text.lowercased()
+        .components(separatedBy: CharacterSet.alphanumerics.inverted)
+        .filter { !$0.isEmpty }
+        .joined(separator: " ")
+}
+
+/// Reads a mono float32 wav (as `say --data-format=LEF32@16000` writes) into samples.
+private func loadSamples(from url: URL) throws -> [Float] {
+    let file = try AVAudioFile(forReading: url)
+    let frames = AVAudioFrameCount(file.length)
+    guard let buffer = AVAudioPCMBuffer(pcmFormat: file.processingFormat, frameCapacity: frames) else { return [] }
+    try file.read(into: buffer)
+    guard let channel = buffer.floatChannelData?[0] else { return [] }
+    return Array(UnsafeBufferPointer(start: channel, count: Int(buffer.frameLength)))
 }

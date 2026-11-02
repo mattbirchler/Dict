@@ -62,13 +62,12 @@ enum HistoryLimit: String, CaseIterable {
 }
 
 enum TranscriptionEngineChoice: String, CaseIterable {
-    case apple, parakeet, whisper
+    case apple, parakeet
 
     var displayName: String {
         switch self {
         case .apple: "Apple"
         case .parakeet: "Parakeet"
-        case .whisper: "Whisper"
         }
     }
 
@@ -77,7 +76,6 @@ enum TranscriptionEngineChoice: String, CaseIterable {
         switch self {
         case .apple: "Fast, already on your Mac. No download."
         case .parakeet: "Most accurate, near-instant results. ~500 MB download."
-        case .whisper: "Accurate but slower. ~1 GB download."
         }
     }
 
@@ -86,7 +84,6 @@ enum TranscriptionEngineChoice: String, CaseIterable {
         switch self {
         case .apple: "Apple Speech"
         case .parakeet: "Parakeet Model"
-        case .whisper: "Whisper Model"
         }
     }
 
@@ -95,7 +92,6 @@ enum TranscriptionEngineChoice: String, CaseIterable {
         switch self {
         case .apple: nil
         case .parakeet: "Download Parakeet model (~500 MB)"
-        case .whisper: "Download Whisper model (~1 GB)"
         }
     }
 }
@@ -192,16 +188,10 @@ final class SettingsStore {
         self.isFormattingEnabled = defaults.object(forKey: Keys.isFormattingEnabled) as? Bool ?? true
         self.historyLimit = defaults.string(forKey: Keys.historyLimit)
             .flatMap(HistoryLimit.init(rawValue:)) ?? .fifty
-        if let raw = defaults.string(forKey: Keys.transcriptionEngine),
-           let choice = TranscriptionEngineChoice(rawValue: raw) {
-            self.transcriptionEngine = choice
-        } else if defaults.bool(forKey: "hasCompletedOnboarding") {
-            // Existing user upgrading: keep Whisper so nothing changes for them.
-            self.transcriptionEngine = .whisper
-        } else {
-            // Fresh install: default to Apple (no 1 GB download to get started).
-            self.transcriptionEngine = .apple
-        }
+        // Unknown values (including "whisper" from pre-1.0 builds) fall back
+        // to Apple, which needs no download.
+        self.transcriptionEngine = defaults.string(forKey: Keys.transcriptionEngine)
+            .flatMap(TranscriptionEngineChoice.init(rawValue:)) ?? .apple
         self.appendTrailingSpace = defaults.object(forKey: Keys.appendTrailingSpace) as? Bool ?? false
         self.smartLeadingSpace = defaults.object(forKey: Keys.smartLeadingSpace) as? Bool ?? true
         self.wordReplacements = defaults.data(forKey: Keys.wordReplacements)

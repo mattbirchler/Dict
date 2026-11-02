@@ -3,7 +3,6 @@ import Foundation
 
 @MainActor
 final class PipelineCoordinator {
-    let whisperEngine = StreamingTranscriptionService()
     let appleEngine = AppleSpeechTranscriptionService()
     let parakeetEngine = ParakeetTranscriptionService()
     let textInsertionService = TextInsertionService()
@@ -29,7 +28,6 @@ final class PipelineCoordinator {
         switch engineChoice {
         case .apple: appleEngine
         case .parakeet: parakeetEngine
-        case .whisper: whisperEngine
         }
     }
 

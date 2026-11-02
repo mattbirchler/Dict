@@ -10,9 +10,6 @@ struct PipelineEngineSelectionTests {
         pipeline.engineChoice = .apple
         #expect(pipeline.activeEngine === pipeline.appleEngine)
 
-        pipeline.engineChoice = .whisper
-        #expect(pipeline.activeEngine === pipeline.whisperEngine)
-
         pipeline.engineChoice = .parakeet
         #expect(pipeline.activeEngine === pipeline.parakeetEngine)
     }
@@ -39,8 +36,9 @@ struct PipelineEngineSelectionTests {
         #expect(!PipelineCoordinator.shouldFormat(enabled: true, engine: .parakeet, context: .general))
         #expect(PipelineCoordinator.shouldFormat(enabled: true, engine: .parakeet, context: .coding))
         #expect(PipelineCoordinator.shouldFormat(enabled: true, engine: .apple, context: .general))
-        #expect(PipelineCoordinator.shouldFormat(enabled: true, engine: .whisper, context: .general))
+        #expect(PipelineCoordinator.shouldFormat(enabled: true, engine: .apple, context: .coding))
         #expect(!PipelineCoordinator.shouldFormat(enabled: false, engine: .apple, context: .coding))
+        #expect(!PipelineCoordinator.shouldFormat(enabled: false, engine: .parakeet, context: .coding))
     }
 
     @Test func parakeetPadsBothEdgesWithSilence() {

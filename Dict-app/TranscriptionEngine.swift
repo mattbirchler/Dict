@@ -1,7 +1,7 @@
 import Foundation
 
-/// A pluggable on-device transcription engine. Both WhisperKit and Apple's
-/// SpeechAnalyzer sit behind this so the pipeline can switch between them.
+/// A pluggable on-device transcription engine. Parakeet (FluidAudio) and
+/// Apple's SpeechAnalyzer sit behind this so the pipeline can switch between them.
 /// Class-bound (`AnyObject`) so the pipeline holds a shared reference.
 @MainActor
 protocol TranscriptionEngine: AnyObject {
@@ -16,7 +16,7 @@ protocol TranscriptionEngine: AnyObject {
     var isReady: Bool { get }
 
     /// True when this engine has a user-visible download step before it is
-    /// usable (Whisper). Apple reports false unless a first-time asset install
+    /// usable (Parakeet). Apple reports false unless a first-time asset install
     /// is genuinely in progress.
     var needsDownload: Bool { get }
 
@@ -42,7 +42,7 @@ protocol TranscriptionEngine: AnyObject {
     func beginLivePreview()
 }
 
-/// Engines that only transcribe at stop() (Whisper) get no preview.
+/// Engines without a preview get an empty one.
 extension TranscriptionEngine {
     var supportsLiveTranscript: Bool { false }
     var liveTranscript: LiveTranscript { LiveTranscript() }

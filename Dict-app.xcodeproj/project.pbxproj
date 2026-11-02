@@ -7,9 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		C96B0FF82F829E4B008ECDBA /* SpeakerKit in Frameworks */ = {isa = PBXBuildFile; productRef = C96B0FF72F829E4B008ECDBA /* SpeakerKit */; };
-		C96B0FFA2F829E4B008ECDBA /* TTSKit in Frameworks */ = {isa = PBXBuildFile; productRef = C96B0FF92F829E4B008ECDBA /* TTSKit */; };
-		C96B0FFC2F829E4B008ECDBA /* WhisperKit in Frameworks */ = {isa = PBXBuildFile; productRef = C96B0FFB2F829E4B008ECDBA /* WhisperKit */; };
 		C9893E232F87284E00707FF3 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = C9893E222F87284E00707FF3 /* Sparkle */; };
 		C9BD1CFE2FA8E32A00F2211F /* dict-icon.icon in Resources */ = {isa = PBXBuildFile; fileRef = C9BD1CFD2FA8E32A00F2211F /* dict-icon.icon */; };
 /* End PBXBuildFile section */
@@ -48,10 +45,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				C96B0FFC2F829E4B008ECDBA /* WhisperKit in Frameworks */,
 				C9893E232F87284E00707FF3 /* Sparkle in Frameworks */,
-				C96B0FF82F829E4B008ECDBA /* SpeakerKit in Frameworks */,
-				C96B0FFA2F829E4B008ECDBA /* TTSKit in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -104,9 +98,6 @@
 			);
 			name = "Dict-app";
 			packageProductDependencies = (
-				C96B0FF72F829E4B008ECDBA /* SpeakerKit */,
-				C96B0FF92F829E4B008ECDBA /* TTSKit */,
-				C96B0FFB2F829E4B008ECDBA /* WhisperKit */,
 				C9893E222F87284E00707FF3 /* Sparkle */,
 				C9FA0D022FB2000000000002 /* FluidAudio */,
 			);
@@ -162,7 +153,6 @@
 			mainGroup = C95EB2B62F7FF45300B3F4AE;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				C96B0FF62F829E4B008ECDBA /* XCRemoteSwiftPackageReference "WhisperKit" */,
 				C9893E212F87284E00707FF3 /* XCRemoteSwiftPackageReference "Sparkle" */,
 				C9FA0D012FB2000000000001 /* XCRemoteSwiftPackageReference "FluidAudio" */,
 			);
@@ -490,14 +480,6 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		C96B0FF62F829E4B008ECDBA /* XCRemoteSwiftPackageReference "WhisperKit" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/argmaxinc/WhisperKit.git";
-			requirement = {
-				branch = main;
-				kind = branch;
-			};
-		};
 		C9893E212F87284E00707FF3 /* XCRemoteSwiftPackageReference "Sparkle" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/sparkle-project/Sparkle";
@@ -517,21 +499,6 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		C96B0FF72F829E4B008ECDBA /* SpeakerKit */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = C96B0FF62F829E4B008ECDBA /* XCRemoteSwiftPackageReference "WhisperKit" */;
-			productName = SpeakerKit;
-		};
-		C96B0FF92F829E4B008ECDBA /* TTSKit */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = C96B0FF62F829E4B008ECDBA /* XCRemoteSwiftPackageReference "WhisperKit" */;
-			productName = TTSKit;
-		};
-		C96B0FFB2F829E4B008ECDBA /* WhisperKit */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = C96B0FF62F829E4B008ECDBA /* XCRemoteSwiftPackageReference "WhisperKit" */;
-			productName = WhisperKit;
-		};
 		C9893E222F87284E00707FF3 /* Sparkle */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = C9893E212F87284E00707FF3 /* XCRemoteSwiftPackageReference "Sparkle" */;

@@ -45,7 +45,7 @@ final class ParakeetTranscriptionService: TranscriptionEngine {
 
     var isReady: Bool { manager != nil }
 
-    /// True until the model files are on disk; unlike Whisper this is
+    /// True until the model files are on disk. This is
     /// re-checked against the cache, so a completed download flips it false
     /// across relaunches.
     var needsDownload: Bool {

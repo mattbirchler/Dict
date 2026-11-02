@@ -67,7 +67,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     let energy = self?.appState.pipeline.activeEngine.audioEnergy ?? []
                     return energy.map { min(max($0 * 2, 0), 1) }
                 },
-                micName: { StreamingTranscriptionService.inputDeviceName },
+                micName: { AudioInputDevices.defaultInputDeviceName },
                 liveTranscript: { [weak self] in
                     self?.appState.pipeline.activeEngine.liveTranscript ?? LiveTranscript()
                 },

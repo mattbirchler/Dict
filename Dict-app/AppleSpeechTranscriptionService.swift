@@ -5,7 +5,7 @@ import Speech
 /// On-device transcription using Apple's SpeechAnalyzer/SpeechTranscriber
 /// (macOS 26). Owns its own AVAudioEngine tap; feeds converted buffers into a
 /// SpeechAnalyzer streaming session and returns the finalized transcript on
-/// stop. English-only (en-US) to match the current Whisper path.
+/// stop. English-only (en-US) for now.
 @MainActor
 @Observable
 final class AppleSpeechTranscriptionService: TranscriptionEngine {

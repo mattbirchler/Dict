@@ -89,28 +89,35 @@ struct SettingsStoreTests {
         #expect(store.transcriptionEngine == .apple)
     }
 
-    @Test func existingUserMigratesToWhisper() {
-        // An upgrading user has already completed onboarding but has no engine
-        // key yet — they must keep Whisper, not be moved onto Apple.
+    @Test func storedWhisperMigratesToApple() {
+        // Builds before 1.0 could store "whisper". That engine is gone, so
+        // the value must fall back to Apple instead of crashing or sticking.
         let defaults = makeDefaults()
+        defaults.set("whisper", forKey: "transcriptionEngine")
         defaults.set(true, forKey: "hasCompletedOnboarding")
         let store = SettingsStore(defaults: defaults)
-        #expect(store.transcriptionEngine == .whisper)
+        #expect(store.transcriptionEngine == .apple)
+    }
+
+    @Test func existingUserWithoutEngineKeyGetsApple() {
+        let defaults = makeDefaults()
+        defaults.set(true, forKey: "hasCompletedOnboarding")
+        #expect(SettingsStore(defaults: defaults).transcriptionEngine == .apple)
     }
 
     @Test func enginePersistsAndReloads() {
         let defaults = makeDefaults()
         let store = SettingsStore(defaults: defaults)
-        store.transcriptionEngine = .whisper
+        store.transcriptionEngine = .parakeet
         let reloaded = SettingsStore(defaults: defaults)
-        #expect(reloaded.transcriptionEngine == .whisper)
+        #expect(reloaded.transcriptionEngine == .parakeet)
     }
 
     @Test func firesOnChangeForEngine() {
         let store = SettingsStore(defaults: makeDefaults())
         var changes: [SettingsStore.Change] = []
         store.onChange = { changes.append($0) }
-        store.transcriptionEngine = .whisper
+        store.transcriptionEngine = .parakeet
         #expect(changes == [.transcriptionEngine])
     }
 

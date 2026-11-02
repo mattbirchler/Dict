@@ -105,7 +105,6 @@ final class AppState {
         switch settings.transcriptionEngine {
         case .apple: true
         case .parakeet: !engineNeedsDownload
-        case .whisper: false
         }
     }
 

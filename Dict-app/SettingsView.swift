@@ -166,7 +166,7 @@ struct AboutSettingsTab: View {
             }
             .disabled(!updaterViewModel.canCheckForUpdates)
 
-            Text("Built with WhisperKit, FluidAudio, and Sparkle.")
+            Text("Built with FluidAudio and Sparkle.")
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
         }
