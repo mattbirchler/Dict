@@ -35,6 +35,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     )
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        ApplicationsMover.offerIfNeeded()
         appState.permissionChecker.checkAll()
 
         menuBarManager.setup(
