@@ -12,8 +12,8 @@ final class AppState {
         didSet { onEnabledChanged?(isEnabled) }
     }
     var onEnabledChanged: ((Bool) -> Void)?
-    /// Called with whether text was produced and inserted.
-    var onProcessingComplete: ((Bool) -> Void)?
+    /// Called when a dictation ends, with how it ended.
+    var onProcessingComplete: ((DictationResult) -> Void)?
     var onHotkeySettingsChanged: (() -> Void)?
     var isRecording = false
     var isProcessing = false
@@ -83,7 +83,7 @@ final class AppState {
             if isRecording || isProcessing {
                 isRecording = false
                 isProcessing = false
-                onProcessingComplete?(false)   // dismiss the recording HUD
+                onProcessingComplete?(.cancelled)   // dismiss the recording HUD
             }
         }
 
@@ -144,8 +144,23 @@ final class AppState {
         }
     }
 
+    /// True when a hotkey press can begin a recording right now.
+    var canStartRecording: Bool {
+        isEnabled && !isRecording && !isProcessing && !isPreparingEngine && isEngineReady
+    }
+
+    /// Why a hotkey press can't start a recording, for the HUD; nil when
+    /// nothing is in the way (or the block is a normal busy state).
+    var startBlockedReason: String? {
+        if isPreparingEngine { return "Loading speech model…" }
+        if !isEngineReady {
+            return engineNeedsDownload ? "Download the speech model in Settings" : "Speech model isn't ready"
+        }
+        return nil
+    }
+
     func startRecording() {
-        guard isEnabled, !isRecording, !isProcessing, !isPreparingEngine else { return }
+        guard canStartRecording else { return }
         isRecording = true
         lastError = nil
         pipeline.startRecording()
@@ -170,8 +185,8 @@ final class AppState {
             guard session == processingSession else { return }
             processingTask = nil
             isProcessing = false
-            onProcessingComplete?(result != nil)
-            if result == nil {
+            onProcessingComplete?(result)
+            if result == .failed {
                 lastError = "Transcription failed. Please try again."
             }
         }
@@ -186,7 +201,7 @@ final class AppState {
         processingTask?.cancel()
         processingTask = nil
         isProcessing = false
-        onProcessingComplete?(false)
+        onProcessingComplete?(.cancelled)
         Log.app.info("Processing cancelled")
     }
 }

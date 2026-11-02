@@ -49,12 +49,12 @@ final class PipelineCoordinator {
         Log.pipeline.info("Recording cancelled")
     }
 
-    func stopRecordingAndProcess() async -> String? {
+    func stopRecordingAndProcess() async -> DictationResult {
         let rawText = await activeEngine.stop()
 
         guard !rawText.isEmpty else {
             Log.pipeline.info("No text produced, aborting")
-            return nil
+            return .nothingHeard
         }
 
         let bundleID = NSWorkspace.shared.frontmostApplication?.bundleIdentifier
@@ -66,7 +66,7 @@ final class PipelineCoordinator {
         // Escape cancelled processing while we were transcribing/formatting.
         guard !Task.isCancelled else {
             Log.pipeline.info("Cancelled, discarding result")
-            return nil
+            return .cancelled
         }
 
         historyStore.save(cleanedText: text)
@@ -81,7 +81,7 @@ final class PipelineCoordinator {
         textInsertionService.insertText(textToInsert)
         Log.pipeline.info("Text inserted")
 
-        return text
+        return .inserted(text)
     }
 
     /// Parakeet already punctuates and capitalizes, so outside coding apps

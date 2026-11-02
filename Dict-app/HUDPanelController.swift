@@ -11,6 +11,8 @@ final class HUDPanelController {
     private static let bottomInset: CGFloat = 80
     /// How long the success checkmark stays up before the HUD leaves.
     private static let successHold: Duration = .milliseconds(550)
+    /// How long a notice ("Nothing heard", "Loading speech model") stays up.
+    private static let noticeHold: Duration = .milliseconds(1400)
 
     private var panel: NSPanel?
     private let hudState = HUDState()
@@ -37,18 +39,37 @@ final class HUDPanelController {
         hudState.hotkeyGlyph = hotkeyGlyph
         hudState.reduceMotion = reduceMotion
 
+        present(mode: .recording)
+    }
+
+    /// Shows a short notice in place of a recording, for a hotkey press
+    /// that can't start one, then leaves on its own.
+    func showNotice(_ message: String) {
+        pendingDismiss?.cancel()
+        presentation += 1
+        hudState.reduceMotion = reduceMotion
+        present(mode: .failed(message: message))
+        pendingDismiss = Task { [weak self] in
+            try? await Task.sleep(for: Self.noticeHold)
+            guard !Task.isCancelled else { return }
+            self?.dismiss()
+        }
+    }
+
+    /// Brings the panel up in `mode`, morphing if it's already on screen.
+    private func present(mode: HUDMode) {
         let panel = self.panel ?? makePanel()
         position(panel)
         panel.orderFrontRegardless()
 
         if hudState.isPresented {
-            // Re-shown mid-exit or right after a success: morph back.
+            // Re-shown mid-exit or right after a success: morph.
             withAnimation(HUDAnimation.morph(reduceMotion)) {
-                hudState.mode = .recording
+                hudState.mode = mode
                 hudState.showsLiveTranscript = false
             }
         } else {
-            hudState.mode = .recording
+            hudState.mode = mode
             hudState.showsLiveTranscript = false
             withAnimation(HUDAnimation.entrance(reduceMotion)) { hudState.isPresented = true }
         }
@@ -70,15 +91,29 @@ final class HUDPanelController {
         }
     }
 
-    /// Ends a processed dictation: a brief checkmark on success, then exit.
-    func finish(success: Bool) {
-        guard success, hudState.isPresented else {
+    /// Ends a dictation: a brief checkmark when text went in, a short
+    /// notice when nothing did, and a plain exit when it was cancelled.
+    func finish(result: DictationResult) {
+        guard hudState.isPresented else {
             dismiss()
             return
         }
-        withAnimation(HUDAnimation.morph(reduceMotion)) { hudState.mode = .done }
+        let mode: HUDMode
+        let hold: Duration
+        switch result {
+        case .inserted:
+            mode = .done
+            hold = Self.successHold
+        case .nothingHeard, .failed:
+            mode = .failed(message: result.hudMessage ?? "")
+            hold = Self.noticeHold
+        case .cancelled:
+            dismiss()
+            return
+        }
+        withAnimation(HUDAnimation.morph(reduceMotion)) { hudState.mode = mode }
         pendingDismiss = Task { [weak self] in
-            try? await Task.sleep(for: Self.successHold)
+            try? await Task.sleep(for: hold)
             guard !Task.isCancelled else { return }
             self?.dismiss()
         }

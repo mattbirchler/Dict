@@ -1,11 +1,13 @@
 import SwiftUI
 
-enum HUDMode {
+enum HUDMode: Equatable {
     case recording
     case recordingHandsFree
     case processing
     /// Brief success state shown after the text is inserted.
     case done
+    /// Brief notice when a dictation produced nothing, or couldn't start.
+    case failed(message: String)
 }
 
 struct WaveformHUD: View {
@@ -54,9 +56,14 @@ struct WaveformHUD: View {
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundStyle(.green)
                     .transition(.scale(scale: 0.3).combined(with: .opacity))
+            } else if case .failed = mode {
+                Image(systemName: "exclamationmark.circle.fill")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(.orange)
+                    .transition(.scale(scale: 0.3).combined(with: .opacity))
             }
 
-            if mode != .done {
+            if isRecording || mode == .processing {
                 LevelBars(
                     heights: isRecording
                         ? LevelBars.recordingHeights(levels: levels)
@@ -91,6 +98,7 @@ struct WaveformHUD: View {
             return isExpanded ? "Hands-free" : "Hands-free — \(hotkeyGlyph) to finish, esc to cancel"
         case .processing: return "Processing — esc to cancel"
         case .done: return "Inserted"
+        case .failed(let message): return message
         }
     }
 }

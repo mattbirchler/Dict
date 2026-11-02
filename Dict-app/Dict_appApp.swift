@@ -58,6 +58,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         keyMonitor.onRecordingStart = { [weak self] in
             guard let self else { return }
+            guard self.appState.canStartRecording else {
+                self.hudController.showNotice(self.appState.startBlockedReason ?? "Can't start dictation right now")
+                return
+            }
             self.appState.startRecording()
             self.hudController.show(
                 audioLevels: { [weak self] in
@@ -76,7 +80,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         keyMonitor.onRecordingStop = { [weak self] in
-            guard let self else { return }
+            // A press that was blocked (engine loading) never started a
+            // recording, so its release must not leave a processing pill up.
+            guard let self, self.appState.isRecording else { return }
             self.hudController.showProcessing()
             self.appState.stopRecording()
         }
@@ -104,8 +110,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
 
-        appState.onProcessingComplete = { [weak self] success in
-            self?.hudController.finish(success: success)
+        appState.onProcessingComplete = { [weak self] result in
+            self?.hudController.finish(result: result)
         }
 
         keyMonitor.hotkey = appState.settings.hotkey
