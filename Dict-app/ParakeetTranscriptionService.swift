@@ -13,6 +13,8 @@ import os
 final class ParakeetTranscriptionService: TranscriptionEngine {
     var audioEnergy: [Float] = []
     private(set) var isRecording = false
+    private(set) var liveTranscript = LiveTranscript()
+    let supportsLiveTranscript = true
     @ObservationIgnored var onProgress: ((Double) -> Void)?
 
     private static let modelVersion = AsrModelVersion.v3
@@ -25,6 +27,9 @@ final class ParakeetTranscriptionService: TranscriptionEngine {
     /// recording starts and stops abruptly at the hotkey, and Parakeet drops
     /// or garbles words that sit right at a hard edge.
     static let edgePaddingSeconds = 0.2
+    /// Pause between live-preview decodes. Each decode covers the whole
+    /// recording so far, so long recordings refresh a little less often.
+    static let previewInterval: Duration = .milliseconds(700)
 
     private var manager: AsrManager?
     private var isPreparing = false
@@ -36,6 +41,7 @@ final class ParakeetTranscriptionService: TranscriptionEngine {
     /// Lock-protected rather than hopped to the main actor so stop() can't
     /// lose buffers that were still in flight between actors.
     private let recordedSamples = OSAllocatedUnfairLock(initialState: [Float]())
+    private var previewTask: Task<Void, Never>?
 
     var isReady: Bool { manager != nil }
 
@@ -127,6 +133,7 @@ final class ParakeetTranscriptionService: TranscriptionEngine {
     /// used when the hotkey was released before the accidental-tap threshold.
     func cancel() {
         session += 1
+        endLivePreview()
         guard isRecording else { return }
         isRecording = false
         teardownAudio()
@@ -137,11 +144,19 @@ final class ParakeetTranscriptionService: TranscriptionEngine {
 
     func stop() async -> String {
         session += 1
-        guard isRecording, manager != nil else { return "" }
+        guard isRecording, manager != nil else {
+            endLivePreview()
+            return ""
+        }
         // Keep capturing through the release tail. A cancel() during the
         // sleep tears down and empties the buffer, so this stop returns "".
         try? await Task.sleep(for: Self.releaseTail)
         isRecording = false
+        // Let an in-flight preview decode finish before the final one, so
+        // two decodes never interleave inside the AsrManager actor.
+        let preview = previewTask
+        endLivePreview()
+        await preview?.value
         teardownAudio()
         audioEnergy = []
 
@@ -164,13 +179,9 @@ final class ParakeetTranscriptionService: TranscriptionEngine {
     /// private) so the end-to-end test can drive the exact production decode
     /// path via `@testable import` instead of re-implementing it.
     func transcribeRecording(_ samples: [Float]) async -> String {
-        guard let manager else { return "" }
         let decodeStarted = ProcessInfo.processInfo.systemUptime
         do {
-            var decoderState = try TdtDecoderState(decoderLayers: await manager.decoderLayerCount)
-            let padded = Self.padded(samples, seconds: Self.edgePaddingSeconds, sampleRate: Self.sampleRate)
-            let result = try await manager.transcribe(padded, decoderState: &decoderState)
-            let text = result.text.trimmingCharacters(in: .whitespacesAndNewlines)
+            let text = try await decode(samples)
             print(String(
                 format: "[Timing] parakeet decode=%.3fs audio=%.1fs chars=%d",
                 ProcessInfo.processInfo.systemUptime - decodeStarted,
@@ -183,6 +194,47 @@ final class ParakeetTranscriptionService: TranscriptionEngine {
             print("[Parakeet] Transcription failed: \(error)")
             return ""
         }
+    }
+
+    private func decode(_ samples: [Float]) async throws -> String {
+        guard let manager else { throw ParakeetTranscriptionError.modelNotLoaded }
+        var decoderState = try TdtDecoderState(decoderLayers: await manager.decoderLayerCount)
+        let padded = Self.padded(samples, seconds: Self.edgePaddingSeconds, sampleRate: Self.sampleRate)
+        let result = try await manager.transcribe(padded, decoderState: &decoderState)
+        return result.text.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    // MARK: - Live preview
+
+    /// Starts re-decoding the recording so far every `previewInterval`, for
+    /// the hands-free HUD. Off for ordinary hold-to-talk, where nobody sees
+    /// it and a preview in flight would delay the final decode. May arrive
+    /// just before start() finishes; the loop waits for recording to begin,
+    /// and stop()/cancel() always end it.
+    func beginLivePreview() {
+        guard previewTask == nil else { return }
+        let minimumSamples = ASRConstants.minimumRequiredSamples(forSampleRate: Self.sampleRate)
+        previewTask = Task { [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(for: Self.previewInterval)
+                guard let self, !Task.isCancelled else { return }
+                guard self.isRecording else { continue }
+                let samples = self.recordedSamples.withLock { $0 }
+                guard samples.count >= minimumSamples,
+                      let text = try? await self.decode(samples),
+                      !Task.isCancelled, self.isRecording else { continue }
+                self.liveTranscript = LiveTranscript.comparing(
+                    previous: self.liveTranscript.fullText,
+                    current: text
+                )
+            }
+        }
+    }
+
+    private func endLivePreview() {
+        previewTask?.cancel()
+        previewTask = nil
+        liveTranscript = LiveTranscript()
     }
 
     private func teardownAudio() {

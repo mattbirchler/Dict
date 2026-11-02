@@ -13,11 +13,38 @@ struct WaveformHUD: View {
     /// Recent audio levels (0...1), oldest first.
     var levels: [Float]
     var micName: String
+    /// Non-nil while the expanded hands-free panel is showing.
+    var transcript: LiveTranscript? = nil
+    var hotkeyGlyph = "⌘"
     var pulsePhase: Double = 0
 
+    static let expandedWidth: CGFloat = 460
+
     private var isRecording: Bool { mode == .recording || mode == .recordingHandsFree }
+    private var isExpanded: Bool { transcript != nil }
 
     var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            header
+                .frame(minHeight: LevelBars.maxHeight)
+            if let transcript {
+                LiveTranscriptText(transcript: transcript)
+                    .transition(.opacity.combined(with: .offset(y: -6)))
+            }
+        }
+        .padding(.leading, 18)
+        .padding(.trailing, 22)
+        .padding(.vertical, 12)
+        .frame(width: isExpanded ? Self.expandedWidth : nil, alignment: .leading)
+        // A rounded rect whose radius is half the compact height draws the
+        // capsule, so the pill-to-panel morph animates one continuous shape.
+        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: isExpanded ? 20 : 24, style: .continuous))
+        .shadow(color: .black.opacity(0.18), radius: 12, y: 4)
+        // New transcript lines grow the panel smoothly instead of snapping.
+        .animation(.smooth(duration: 0.25), value: transcript)
+    }
+
+    private var header: some View {
         HStack(spacing: 12) {
             if isRecording {
                 RecordingDot(pulsePhase: pulsePhase)
@@ -45,21 +72,73 @@ struct WaveformHUD: View {
                 .lineLimit(1)
                 .fixedSize()
                 .contentTransition(.interpolate)
+
+            if isExpanded {
+                Spacer(minLength: 12)
+                Text("\(hotkeyGlyph) to finish · esc to cancel")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.tertiary)
+                    .fixedSize()
+                    .transition(.opacity)
+            }
         }
-        .padding(.leading, 18)
-        .padding(.trailing, 22)
-        .padding(.vertical, 12)
-        .frame(minHeight: LevelBars.maxHeight + 24)
-        .glassEffect(.regular, in: .capsule)
-        .shadow(color: .black.opacity(0.18), radius: 12, y: 4)
     }
 
     private var statusText: String {
         switch mode {
         case .recording: return micName
-        case .recordingHandsFree: return "Hands-free — ⌘ to finish, esc to cancel"
+        case .recordingHandsFree:
+            return isExpanded ? "Hands-free" : "Hands-free — \(hotkeyGlyph) to finish, esc to cancel"
         case .processing: return "Processing — esc to cancel"
         case .done: return "Inserted"
+        }
+    }
+}
+
+/// The transcript so far: settled words in full color, the newest words
+/// (which may still change) dimmer. Shows the latest few lines; once the
+/// text outgrows them, older lines scroll up and fade out at the top.
+private struct LiveTranscriptText: View {
+    /// Four lines of 14 pt text plus part of a fifth, so once the text
+    /// overflows, a half-visible line fades out at the top and reads as
+    /// scrolled away rather than as tentative words.
+    static let maxHeight: CGFloat = 88
+
+    var transcript: LiveTranscript
+    @State private var isOverflowing = false
+
+    var body: some View {
+        content
+            .font(.system(size: 14))
+            .lineSpacing(2)
+            .fixedSize(horizontal: false, vertical: true)
+            .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height in
+                isOverflowing = height > Self.maxHeight
+            }
+            .frame(maxWidth: .infinity, maxHeight: Self.maxHeight, alignment: .bottomLeading)
+            .clipped()
+            .mask {
+                if isOverflowing {
+                    LinearGradient(
+                        stops: [.init(color: .clear, location: 0), .init(color: .black, location: 0.22)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                } else {
+                    Color.black
+                }
+            }
+    }
+
+    @ViewBuilder private var content: some View {
+        if transcript.isEmpty {
+            Text("Listening…")
+                .foregroundStyle(.tertiary)
+        } else {
+            let confirmed = Text(transcript.confirmed).foregroundStyle(.primary)
+            let separator = transcript.confirmed.isEmpty || transcript.tentative.isEmpty ? "" : " "
+            let tentative = Text(separator + transcript.tentative).foregroundStyle(.secondary)
+            Text("\(confirmed)\(tentative)")
         }
     }
 }

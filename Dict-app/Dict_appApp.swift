@@ -67,7 +67,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     let energy = self?.appState.pipeline.activeEngine.audioEnergy ?? []
                     return energy.map { min(max($0 * 2, 0), 1) }
                 },
-                micName: { StreamingTranscriptionService.inputDeviceName }
+                micName: { StreamingTranscriptionService.inputDeviceName },
+                liveTranscript: { [weak self] in
+                    self?.appState.pipeline.activeEngine.liveTranscript ?? LiveTranscript()
+                },
+                hotkeyGlyph: self.appState.settings.hotkey.glyph
             )
         }
 
@@ -94,7 +98,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         keyMonitor.onHandsFreeChanged = { [weak self] handsFree in
             guard let self else { return }
             if handsFree {
-                self.hudController.showHandsFree()
+                let engine = self.appState.pipeline.activeEngine
+                engine.beginLivePreview()
+                self.hudController.showHandsFree(livePreview: engine.supportsLiveTranscript)
             }
         }
 

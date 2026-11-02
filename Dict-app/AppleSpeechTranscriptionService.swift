@@ -24,6 +24,18 @@ final class AppleSpeechTranscriptionService: TranscriptionEngine {
     private var inputBuilder: AsyncStream<AnalyzerInput>.Continuation?
     private var resultsTask: Task<Void, Never>?
     private var finalizedText = AttributedString()
+    /// The latest not-yet-final result, replaced on every update.
+    private var volatileText = AttributedString()
+    let supportsLiveTranscript = true
+
+    /// SpeechAnalyzer reports volatile results continuously, so the preview
+    /// costs nothing extra and needs no beginLivePreview().
+    var liveTranscript: LiveTranscript {
+        LiveTranscript(
+            confirmed: Self.plainText(finalizedText).trimmingCharacters(in: .whitespacesAndNewlines),
+            tentative: Self.plainText(volatileText).trimmingCharacters(in: .whitespacesAndNewlines)
+        )
+    }
     private let audioEngine = AVAudioEngine()
 
     // MARK: - Prepare (asset install)
@@ -84,6 +96,7 @@ final class AppleSpeechTranscriptionService: TranscriptionEngine {
             throw AppleSpeechError.notPrepared
         }
         finalizedText = AttributedString()
+        volatileText = AttributedString()
         audioEnergy = []
 
         // Fresh module per session — see makeTranscriber().
@@ -97,13 +110,17 @@ final class AppleSpeechTranscriptionService: TranscriptionEngine {
         self.inputBuilder = builder
 
         // Drain results on the main actor (this Task inherits main-actor
-        // isolation); accumulate only finalized text.
+        // isolation); accumulate finalized text, keep the latest volatile
+        // result for the live preview.
         resultsTask = Task { [weak self] in
             guard let self else { return }
             do {
                 for try await result in transcriber.results {
                     if result.isFinal {
                         self.finalizedText += result.text
+                        self.volatileText = AttributedString()
+                    } else {
+                        self.volatileText = result.text
                     }
                 }
             } catch {
@@ -153,6 +170,7 @@ final class AppleSpeechTranscriptionService: TranscriptionEngine {
         self.analyzer = nil
         self.transcriber = nil
         finalizedText = AttributedString()
+        volatileText = AttributedString()
         audioEnergy = []
         Task { await analyzer?.cancelAndFinishNow() }
         print("[AppleSpeech] Recording cancelled")
@@ -177,6 +195,7 @@ final class AppleSpeechTranscriptionService: TranscriptionEngine {
 
         let text = Self.plainText(finalizedText).trimmingCharacters(in: .whitespacesAndNewlines)
         finalizedText = AttributedString()
+        volatileText = AttributedString()
         print("[AppleSpeech] Result: \"\(text)\"")
         return text
     }

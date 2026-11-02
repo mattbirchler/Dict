@@ -5,8 +5,8 @@ final class HUDPanelController {
     /// Transparent canvas the capsule animates within. Larger than the
     /// capsule so spring overshoot, width changes, and the shadow are never
     /// clipped, and fixed so mode changes animate in SwiftUI instead of
-    /// resizing the window.
-    private static let canvasSize = CGSize(width: 440, height: 120)
+    /// resizing the window. Sized for the expanded hands-free panel.
+    private static let canvasSize = CGSize(width: 560, height: 240)
     /// Gap between the capsule's bottom edge and the visible screen bottom.
     private static let bottomInset: CGFloat = 80
     /// How long the success checkmark stays up before the HUD leaves.
@@ -23,11 +23,18 @@ final class HUDPanelController {
         NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
     }
 
-    func show(audioLevels: @escaping () -> [Float], micName: @escaping () -> String) {
+    func show(
+        audioLevels: @escaping () -> [Float],
+        micName: @escaping () -> String,
+        liveTranscript: @escaping () -> LiveTranscript,
+        hotkeyGlyph: String
+    ) {
         pendingDismiss?.cancel()
         presentation += 1
         hudState.audioLevels = audioLevels
         hudState.micName = micName
+        hudState.liveTranscript = liveTranscript
+        hudState.hotkeyGlyph = hotkeyGlyph
         hudState.reduceMotion = reduceMotion
 
         let panel = self.panel ?? makePanel()
@@ -36,19 +43,31 @@ final class HUDPanelController {
 
         if hudState.isPresented {
             // Re-shown mid-exit or right after a success: morph back.
-            withAnimation(HUDAnimation.morph(reduceMotion)) { hudState.mode = .recording }
+            withAnimation(HUDAnimation.morph(reduceMotion)) {
+                hudState.mode = .recording
+                hudState.showsLiveTranscript = false
+            }
         } else {
             hudState.mode = .recording
+            hudState.showsLiveTranscript = false
             withAnimation(HUDAnimation.entrance(reduceMotion)) { hudState.isPresented = true }
         }
     }
 
-    func showHandsFree() {
-        withAnimation(HUDAnimation.morph(reduceMotion)) { hudState.mode = .recordingHandsFree }
+    /// Hands-free: with a live preview the pill grows into a panel that
+    /// shows the transcript as it forms.
+    func showHandsFree(livePreview: Bool) {
+        withAnimation(HUDAnimation.morph(reduceMotion)) {
+            hudState.mode = .recordingHandsFree
+            hudState.showsLiveTranscript = livePreview
+        }
     }
 
     func showProcessing() {
-        withAnimation(HUDAnimation.morph(reduceMotion)) { hudState.mode = .processing }
+        withAnimation(HUDAnimation.morph(reduceMotion)) {
+            hudState.mode = .processing
+            hudState.showsLiveTranscript = false
+        }
     }
 
     /// Ends a processed dictation: a brief checkmark on success, then exit.
@@ -139,8 +158,11 @@ final class HUDState {
     var isPresented = false
     var mode: HUDMode = .recording
     var reduceMotion = false
+    var showsLiveTranscript = false
+    var hotkeyGlyph = "⌘"
     var audioLevels: (() -> [Float])?
     var micName: (() -> String)?
+    var liveTranscript: (() -> LiveTranscript)?
 }
 
 struct WaveformHUDContainer: View {
@@ -158,6 +180,8 @@ struct WaveformHUDContainer: View {
                         mode: state.mode,
                         levels: state.audioLevels?() ?? [],
                         micName: state.micName?() ?? "",
+                        transcript: state.showsLiveTranscript ? (state.liveTranscript?() ?? LiveTranscript()) : nil,
+                        hotkeyGlyph: state.hotkeyGlyph,
                         pulsePhase: timeline.date.timeIntervalSinceReferenceDate
                     )
                 }

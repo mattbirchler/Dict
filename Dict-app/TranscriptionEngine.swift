@@ -29,4 +29,22 @@ protocol TranscriptionEngine: AnyObject {
     func start() async throws
     func cancel()
     func stop() async -> String
+
+    /// Whether the engine can preview its transcript while recording.
+    var supportsLiveTranscript: Bool { get }
+
+    /// What has been heard so far in the current recording; empty when the
+    /// engine doesn't preview or nothing has been decoded yet.
+    var liveTranscript: LiveTranscript { get }
+
+    /// Called when the user goes hands-free, where the preview is shown.
+    /// Engines whose preview costs extra work start it here.
+    func beginLivePreview()
+}
+
+/// Engines that only transcribe at stop() (Whisper) get no preview.
+extension TranscriptionEngine {
+    var supportsLiveTranscript: Bool { false }
+    var liveTranscript: LiveTranscript { LiveTranscript() }
+    func beginLivePreview() {}
 }

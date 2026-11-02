@@ -11,6 +11,16 @@ enum HotkeyChoice: String, CaseIterable {
         case .fn: "Fn / Globe (🌐)"
         }
     }
+
+    /// Short key symbol for on-screen hints.
+    var glyph: String {
+        switch self {
+        case .rightCommand: "⌘"
+        case .rightControl: "⌃"
+        case .rightOption: "⌥"
+        case .fn: "fn"
+        }
+    }
 }
 
 enum ActivationMode: String, CaseIterable {
