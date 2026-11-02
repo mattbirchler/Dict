@@ -27,9 +27,22 @@
 		C9DD10032FB0000000000003 /* Dict-appTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Dict-appTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		C9D1C7000000000000000001 /* Exceptions for "Dict-app" folder in "Dict-app" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = C95EB2BE2F7FF45300B3F4AE /* Dict-app */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		C95EB2C12F7FF45400B3F4AE /* Dict-app */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				C9D1C7000000000000000001 /* Exceptions for "Dict-app" folder in "Dict-app" target */,
+			);
 			path = "Dict-app";
 			sourceTree = "<group>";
 		};
