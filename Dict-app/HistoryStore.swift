@@ -19,9 +19,26 @@ final class HistoryStore {
 
     var recentEntries: [TranscriptionEntry] = []
 
+    /// Where history lives on disk. SwiftData's default for a non-sandboxed
+    /// app is a shared `Application Support/default.store`, which other apps
+    /// use too, so Dict keeps its own folder.
+    static func storeURL(applicationSupport: URL) -> URL {
+        applicationSupport
+            .appendingPathComponent("Dict", isDirectory: true)
+            .appendingPathComponent("History.store")
+    }
+
     init(inMemory: Bool = false) {
         let schema = Schema([TranscriptionEntry.self])
-        let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: inMemory)
+        let config: ModelConfiguration
+        if inMemory {
+            config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
+        } else {
+            let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+            let url = Self.storeURL(applicationSupport: support)
+            try? FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+            config = ModelConfiguration(schema: schema, url: url)
+        }
         do {
             self.container = try ModelContainer(for: schema, configurations: [config])
         } catch {
