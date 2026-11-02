@@ -87,6 +87,15 @@ enum TranscriptionEngineChoice: String, CaseIterable {
         }
     }
 
+    /// Apple's SpeechAnalyzer sits behind the system Speech Recognition
+    /// permission; Parakeet runs its own model and never needs it.
+    var needsSpeechRecognitionPermission: Bool {
+        switch self {
+        case .apple: true
+        case .parakeet: false
+        }
+    }
+
     /// Label for the explicit download step; nil when the engine has none.
     var downloadPrompt: String? {
         switch self {

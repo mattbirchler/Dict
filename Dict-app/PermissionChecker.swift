@@ -9,8 +9,11 @@ final class PermissionChecker {
     var accessibilityGranted = false
     var speechRecognitionGranted = false
 
-    var allGranted: Bool {
-        microphoneGranted && accessibilityGranted && speechRecognitionGranted
+    /// Whether everything `engine` needs has been granted. Speech
+    /// Recognition only counts for engines that use it.
+    func requiredGranted(for engine: TranscriptionEngineChoice) -> Bool {
+        microphoneGranted && accessibilityGranted
+            && (!engine.needsSpeechRecognitionPermission || speechRecognitionGranted)
     }
 
     func checkAll() {

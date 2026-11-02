@@ -46,17 +46,19 @@ struct OnboardingView: View {
                     openSettings: appState.permissionChecker.openAccessibilitySettings
                 )
 
-                PermissionRow(
-                    title: "Speech Recognition",
-                    description: "Transcribe your voice on-device",
-                    systemImage: "waveform.badge.mic",
-                    isGranted: appState.permissionChecker.speechRecognitionGranted,
-                    action: {
-                        Log.permissions.debug("Speech Recognition Grant button tapped")
-                        Task { await appState.permissionChecker.requestSpeechRecognition() }
-                    },
-                    openSettings: appState.permissionChecker.openSpeechRecognitionSettings
-                )
+                if appState.settings.transcriptionEngine.needsSpeechRecognitionPermission {
+                    PermissionRow(
+                        title: "Speech Recognition",
+                        description: "Transcribe your voice on-device",
+                        systemImage: "waveform.badge.mic",
+                        isGranted: appState.permissionChecker.speechRecognitionGranted,
+                        action: {
+                            Log.permissions.debug("Speech Recognition Grant button tapped")
+                            Task { await appState.permissionChecker.requestSpeechRecognition() }
+                        },
+                        openSettings: appState.permissionChecker.openSpeechRecognitionSettings
+                    )
+                }
 
                 // Transcription engine picker
                 VStack(alignment: .leading, spacing: 8) {
@@ -147,7 +149,7 @@ struct OnboardingView: View {
             .controlSize(.large)
             .disabled(!appState.isEngineReady)
 
-            if !appState.permissionChecker.allGranted || !appState.isEngineReady {
+            if !appState.permissionChecker.requiredGranted(for: appState.settings.transcriptionEngine) || !appState.isEngineReady {
                 Text("Grant all permissions and download the model to continue")
                     .font(.caption)
                     .foregroundStyle(.secondary)

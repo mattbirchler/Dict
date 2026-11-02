@@ -118,7 +118,7 @@ final class MenuBarManager: NSObject, NSMenuDelegate {
 
         menu.addItem(.separator())
 
-        if !appState.permissionChecker.allGranted {
+        if !appState.permissionChecker.requiredGranted(for: appState.settings.transcriptionEngine) {
             let fix = NSMenuItem(
                 title: "Fix Permissions…",
                 action: #selector(showOnboarding),
