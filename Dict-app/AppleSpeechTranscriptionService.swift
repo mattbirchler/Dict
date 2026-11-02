@@ -15,6 +15,7 @@ final class AppleSpeechTranscriptionService: TranscriptionEngine {
     private(set) var isReady: Bool = false
     private(set) var needsDownload: Bool = false
     @ObservationIgnored var onProgress: ((Double) -> Void)?
+    @ObservationIgnored var inputDeviceID: AudioDeviceID?
 
     private let locale = Locale(identifier: "en-US")
     private let maxEnergySamples = 64
@@ -132,6 +133,9 @@ final class AppleSpeechTranscriptionService: TranscriptionEngine {
         // Install the mic tap. The callback runs on a realtime audio thread:
         // capture Sendable/local values, never touch main-actor state directly
         // (energy is published via a MainActor Task hop).
+        if let inputDeviceID {
+            try AudioInputDevices.apply(inputDeviceID, to: audioEngine)
+        }
         let tapFormat = audioEngine.inputNode.outputFormat(forBus: 0)
         let converter = AVAudioConverter(from: tapFormat, to: analyzerFormat)
         let format = analyzerFormat

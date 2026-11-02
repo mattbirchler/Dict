@@ -121,6 +121,20 @@ struct SettingsStoreTests {
         #expect(changes == [.transcriptionEngine])
     }
 
+    @Test func inputDeviceDefaultsToAutomatic() {
+        #expect(SettingsStore(defaults: makeDefaults()).inputDevice == .automatic)
+    }
+
+    @Test func inputDeviceRoundTrips() {
+        let defaults = makeDefaults()
+        let store = SettingsStore(defaults: defaults)
+        var changes: [SettingsStore.Change] = []
+        store.onChange = { changes.append($0) }
+        store.inputDevice = .device(uid: "usb")
+        #expect(changes == [.inputDevice])
+        #expect(SettingsStore(defaults: defaults).inputDevice == .device(uid: "usb"))
+    }
+
     @Test func historyLimitMapping() {
         #expect(HistoryLimit.off.maxEntries == 0)
         #expect(HistoryLimit.ten.maxEntries == 10)

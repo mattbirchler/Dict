@@ -111,7 +111,7 @@ enum TranscriptionEngineChoice: String, CaseIterable {
 @MainActor
 @Observable
 final class SettingsStore {
-    enum Change { case hotkey, activationMode, formatting, historyLimit, transcriptionEngine, appendTrailingSpace, smartLeadingSpace, wordReplacements }
+    enum Change { case hotkey, activationMode, formatting, historyLimit, transcriptionEngine, appendTrailingSpace, smartLeadingSpace, wordReplacements, inputDevice }
 
     @ObservationIgnored var onChange: ((Change) -> Void)?
     @ObservationIgnored private let defaults: UserDefaults
@@ -126,6 +126,7 @@ final class SettingsStore {
         static let appendTrailingSpace = "appendTrailingSpace"
         static let smartLeadingSpace = "smartLeadingSpace"
         static let wordReplacements = "wordReplacements"
+        static let inputDevice = "inputDevice"
     }
 
     var hotkey: HotkeyChoice {
@@ -188,8 +189,20 @@ final class SettingsStore {
         }
     }
 
+    /// Which microphone to record from; stored as JSON.
+    var inputDevice: InputDeviceChoice {
+        didSet {
+            if let data = try? JSONEncoder().encode(inputDevice) {
+                defaults.set(data, forKey: Keys.inputDevice)
+            }
+            onChange?(.inputDevice)
+        }
+    }
+
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
+        self.inputDevice = defaults.data(forKey: Keys.inputDevice)
+            .flatMap { try? JSONDecoder().decode(InputDeviceChoice.self, from: $0) } ?? .automatic
         self.hotkey = defaults.string(forKey: Keys.hotkey)
             .flatMap(HotkeyChoice.init(rawValue:)) ?? .rightCommand
         self.activationMode = defaults.string(forKey: Keys.activationMode)

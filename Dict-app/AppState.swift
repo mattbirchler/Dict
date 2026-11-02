@@ -43,6 +43,7 @@ final class AppState {
         pipeline.wordReplacements = settings.wordReplacements
         pipeline.historyStore.limit = settings.historyLimit
         pipeline.engineChoice = settings.transcriptionEngine
+        pipeline.inputDeviceChoice = settings.inputDevice
         refreshEngineReadiness()
         settings.onChange = { [weak self] change in
             guard let self else { return }
@@ -61,6 +62,8 @@ final class AppState {
                 self.onHotkeySettingsChanged?()
             case .transcriptionEngine:
                 self.handleEngineChange()
+            case .inputDevice:
+                self.pipeline.inputDeviceChoice = self.settings.inputDevice
             }
         }
     }

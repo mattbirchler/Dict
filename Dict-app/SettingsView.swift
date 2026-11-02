@@ -24,6 +24,7 @@ struct GeneralSettingsTab: View {
     @Bindable var settings: SettingsStore
     var appState: AppState
     @State private var loginItem = LoginItemManager()
+    @State private var inputDevices: [AudioInputDevice] = []
 
     var body: some View {
         Form {
@@ -70,6 +71,25 @@ struct GeneralSettingsTab: View {
             }
 
             Section {
+                Picker("Microphone", selection: $settings.inputDevice) {
+                    Text(InputDeviceChoice.automatic.displayName).tag(InputDeviceChoice.automatic)
+                    Text(InputDeviceChoice.systemDefault.displayName).tag(InputDeviceChoice.systemDefault)
+                    if !inputDevices.isEmpty {
+                        Divider()
+                        ForEach(inputDevices) { device in
+                            Text(device.name).tag(InputDeviceChoice.device(uid: device.uid))
+                        }
+                    }
+                    if case .device(let uid) = settings.inputDevice, !inputDevices.contains(where: { $0.uid == uid }) {
+                        Text("Unplugged microphone").tag(settings.inputDevice)
+                    }
+                }
+                Text("Automatic uses your system microphone, but switches to the built-in one when a Bluetooth headset is the default. Bluetooth headsets record at low quality and take over audio output.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Section {
                 Picker("Transcription engine", selection: $settings.transcriptionEngine) {
                     ForEach(TranscriptionEngineChoice.allCases, id: \.self) { choice in
                         Text(choice.displayName).tag(choice)
@@ -108,7 +128,10 @@ struct GeneralSettingsTab: View {
             }
         }
         .formStyle(.grouped)
-        .onAppear { loginItem.refresh() }
+        .onAppear {
+            loginItem.refresh()
+            inputDevices = AudioInputDevices.all()
+        }
     }
 
     private var engineStatusCaption: String {

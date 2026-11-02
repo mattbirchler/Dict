@@ -1,3 +1,4 @@
+import CoreAudio
 import Foundation
 
 /// A pluggable on-device transcription engine. Parakeet (FluidAudio) and
@@ -10,6 +11,10 @@ protocol TranscriptionEngine: AnyObject {
     var audioEnergy: [Float] { get }
 
     var isRecording: Bool { get }
+
+    /// The microphone to record from next; nil leaves the engine's default.
+    /// Set by the pipeline right before start().
+    var inputDeviceID: AudioDeviceID? { get set }
 
     /// True once the engine's model/assets are installed and loaded so
     /// recording can begin immediately.

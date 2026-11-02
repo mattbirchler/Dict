@@ -25,6 +25,18 @@ final class PipelineCoordinator {
     /// Mirrors the user's transcription-engine setting; owned by AppState.
     var engineChoice: TranscriptionEngineChoice = .apple
 
+    /// Mirrors the user's microphone setting; owned by AppState.
+    var inputDeviceChoice: InputDeviceChoice = .automatic
+
+    /// The microphone the next recording uses, given what's connected now.
+    func resolvedInputDevice() -> AudioInputDevice? {
+        InputDeviceSelection.resolve(
+            inputDeviceChoice,
+            devices: AudioInputDevices.all(),
+            systemDefault: AudioInputDevices.systemDefault()
+        )
+    }
+
     var activeEngine: any TranscriptionEngine {
         switch engineChoice {
         case .apple: appleEngine
@@ -34,6 +46,7 @@ final class PipelineCoordinator {
 
     func startRecording() {
         let engine = activeEngine
+        engine.inputDeviceID = resolvedInputDevice()?.id
         Task {
             do {
                 try await engine.start()

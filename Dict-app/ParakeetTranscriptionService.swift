@@ -16,6 +16,7 @@ final class ParakeetTranscriptionService: TranscriptionEngine {
     private(set) var liveTranscript = LiveTranscript()
     let supportsLiveTranscript = true
     @ObservationIgnored var onProgress: ((Double) -> Void)?
+    @ObservationIgnored var inputDeviceID: AudioDeviceID?
 
     private static let modelVersion = AsrModelVersion.v3
     private static let sampleRate = 16_000
@@ -101,6 +102,9 @@ final class ParakeetTranscriptionService: TranscriptionEngine {
 
         // The tap callback runs on a realtime audio thread: append samples
         // under the lock, publish energy via a MainActor hop.
+        if let inputDeviceID {
+            try AudioInputDevices.apply(inputDeviceID, to: audioEngine)
+        }
         let tapFormat = audioEngine.inputNode.outputFormat(forBus: 0)
         let converter = AVAudioConverter(from: tapFormat, to: targetFormat)
         let samplesBox = recordedSamples

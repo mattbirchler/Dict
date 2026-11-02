@@ -71,7 +71,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     let energy = self?.appState.pipeline.activeEngine.audioEnergy ?? []
                     return energy.map { min(max($0 * 2, 0), 1) }
                 },
-                micName: { AudioInputDevices.defaultInputDeviceName },
+                micName: { [weak self] in self?.appState.pipeline.resolvedInputDevice()?.name ?? "Microphone" },
                 liveTranscript: { [weak self] in
                     self?.appState.pipeline.activeEngine.liveTranscript ?? LiveTranscript()
                 },
