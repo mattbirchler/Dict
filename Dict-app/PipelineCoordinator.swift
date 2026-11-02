@@ -1,5 +1,6 @@
 import AppKit
 import Foundation
+import os
 
 @MainActor
 final class PipelineCoordinator {
@@ -36,23 +37,23 @@ final class PipelineCoordinator {
         Task {
             do {
                 try await engine.start()
-                print("[Pipeline] Recording session started")
+                Log.pipeline.info("Recording session started")
             } catch {
-                print("[Pipeline] Failed to start: \(error)")
+                Log.pipeline.error("Failed to start: \(String(describing: error), privacy: .public)")
             }
         }
     }
 
     func cancelRecording() {
         activeEngine.cancel()
-        print("[Pipeline] Recording cancelled")
+        Log.pipeline.info("Recording cancelled")
     }
 
     func stopRecordingAndProcess() async -> String? {
         let rawText = await activeEngine.stop()
 
         guard !rawText.isEmpty else {
-            print("[Pipeline] No text produced, aborting")
+            Log.pipeline.info("No text produced, aborting")
             return nil
         }
 
@@ -64,12 +65,12 @@ final class PipelineCoordinator {
 
         // Escape cancelled processing while we were transcribing/formatting.
         guard !Task.isCancelled else {
-            print("[Pipeline] Cancelled, discarding result")
+            Log.pipeline.info("Cancelled, discarding result")
             return nil
         }
 
         historyStore.save(cleanedText: text)
-        print("[Pipeline] Saved to history. Inserting text...")
+        Log.pipeline.info("Saved to history. Inserting text...")
         // Add separator spaces to the inserted text only — History keeps
         // the clean text so the list stays tidy.
         var textToInsert = appendTrailingSpace ? text + " " : text
@@ -78,7 +79,7 @@ final class PipelineCoordinator {
             textToInsert = " " + textToInsert
         }
         textInsertionService.insertText(textToInsert)
-        print("[Pipeline] Text inserted")
+        Log.pipeline.info("Text inserted")
 
         return text
     }

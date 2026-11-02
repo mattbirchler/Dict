@@ -1,4 +1,5 @@
 import Foundation
+import os
 
 @MainActor
 @Observable
@@ -126,7 +127,7 @@ final class AppState {
             do {
                 try await engine.prepare()
             } catch {
-                print("[AppState] Engine failed to prepare: \(error)")
+                Log.app.error("Engine failed to prepare: \(String(describing: error), privacy: .public)")
                 lastError = "Speech engine failed to prepare."
             }
             engine.onProgress = nil
@@ -186,6 +187,6 @@ final class AppState {
         processingTask = nil
         isProcessing = false
         onProcessingComplete?(false)
-        print("[AppState] Processing cancelled")
+        Log.app.info("Processing cancelled")
     }
 }

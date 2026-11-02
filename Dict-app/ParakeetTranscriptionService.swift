@@ -62,7 +62,7 @@ final class ParakeetTranscriptionService: TranscriptionEngine {
         isPreparing = true
         defer { isPreparing = false }
 
-        print("[Parakeet] Downloading/loading model...")
+        Log.engine.info("Downloading/loading model...")
         let models = try await AsrModels.downloadAndLoad(
             version: Self.modelVersion,
             progressHandler: { [weak self] progress in
@@ -73,7 +73,7 @@ final class ParakeetTranscriptionService: TranscriptionEngine {
         let manager = AsrManager(config: .default)
         try await manager.loadModels(models)
         self.manager = manager
-        print("[Parakeet] Model loaded")
+        Log.engine.info("Model loaded")
         warmUpAudio()
     }
 
@@ -126,7 +126,7 @@ final class ParakeetTranscriptionService: TranscriptionEngine {
             throw error
         }
         isRecording = true
-        print("[Parakeet] Recording started")
+        Log.engine.info("Recording started")
     }
 
     /// Stops the engine and throws the recording away without transcribing —
@@ -139,7 +139,7 @@ final class ParakeetTranscriptionService: TranscriptionEngine {
         teardownAudio()
         recordedSamples.withLock { $0 = [] }
         audioEnergy = []
-        print("[Parakeet] Recording cancelled — discarded")
+        Log.engine.info("Recording cancelled — discarded")
     }
 
     func stop() async -> String {
@@ -167,11 +167,11 @@ final class ParakeetTranscriptionService: TranscriptionEngine {
         }
         let minimumSamples = ASRConstants.minimumRequiredSamples(forSampleRate: Self.sampleRate)
         guard samples.count >= minimumSamples else {
-            print("[Parakeet] Recording too short (\(samples.count) samples), skipping")
+            Log.engine.info("Recording too short (\(samples.count, privacy: .public) samples), skipping")
             return ""
         }
 
-        print("[Parakeet] Recording stopped — \(samples.count) samples, transcribing...")
+        Log.engine.info("Recording stopped — \(samples.count, privacy: .public) samples, transcribing...")
         return await transcribeRecording(samples)
     }
 
@@ -182,16 +182,17 @@ final class ParakeetTranscriptionService: TranscriptionEngine {
         let decodeStarted = ProcessInfo.processInfo.systemUptime
         do {
             let text = try await decode(samples)
-            print(String(
-                format: "[Timing] parakeet decode=%.3fs audio=%.1fs chars=%d",
+            let timing = String(
+                format: "decode=%.3fs audio=%.1fs chars=%d",
                 ProcessInfo.processInfo.systemUptime - decodeStarted,
                 Float(samples.count) / Float(Self.sampleRate),
                 text.count
-            ))
-            print("[Parakeet] Result: \"\(text)\"")
+            )
+            Log.engine.debug("Parakeet timing \(timing, privacy: .public)")
+            Log.engine.info("Result: \"\(text, privacy: .private)\"")
             return text
         } catch {
-            print("[Parakeet] Transcription failed: \(error)")
+            Log.engine.error("Transcription failed: \(String(describing: error), privacy: .public)")
             return ""
         }
     }

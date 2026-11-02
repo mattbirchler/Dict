@@ -1,6 +1,7 @@
 import Foundation
 import AVFoundation
 import Speech
+import os
 
 /// On-device transcription using Apple's SpeechAnalyzer/SpeechTranscriber
 /// (macOS 26). Owns its own AVAudioEngine tap; feeds converted buffers into a
@@ -124,7 +125,7 @@ final class AppleSpeechTranscriptionService: TranscriptionEngine {
                     }
                 }
             } catch {
-                print("[AppleSpeech] results stream error: \(error)")
+                Log.engine.error("results stream error: \(String(describing: error), privacy: .public)")
             }
         }
 
@@ -153,11 +154,11 @@ final class AppleSpeechTranscriptionService: TranscriptionEngine {
             resultsTask?.cancel()
             resultsTask = nil
             self.analyzer = nil
-            print("[AppleSpeech] start failed, rolled back: \(error)")
+            Log.engine.error("start failed, rolled back: \(String(describing: error), privacy: .public)")
             throw error
         }
         isRecording = true
-        print("[AppleSpeech] Recording started")
+        Log.engine.info("Recording started")
     }
 
     func cancel() {
@@ -173,7 +174,7 @@ final class AppleSpeechTranscriptionService: TranscriptionEngine {
         volatileText = AttributedString()
         audioEnergy = []
         Task { await analyzer?.cancelAndFinishNow() }
-        print("[AppleSpeech] Recording cancelled")
+        Log.engine.info("Recording cancelled")
     }
 
     func stop() async -> String {
@@ -184,7 +185,7 @@ final class AppleSpeechTranscriptionService: TranscriptionEngine {
         do {
             try await analyzer?.finalizeAndFinishThroughEndOfInput()
         } catch {
-            print("[AppleSpeech] finalize error: \(error)")
+            Log.engine.error("finalize error: \(String(describing: error), privacy: .public)")
         }
         // Let the results task drain the remaining finalized results.
         await resultsTask?.value
@@ -196,7 +197,7 @@ final class AppleSpeechTranscriptionService: TranscriptionEngine {
         let text = Self.plainText(finalizedText).trimmingCharacters(in: .whitespacesAndNewlines)
         finalizedText = AttributedString()
         volatileText = AttributedString()
-        print("[AppleSpeech] Result: \"\(text)\"")
+        Log.engine.info("Result: \"\(text, privacy: .private)\"")
         return text
     }
 

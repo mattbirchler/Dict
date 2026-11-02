@@ -1,5 +1,6 @@
 import Foundation
 import FoundationModels
+import os
 
 enum TranscriptFormatterError: Error {
     case timedOut
@@ -79,7 +80,7 @@ final class TranscriptFormatter {
         guard !input.isEmpty else { return raw }
 
         guard SystemLanguageModel.default.availability == .available else {
-            print("[Formatter] Model unavailable, using raw transcript")
+            Log.formatter.error("Model unavailable, using raw transcript")
             return raw
         }
 
@@ -93,12 +94,12 @@ final class TranscriptFormatter {
             }
             let output = formattedChunks.joined(separator: "\n\n")
             guard Self.isAcceptable(input: input, output: output) else {
-                print("[Formatter] Output failed sanity check, using raw transcript")
+                Log.formatter.error("Output failed sanity check, using raw transcript")
                 return raw
             }
             return output
         } catch {
-            print("[Formatter] Failed (\(error)), using raw transcript")
+            Log.formatter.error("Failed (\(error), privacy: .public), using raw transcript")
             return raw
         }
     }

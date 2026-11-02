@@ -1,4 +1,5 @@
 import SwiftUI
+import os
 
 struct OnboardingView: View {
     @Bindable var appState: AppState
@@ -22,11 +23,11 @@ struct OnboardingView: View {
                     systemImage: "mic.fill",
                     isGranted: appState.permissionChecker.microphoneGranted,
                     action: {
-                        print("[Onboarding] Microphone Grant button tapped")
+                        Log.permissions.debug("Microphone Grant button tapped")
                         if appState.permissionChecker.microphoneNotDetermined {
                             Task { await appState.permissionChecker.requestMicrophone() }
                         } else {
-                            print("[Onboarding] Mic already denied, opening System Settings")
+                            Log.permissions.debug("Mic already denied, opening System Settings")
                             appState.permissionChecker.openMicrophoneSettings()
                         }
                     },
@@ -39,7 +40,7 @@ struct OnboardingView: View {
                     systemImage: "hand.raised.fill",
                     isGranted: appState.permissionChecker.accessibilityGranted,
                     action: {
-                        print("[Onboarding] Accessibility Grant button tapped")
+                        Log.permissions.debug("Accessibility Grant button tapped")
                         appState.permissionChecker.openAccessibilitySettings()
                     },
                     openSettings: appState.permissionChecker.openAccessibilitySettings
@@ -51,7 +52,7 @@ struct OnboardingView: View {
                     systemImage: "waveform.badge.mic",
                     isGranted: appState.permissionChecker.speechRecognitionGranted,
                     action: {
-                        print("[Onboarding] Speech Recognition Grant button tapped")
+                        Log.permissions.debug("Speech Recognition Grant button tapped")
                         Task { await appState.permissionChecker.requestSpeechRecognition() }
                     },
                     openSettings: appState.permissionChecker.openSpeechRecognitionSettings
@@ -204,7 +205,7 @@ struct PermissionRow: View {
                     .font(.title2)
             } else {
                 Button("Grant") {
-                    print("[PermissionRow] '\(title)' Grant button action fired")
+                    Log.permissions.debug("'\(title, privacy: .public)' Grant button action fired")
                     action()
                 }
                 .buttonStyle(.bordered)

@@ -1,6 +1,7 @@
 import SwiftUI
 import Sparkle
 import Combine
+import os
 
 /// Bridges Sparkle's KVO-based `canCheckForUpdates` into SwiftUI so the
 /// "Check for Updates…" button can dim while a check is already in flight.
@@ -132,6 +133,8 @@ struct GeneralSettingsTab: View {
 
 struct AboutSettingsTab: View {
     @StateObject private var updaterViewModel: UpdaterViewModel
+    @State private var logStatus: String?
+    @State private var logStatusTask: Task<Void, Never>?
 
     init(updater: SPUUpdater) {
         self._updaterViewModel = StateObject(wrappedValue: UpdaterViewModel(updater: updater))
@@ -142,6 +145,24 @@ struct AboutSettingsTab: View {
         let version = info?["CFBundleShortVersionString"] as? String ?? "?"
         let build = info?["CFBundleVersion"] as? String ?? "?"
         return "Version \(version) (\(build))"
+    }
+
+    /// Puts the last hour of Dict's log on the clipboard for a bug report.
+    private func copyDiagnosticLog() {
+        do {
+            let log = try DiagnosticLog.recent()
+            NSPasteboard.general.clearContents()
+            NSPasteboard.general.setString(log, forType: .string)
+            logStatus = "Copied. Paste it into a bug report."
+        } catch {
+            logStatus = "Couldn't read the log: \(error.localizedDescription)"
+        }
+        logStatusTask?.cancel()
+        logStatusTask = Task {
+            try? await Task.sleep(for: .seconds(3))
+            guard !Task.isCancelled else { return }
+            logStatus = nil
+        }
     }
 
     var body: some View {
@@ -165,6 +186,13 @@ struct AboutSettingsTab: View {
                 updaterViewModel.checkForUpdates()
             }
             .disabled(!updaterViewModel.canCheckForUpdates)
+
+            Button("Copy Diagnostic Log") { copyDiagnosticLog() }
+            if let logStatus {
+                Text(logStatus)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
 
             Text("Built with FluidAudio and Sparkle.")
                 .font(.caption2)
