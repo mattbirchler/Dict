@@ -162,8 +162,13 @@ final class HUDPanelController {
     }
 
     private func position(_ panel: NSPanel) {
-        guard let screen = NSScreen.main else { return }
-        let screenFrame = screen.visibleFrame
+        let screens = NSScreen.screens
+        guard let index = HUDScreenPicker.pick(
+            screens: screens.map(\.frame),
+            focusedWindow: HUDScreenPicker.focusedWindowFrame(),
+            mouse: NSEvent.mouseLocation
+        ) else { return }
+        let screenFrame = screens[index].visibleFrame
         let origin = NSPoint(
             x: screenFrame.midX - Self.canvasSize.width / 2,
             y: screenFrame.minY + Self.bottomInset - WaveformHUDContainer.bottomPadding
