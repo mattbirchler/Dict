@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Sparkle: where updates are announced, and the key they must be signed with.
+	     Xcode merges this file with the Info.plist it generates from build settings. -->
+	<key>SUFeedURL</key>
+	<string>https://raw.githubusercontent.com/mattbirchler/Dict-app/main/appcast.xml</string>
+	<key>SUPublicEDKey</key>
+	<string>OCgTVkB0ALGcmayKSv26zkjNwtIpm61J8d7GzG8tVN4=</string>
+	<key>SUEnableAutomaticChecks</key>
+	<true/>
+</dict>
+</plist>

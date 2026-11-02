@@ -4,3 +4,6 @@ Dict-app.xcodeproj/project.xcworkspace/xcuserdata/matt.xcuserdatad/UserInterface
 build/
 *.profraw
 xcuserdata/
+vendor/
+fastlane/.env
+fastlane/report.xml
