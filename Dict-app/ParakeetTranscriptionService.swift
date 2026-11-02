@@ -102,9 +102,7 @@ final class ParakeetTranscriptionService: TranscriptionEngine {
 
         // The tap callback runs on a realtime audio thread: append samples
         // under the lock, publish energy via a MainActor hop.
-        if let inputDeviceID {
-            try AudioInputDevices.apply(inputDeviceID, to: audioEngine)
-        }
+        AudioInputDevices.applyIfPossible(inputDeviceID, to: audioEngine)
         let tapFormat = audioEngine.inputNode.outputFormat(forBus: 0)
         let converter = AVAudioConverter(from: tapFormat, to: targetFormat)
         let samplesBox = recordedSamples
@@ -143,10 +141,10 @@ final class ParakeetTranscriptionService: TranscriptionEngine {
         teardownAudio()
         recordedSamples.withLock { $0 = [] }
         audioEnergy = []
-        Log.engine.info("Recording cancelled — discarded")
+        Log.engine.info("Recording cancelled, discarded")
     }
 
-    func stop() async -> String {
+    func stop() async throws -> String {
         session += 1
         guard isRecording, manager != nil else {
             endLivePreview()
@@ -175,14 +173,14 @@ final class ParakeetTranscriptionService: TranscriptionEngine {
             return ""
         }
 
-        Log.engine.info("Recording stopped — \(samples.count, privacy: .public) samples, transcribing...")
-        return await transcribeRecording(samples)
+        Log.engine.info("Recording stopped: \(samples.count, privacy: .public) samples, transcribing")
+        return try await transcribeRecording(samples)
     }
 
     /// Decodes one full recording with a fresh decoder state. Internal (not
     /// private) so the end-to-end test can drive the exact production decode
     /// path via `@testable import` instead of re-implementing it.
-    func transcribeRecording(_ samples: [Float]) async -> String {
+    func transcribeRecording(_ samples: [Float]) async throws -> String {
         let decodeStarted = ProcessInfo.processInfo.systemUptime
         do {
             let text = try await decode(samples)
@@ -197,7 +195,7 @@ final class ParakeetTranscriptionService: TranscriptionEngine {
             return text
         } catch {
             Log.engine.error("Transcription failed: \(String(describing: error), privacy: .public)")
-            return ""
+            throw error
         }
     }
 

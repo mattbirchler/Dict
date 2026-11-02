@@ -28,6 +28,7 @@ enum HUDScreenPicker {
         guard AXUIElementCopyAttributeValue(application, kAXFocusedWindowAttribute as CFString, &windowRef) == .success,
               let windowRef, CFGetTypeID(windowRef) == AXUIElementGetTypeID() else { return nil }
         let window = windowRef as! AXUIElement
+        AXUIElementSetMessagingTimeout(window, 0.25)
 
         var positionRef: CFTypeRef?
         var sizeRef: CFTypeRef?

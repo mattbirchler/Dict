@@ -95,8 +95,8 @@ struct WaveformHUD: View {
         switch mode {
         case .recording: return micName
         case .recordingHandsFree:
-            return isExpanded ? "Hands-free" : "Hands-free — \(hotkeyGlyph) to finish, esc to cancel"
-        case .processing: return "Processing — esc to cancel"
+            return isExpanded ? "Hands-free" : "Hands-free: \(hotkeyGlyph) to finish, esc to cancel"
+        case .processing: return "Processing: esc to cancel"
         case .done: return "Inserted"
         case .failed(let message): return message
         }

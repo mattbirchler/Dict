@@ -33,6 +33,27 @@ struct DictationKeyLogicTests {
         #expect(logic.hotkeyDown(now: t0 + .milliseconds(10)) == nil)
     }
 
+    // MARK: Refused starts (engine still loading)
+
+    @Test func abandonedStartIgnoresReleaseAndSpace() {
+        var logic = DictationKeyLogic(mode: .holdToTalk)
+        #expect(logic.hotkeyDown(now: t0) == .start)
+        logic.abandonStart()
+        #expect(!logic.isRecording)
+        #expect(logic.spaceDown() == nil)
+        #expect(!logic.shouldSwallowSpace)
+        #expect(logic.hotkeyUp(now: t0 + .milliseconds(50)) == nil)
+        #expect(logic.hotkeyUp(now: t0 + .milliseconds(500)) == nil)
+    }
+
+    @Test func abandonedStartInToggleModeStartsAgainOnNextPress() {
+        var logic = DictationKeyLogic(mode: .toggle)
+        #expect(logic.hotkeyDown(now: t0) == .start)
+        logic.abandonStart()
+        _ = logic.hotkeyUp(now: t0 + .milliseconds(100))
+        #expect(logic.hotkeyDown(now: t0 + .seconds(1)) == .start)
+    }
+
     // MARK: Hands-free (Space while holding)
 
     @Test func spaceWhileHoldingEntersHandsFree() {

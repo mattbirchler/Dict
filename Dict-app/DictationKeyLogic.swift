@@ -70,6 +70,15 @@ struct DictationKeyLogic {
         return .cancel
     }
 
+    /// The app refused the start (engine still loading, or busy). Forget
+    /// the recording so the release, Space, and the next press behave as if
+    /// nothing began. The key itself stays held.
+    mutating func abandonStart() {
+        isRecording = false
+        handsFreeMode = false
+        keyDownTime = nil
+    }
+
     /// Whether a Space key-down should be swallowed instead of passed to the
     /// frontmost app (it's about to switch us into hands-free mode).
     var shouldSwallowSpace: Bool {

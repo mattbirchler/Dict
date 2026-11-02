@@ -2,6 +2,7 @@ import AudioToolbox
 import AVFoundation
 import CoreAudio
 import Foundation
+import os
 
 /// A microphone CoreAudio knows about.
 struct AudioInputDevice: Identifiable, Equatable {
@@ -77,6 +78,17 @@ enum AudioInputDevices {
             UInt32(MemoryLayout<AudioDeviceID>.size)
         )
         guard status == noErr else { throw AudioInputError.setDeviceFailed(status) }
+    }
+
+    /// `apply`, but a failure only costs the choice of microphone: the
+    /// engine records from its current device and the failure is logged.
+    static func applyIfPossible(_ id: AudioDeviceID?, to engine: AVAudioEngine) {
+        guard let id else { return }
+        do {
+            try apply(id, to: engine)
+        } catch {
+            Log.engine.error("Couldn't select input device \(id, privacy: .public): \(String(describing: error), privacy: .public)")
+        }
     }
 
     // MARK: - Property helpers

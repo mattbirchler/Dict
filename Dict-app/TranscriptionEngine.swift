@@ -33,7 +33,9 @@ protocol TranscriptionEngine: AnyObject {
 
     func start() async throws
     func cancel()
-    func stop() async -> String
+    /// Ends the recording and returns the transcript; throws when the
+    /// engine failed, so the pipeline can tell failure from silence.
+    func stop() async throws -> String
 
     /// Whether the engine can preview its transcript while recording.
     var supportsLiveTranscript: Bool { get }

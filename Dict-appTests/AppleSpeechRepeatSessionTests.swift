@@ -29,7 +29,7 @@ struct AppleSpeechRepeatSessionTests {
             // Long enough for buffers to reach SpeechAnalyzer.processInput,
             // which is where the old bug trapped.
             try await Task.sleep(for: .milliseconds(600))
-            _ = await engine.stop()
+            _ = try await engine.stop()
             #expect(!engine.isRecording, "session \(session) should have stopped")
         }
     }

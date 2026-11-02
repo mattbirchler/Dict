@@ -16,10 +16,11 @@ enum ApplicationsMover {
         return true
     }
 
-    /// Asks, moves, and relaunches from /Applications. Returns without
-    /// doing anything when the move isn't needed or is declined.
+    /// Asks, moves, and relaunches from /Applications. Returns true when a
+    /// move is underway and this process is about to quit, so the caller
+    /// should stop setting up; false when nothing happened.
     @MainActor
-    static func offerIfNeeded() {
+    static func offerIfNeeded() -> Bool {
         #if DEBUG
         let isDebugBuild = true
         #else
@@ -27,7 +28,7 @@ enum ApplicationsMover {
         #endif
         let bundleURL = Bundle.main.bundleURL
         guard shouldOffer(bundlePath: bundleURL.path, isDebugBuild: isDebugBuild, homeDirectory: NSHomeDirectory()) else {
-            return
+            return false
         }
 
         NSApp.activate(ignoringOtherApps: true)
@@ -36,16 +37,18 @@ enum ApplicationsMover {
         alert.informativeText = "Dict needs to stay in one place so macOS can remember its Accessibility permission and install updates."
         alert.addButton(withTitle: "Move to Applications")
         alert.addButton(withTitle: "Not Now")
-        guard alert.runModal() == .alertFirstButtonReturn else { return }
+        guard alert.runModal() == .alertFirstButtonReturn else { return false }
 
         do {
             try move(from: bundleURL)
+            return true
         } catch {
             Log.app.error("Move to Applications failed: \(String(describing: error), privacy: .public)")
             let failure = NSAlert()
             failure.messageText = "Couldn't move Dict"
             failure.informativeText = "\(error.localizedDescription)\n\nYou can drag Dict to your Applications folder yourself."
             failure.runModal()
+            return false
         }
     }
 
@@ -73,10 +76,16 @@ enum ApplicationsMover {
         let configuration = NSWorkspace.OpenConfiguration()
         configuration.createsNewApplicationInstance = true
         NSWorkspace.shared.openApplication(at: destination, configuration: configuration) { _, error in
-            if let error {
-                Log.app.error("Relaunch from Applications failed: \(String(describing: error), privacy: .public)")
+            Task { @MainActor in
+                if let error {
+                    Log.app.error("Relaunch from Applications failed: \(String(describing: error), privacy: .public)")
+                    let alert = NSAlert()
+                    alert.messageText = "Dict was moved to Applications"
+                    alert.informativeText = "It couldn't be reopened automatically. Open Dict from your Applications folder."
+                    alert.runModal()
+                }
+                NSApp.terminate(nil)
             }
-            Task { @MainActor in NSApp.terminate(nil) }
         }
     }
 }

@@ -44,16 +44,39 @@ final class PipelineCoordinator {
         }
     }
 
+    /// The microphone the current recording uses; resolved once at start so
+    /// the HUD can read it every frame without touching CoreAudio.
+    private(set) var currentInputDevice: AudioInputDevice?
+
+    /// Fired when the engine couldn't begin recording after the hotkey went
+    /// down, so the app can end the session instead of waiting on silence.
+    var onStartFailed: (() -> Void)?
+    private var startFailed = false
+
     func startRecording() {
         let engine = activeEngine
-        engine.inputDeviceID = resolvedInputDevice()?.id
+        currentInputDevice = resolvedInputDevice()
+        engine.inputDeviceID = currentInputDevice?.id
+        startFailed = false
         Task {
             do {
                 try await engine.start()
                 Log.pipeline.info("Recording session started")
             } catch {
                 Log.pipeline.error("Failed to start: \(String(describing: error), privacy: .public)")
+                startFailed = true
+                onStartFailed?()
             }
+        }
+    }
+
+    /// The result a recording ends with before any formatting happens, or
+    /// nil when there is text to format and insert.
+    static func earlyResult(stop: Result<String, Error>, startFailed: Bool) -> DictationResult? {
+        if startFailed { return .failed }
+        switch stop {
+        case .failure: return .failed
+        case .success(let text): return text.isEmpty ? .nothingHeard : nil
         }
     }
 
@@ -63,12 +86,18 @@ final class PipelineCoordinator {
     }
 
     func stopRecordingAndProcess() async -> DictationResult {
-        let rawText = await activeEngine.stop()
-
-        guard !rawText.isEmpty else {
-            Log.pipeline.info("No text produced, aborting")
-            return .nothingHeard
+        let stop: Result<String, Error>
+        do {
+            stop = .success(try await activeEngine.stop())
+        } catch {
+            Log.pipeline.error("Engine failed: \(String(describing: error), privacy: .public)")
+            stop = .failure(error)
         }
+        if let early = Self.earlyResult(stop: stop, startFailed: startFailed) {
+            Log.pipeline.info("No text produced: \(String(describing: early), privacy: .public)")
+            return early
+        }
+        guard case .success(let rawText) = stop else { return .failed }
 
         let bundleID = NSWorkspace.shared.frontmostApplication?.bundleIdentifier
         let context: FormattingContext = CodingAppCatalog.isCodingApp(bundleID) ? .coding : .general

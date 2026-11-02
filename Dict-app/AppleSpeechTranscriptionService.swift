@@ -97,6 +97,7 @@ final class AppleSpeechTranscriptionService: TranscriptionEngine {
         guard isReady, let analyzerFormat else {
             throw AppleSpeechError.notPrepared
         }
+        AudioInputDevices.applyIfPossible(inputDeviceID, to: audioEngine)
         finalizedText = AttributedString()
         volatileText = AttributedString()
         audioEnergy = []
@@ -133,9 +134,6 @@ final class AppleSpeechTranscriptionService: TranscriptionEngine {
         // Install the mic tap. The callback runs on a realtime audio thread:
         // capture Sendable/local values, never touch main-actor state directly
         // (energy is published via a MainActor Task hop).
-        if let inputDeviceID {
-            try AudioInputDevices.apply(inputDeviceID, to: audioEngine)
-        }
         let tapFormat = audioEngine.inputNode.outputFormat(forBus: 0)
         let converter = AVAudioConverter(from: tapFormat, to: analyzerFormat)
         let format = analyzerFormat
@@ -181,15 +179,17 @@ final class AppleSpeechTranscriptionService: TranscriptionEngine {
         Log.engine.info("Recording cancelled")
     }
 
-    func stop() async -> String {
+    func stop() async throws -> String {
         guard isRecording else { return "" }
         isRecording = false
         teardownAudio()
 
+        var finalizeError: Error?
         do {
             try await analyzer?.finalizeAndFinishThroughEndOfInput()
         } catch {
             Log.engine.error("finalize error: \(String(describing: error), privacy: .public)")
+            finalizeError = error
         }
         // Let the results task drain the remaining finalized results.
         await resultsTask?.value
@@ -201,6 +201,8 @@ final class AppleSpeechTranscriptionService: TranscriptionEngine {
         let text = Self.plainText(finalizedText).trimmingCharacters(in: .whitespacesAndNewlines)
         finalizedText = AttributedString()
         volatileText = AttributedString()
+        // A finalize failure with nothing recognized is a failure, not silence.
+        if text.isEmpty, let finalizeError { throw finalizeError }
         Log.engine.info("Result: \"\(text, privacy: .private)\"")
         return text
     }

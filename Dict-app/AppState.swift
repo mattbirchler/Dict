@@ -44,6 +44,11 @@ final class AppState {
         pipeline.historyStore.limit = settings.historyLimit
         pipeline.engineChoice = settings.transcriptionEngine
         pipeline.inputDeviceChoice = settings.inputDevice
+        pipeline.onStartFailed = { [weak self] in
+            guard let self, self.isRecording else { return }
+            self.isRecording = false
+            self.onProcessingComplete?(.failed)
+        }
         refreshEngineReadiness()
         settings.onChange = { [weak self] change in
             guard let self else { return }

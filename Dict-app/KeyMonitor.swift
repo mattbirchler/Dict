@@ -41,7 +41,9 @@ final class KeyMonitor {
         }
     }
 
-    var onRecordingStart: (() -> Void)?
+    /// Returns whether a recording actually began; false means the app
+    /// refused (engine loading) and the key logic forgets the press.
+    var onRecordingStart: (() -> Bool)?
     var onRecordingStop: (() -> Void)?
     /// Fired instead of onRecordingStop when the key is released before
     /// holdThreshold — the recording should be discarded, not transcribed.
@@ -150,7 +152,8 @@ final class KeyMonitor {
         // which separate unstructured Tasks would not.
         MainActor.assumeIsolated {
             switch action {
-            case .start: onRecordingStart?()
+            case .start:
+                if onRecordingStart?() == false { logic.abandonStart() }
             case .stop: onRecordingStop?()
             case .cancel: onRecordingCancel?()
             case .enterHandsFree: onHandsFreeChanged?(true)

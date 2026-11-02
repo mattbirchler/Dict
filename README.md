@@ -11,13 +11,14 @@ you say leaves your Mac.
 
 ## Install
 
-1. Download the latest `Dict-<version>.zip` from
+1. Download the latest `Dict-<version>-<build>.zip` from
    [Releases](https://github.com/mattbirchler/Dict-app/releases).
 2. Unzip it and open Dict. It offers to move itself to your Applications
    folder; say yes, so macOS can remember its permissions and updates can
    install.
-3. Grant the Microphone and Accessibility permissions it asks for.
-   Accessibility is how Dict sees the hotkey and pastes text into other apps.
+3. Grant the permissions it asks for: Microphone, Accessibility (how Dict
+   sees the hotkey and pastes text into other apps), and Speech Recognition
+   when the Apple engine is selected.
 
 Dict lives in the menu bar. Updates arrive through the app itself (Check for
 Updates… in the menu, or automatically once a day).

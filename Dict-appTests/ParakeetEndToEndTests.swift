@@ -34,7 +34,7 @@ struct ParakeetEndToEndTests {
 
         let service = ParakeetTranscriptionService()
         try await service.prepare()
-        let text = await service.transcribeRecording(recording)
+        let text = try await service.transcribeRecording(recording)
 
         // Semantic equivalence, not verbatim: synthesized audio plus ASR
         // can wobble on small words, but the key phrases must survive.

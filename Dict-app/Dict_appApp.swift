@@ -35,7 +35,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     )
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        ApplicationsMover.offerIfNeeded()
+        if ApplicationsMover.offerIfNeeded() { return }
         appState.permissionChecker.checkAll()
 
         menuBarManager.setup(
@@ -58,10 +58,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         )
 
         keyMonitor.onRecordingStart = { [weak self] in
-            guard let self else { return }
+            guard let self else { return false }
             guard self.appState.canStartRecording else {
-                self.hudController.showNotice(self.appState.startBlockedReason ?? "Can't start dictation right now")
-                return
+                // A missing engine gets a notice; a busy state (already
+                // recording or processing) leaves the HUD as it is.
+                if let reason = self.appState.startBlockedReason {
+                    self.hudController.showNotice(reason)
+                }
+                return false
             }
             self.appState.startRecording()
             self.hudController.show(
@@ -72,12 +76,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     let energy = self?.appState.pipeline.activeEngine.audioEnergy ?? []
                     return energy.map { min(max($0 * 2, 0), 1) }
                 },
-                micName: { [weak self] in self?.appState.pipeline.resolvedInputDevice()?.name ?? "Microphone" },
+                micName: { [weak self] in self?.appState.pipeline.currentInputDevice?.name ?? "Microphone" },
                 liveTranscript: { [weak self] in
                     self?.appState.pipeline.activeEngine.liveTranscript ?? LiveTranscript()
                 },
                 hotkeyGlyph: self.appState.settings.hotkey.glyph
             )
+            return true
         }
 
         keyMonitor.onRecordingStop = { [weak self] in
@@ -89,7 +94,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         keyMonitor.onRecordingCancel = { [weak self] in
-            guard let self else { return }
+            guard let self, self.appState.isRecording else { return }
             self.appState.cancelRecording()
             self.hudController.dismiss()
         }
@@ -103,7 +108,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         keyMonitor.onHandsFreeChanged = { [weak self] handsFree in
-            guard let self else { return }
+            guard let self, self.appState.isRecording else { return }
             if handsFree {
                 let engine = self.appState.pipeline.activeEngine
                 engine.beginLivePreview()
