@@ -263,9 +263,19 @@ struct AboutSettingsTab: View {
                     .foregroundStyle(.secondary)
             }
 
-            Text("Built with FluidAudio and Sparkle.")
+            HStack(spacing: 16) {
+                Link("Report a Problem", destination: URL(string: "https://github.com/mattbirchler/Dict-app/issues/new")!)
+                Link("Source Code", destination: URL(string: "https://github.com/mattbirchler/Dict-app")!)
+                Link("Privacy", destination: URL(string: "https://github.com/mattbirchler/Dict-app/blob/main/PRIVACY.md")!)
+            }
+            .font(.callout)
+            .padding(.top, 4)
+
+            Text("Speech by Apple Speech and NVIDIA Parakeet through FluidAudio (Apache 2.0). Formatting by Apple Intelligence. Updates by Sparkle (MIT). Labels set in Chakra Petch (OFL). Dict itself is MIT licensed.")
                 .font(.caption2)
+                .multilineTextAlignment(.center)
                 .foregroundStyle(.tertiary)
+                .frame(maxWidth: 420)
         }
         .padding(24)
         .frame(maxWidth: .infinity)
