@@ -48,6 +48,7 @@ final class AppState {
     init(settings: SettingsStore) {
         self.settings = settings
         pipeline.isFormattingEnabled = settings.isFormattingEnabled
+        pipeline.dictationStyle = settings.dictationStyle
         SoundPlayer.isEnabled = settings.playsSounds
         pipeline.appendTrailingSpace = settings.appendTrailingSpace
         pipeline.smartLeadingSpace = settings.smartLeadingSpace
@@ -84,6 +85,8 @@ final class AppState {
                 self.onHUDColorSchemeChanged?(self.settings.hudColorScheme)
             case .sounds:
                 SoundPlayer.isEnabled = self.settings.playsSounds
+            case .dictationStyle:
+                self.pipeline.dictationStyle = self.settings.dictationStyle
             }
         }
     }

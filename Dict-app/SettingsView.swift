@@ -132,6 +132,17 @@ struct GeneralSettingsTab: View {
             }
 
             Section {
+                Picker("Dictation style", selection: $settings.dictationStyle) {
+                    ForEach(DictationStyle.allCases) { style in
+                        Text(style.displayName).tag(style)
+                    }
+                }
+                Text(settings.dictationStyle.blurb + (settings.dictationStyle == .verbatim ? "" : " Uses the on-device Apple Intelligence model; without it, only ums and repeated words are dropped."))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Section {
                 Toggle("Format transcripts", isOn: $settings.isFormattingEnabled)
                 Text("Add punctuation and capitalization with the on-device Apple Intelligence model. In coding and terminal apps, it also fixes technical terms like \u{201C}main\u{201D} and \u{201C}git.\u{201D} Parakeet punctuates on its own, so with Parakeet this only runs in coding and terminal apps. Turn off to insert the raw transcript as spoken.")
                     .font(.caption)

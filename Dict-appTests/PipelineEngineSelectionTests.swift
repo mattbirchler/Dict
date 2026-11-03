@@ -41,6 +41,13 @@ struct PipelineEngineSelectionTests {
         #expect(!PipelineCoordinator.shouldFormat(enabled: false, engine: .parakeet, context: .coding))
     }
 
+    @Test func cleanAndPolishedAlwaysUseTheModel() {
+        #expect(PipelineCoordinator.shouldFormat(enabled: true, engine: .parakeet, context: .general, style: .clean))
+        #expect(PipelineCoordinator.shouldFormat(enabled: true, engine: .parakeet, context: .general, style: .polished))
+        #expect(!PipelineCoordinator.shouldFormat(enabled: true, engine: .parakeet, context: .general, style: .verbatim))
+        #expect(!PipelineCoordinator.shouldFormat(enabled: false, engine: .apple, context: .general, style: .clean))
+    }
+
     @Test func parakeetPadsBothEdgesWithSilence() {
         let samples: [Float] = [0.5, -0.5]
         let padded = ParakeetTranscriptionService.padded(samples, seconds: 0.25, sampleRate: 16)

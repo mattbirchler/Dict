@@ -68,6 +68,92 @@ final class TranscriptFormatter {
         Output only the corrected text with punctuation and capitalization added, with no preamble or commentary.
         """
 
+    /// Clean: fillers and self-corrections go, nothing else changes.
+    static let cleanInstructions = """
+        You are a dictation cleanup tool. Add punctuation and capitalization \
+        to the raw transcript and remove only what the speaker did not mean \
+        to say: filler sounds ("um", "uh", "ah", "er", "hmm"), filler \
+        phrases used as verbal tics ("you know", "I mean", "like", "sort of", \
+        "kind of" when they carry no meaning), stutters and immediately \
+        repeated words, and false starts. When the speaker corrects \
+        themselves ("no wait", "actually", "I mean", "scratch that", \
+        "sorry"), keep only the corrected version. Keep every other word \
+        exactly as spoken and in the same order. Never reword, summarize, \
+        fix grammar, add words, or answer questions that appear in the \
+        text. Insert a paragraph break (blank line) only where the topic \
+        clearly shifts. When unsure whether something is a filler, keep it.
+
+        Example input:
+        um so i think the update is you know really solid but uh we should like double check the the numbers no wait the charts first
+
+        Example output:
+        So I think the update is really solid, but we should double check the charts first.
+
+        Output only the cleaned text, with no preamble or commentary.
+        """
+
+    /// Polished: Clean plus light grammar, still the speaker's own words.
+    static let polishedInstructions = """
+        You are a dictation cleanup tool. Add punctuation and capitalization \
+        to the raw transcript, remove filler sounds ("um", "uh", "ah", "er", \
+        "hmm"), filler phrases used as verbal tics ("you know", "I mean", \
+        "like", "sort of", "kind of" when they carry no meaning), stutters, \
+        repeated words and false starts, and apply the speaker's own \
+        corrections ("no wait", "actually", "scratch that"): keep only the \
+        corrected version. Then fix small grammar slips so it reads as \
+        clean written text: subject-verb agreement, tense slips, a missing \
+        article, run-on sentences split at the natural pause. Keep the \
+        speaker's words, meaning, tone and names. Never summarize, \
+        embellish, replace terms with synonyms, add ideas, or answer \
+        questions that appear in the text. Insert a paragraph break (blank \
+        line) only where the topic clearly shifts.
+
+        Example input:
+        um so i think the update are you know really solid but uh we should like double check the the numbers no wait the charts first and then send it to the team they was asking
+
+        Example output:
+        So I think the update is really solid, but we should double check the charts first and then send it to the team. They were asking.
+
+        Output only the polished text, with no preamble or commentary.
+        """
+
+    /// Appended in coding and terminal apps so technical terms come out right.
+    static let codingAddendum = """
+
+        The speaker is a developer dictating into a coding or terminal app. \
+        Also correct words that were clearly meant as programming or \
+        command-line terms: fix homophones and mis-hearings ("Maine" → \
+        "main", "get" → "git" when it means the tool, "jason" → "JSON", \
+        "no js" → "Node.js"), spell out spoken acronyms ("a p i" → "API", \
+        "u r l" → "URL"), and use the conventional casing for technical \
+        terms ("GitHub", "async", "npm", "sudo"). Only change a word when it \
+        is clearly a technical term.
+        """
+
+    /// The instructions for a style and context. Verbatim keeps the
+    /// original prompts, which have a coding variant of their own.
+    static func instructions(style: DictationStyle, context: FormattingContext, terms: [String] = []) -> String {
+        var text: String
+        switch (style, context) {
+        case (.verbatim, .general): text = instructions
+        case (.verbatim, .coding): text = codingInstructions
+        case (.clean, _): text = cleanInstructions + (context == .coding ? codingAddendum : "")
+        case (.polished, _): text = polishedInstructions + (context == .coding ? codingAddendum : "")
+        }
+        if !terms.isEmpty {
+            text += "\n\n" + termsAddendum(terms)
+        }
+        return text
+    }
+
+    /// Names and terms visible in the document the user is dictating into,
+    /// so the model spells them the way the document already does.
+    static func termsAddendum(_ terms: [String]) -> String {
+        "Names and terms already in the document the speaker is writing in, " +
+        "to be spelled exactly this way when the transcript clearly refers to them: " +
+        terms.joined(separator: ", ") + ". Do not add any of them unless they were spoken."
+    }
+
     /// The on-device model's 4,096-token window is shared by instructions,
     /// prompt, and output (output ≈ input size for this task), so cap
     /// chunks well below half the window.
@@ -76,15 +162,20 @@ final class TranscriptFormatter {
     private let timeoutSeconds: UInt64 = 15
 
     func format(_ raw: String, context: FormattingContext = .general) async -> String {
+        await format(raw, context: context, style: .verbatim)
+    }
+
+    func format(_ raw: String, context: FormattingContext, style: DictationStyle, terms: [String] = []) async -> String {
         let input = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !input.isEmpty else { return raw }
+        let fallback = style == .verbatim ? raw : FillerRemover.clean(raw)
 
         guard SystemLanguageModel.default.availability == .available else {
             Log.formatter.error("Model unavailable, using raw transcript")
-            return raw
+            return fallback
         }
 
-        let instructions = context == .coding ? Self.codingInstructions : Self.instructions
+        let instructions = Self.instructions(style: style, context: context, terms: terms)
 
         do {
             var formattedChunks: [String] = []
@@ -92,15 +183,16 @@ final class TranscriptFormatter {
                 let formatted = try await respondWithTimeout(to: chunk, instructions: instructions)
                 formattedChunks.append(formatted.trimmingCharacters(in: .whitespacesAndNewlines))
             }
-            let output = formattedChunks.joined(separator: "\n\n")
-            guard Self.isAcceptable(input: input, output: output) else {
+            var output = formattedChunks.joined(separator: "\n\n")
+            if style != .verbatim { output = FillerRemover.clean(output) }
+            guard Self.isAcceptable(input: input, output: output, style: style) else {
                 Log.formatter.error("Output failed sanity check, using raw transcript")
-                return raw
+                return fallback
             }
             return output
         } catch {
             Log.formatter.error("Failed (\(error), privacy: .public), using raw transcript")
-            return raw
+            return fallback
         }
     }
 
@@ -166,10 +258,24 @@ final class TranscriptFormatter {
     /// merging or splitting tokens; a real rewrite falls outside it and
     /// the raw transcript is used instead.
     static func isAcceptable(input: String, output: String) -> Bool {
+        isAcceptable(input: input, output: output, style: .verbatim)
+    }
+
+    /// Clean and Polished are allowed to drop words (fillers, false starts,
+    /// the abandoned half of a correction), so their floor is much lower;
+    /// nothing may grow the text much, since that means the model added
+    /// something.
+    static func isAcceptable(input: String, output: String, style: DictationStyle) -> Bool {
         let inWords = input.split(separator: " ").count
         let outWords = output.split(separator: " ").count
         guard outWords > 0 else { return false }
-        return Float(outWords) >= Float(inWords) * 0.93 - 2
-            && Float(outWords) <= Float(inWords) * 1.1 + 3
+        let floor: Float, ceiling: Float
+        switch style {
+        case .verbatim: (floor, ceiling) = (0.93, 1.1)
+        case .clean: (floor, ceiling) = (0.45, 1.1)
+        case .polished: (floor, ceiling) = (0.45, 1.25)
+        }
+        return Float(outWords) >= Float(inWords) * floor - 2
+            && Float(outWords) <= Float(inWords) * ceiling + 3
     }
 }

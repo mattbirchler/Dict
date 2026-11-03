@@ -13,6 +13,9 @@ final class PipelineCoordinator {
     /// Mirrors the user's "Format Transcripts" setting; owned by AppState.
     var isFormattingEnabled = true
 
+    /// Mirrors the user's dictation style; owned by AppState.
+    var dictationStyle: DictationStyle = .verbatim
+
     /// Mirrors the user's "space after each dictation" setting; owned by AppState.
     var appendTrailingSpace = false
 
@@ -101,8 +104,15 @@ final class PipelineCoordinator {
 
         let bundleID = NSWorkspace.shared.frontmostApplication?.bundleIdentifier
         let context: FormattingContext = CodingAppCatalog.isCodingApp(bundleID) ? .coding : .general
-        let shouldFormat = Self.shouldFormat(enabled: isFormattingEnabled, engine: engineChoice, context: context)
-        let formatted = shouldFormat ? await formatter.format(rawText, context: context) : rawText
+        let shouldFormat = Self.shouldFormat(enabled: isFormattingEnabled, engine: engineChoice, context: context, style: dictationStyle)
+        let formatted: String
+        if shouldFormat {
+            formatted = await formatter.format(rawText, context: context, style: dictationStyle)
+        } else if dictationStyle != .verbatim {
+            formatted = FillerRemover.clean(rawText)
+        } else {
+            formatted = rawText
+        }
         let text = WordReplacement.apply(wordReplacements, to: formatted)
 
         // Escape cancelled processing while we were transcribing/formatting.
@@ -129,8 +139,9 @@ final class PipelineCoordinator {
     /// Parakeet already punctuates and capitalizes, so outside coding apps
     /// the LLM pass only adds latency and a chance of dropped words. In
     /// coding apps it still earns its keep fixing technical terms.
-    static func shouldFormat(enabled: Bool, engine: TranscriptionEngineChoice, context: FormattingContext) -> Bool {
+    static func shouldFormat(enabled: Bool, engine: TranscriptionEngineChoice, context: FormattingContext, style: DictationStyle = .verbatim) -> Bool {
         guard enabled else { return false }
-        return engine != .parakeet || context == .coding
+        // Clean and Polished need the model whatever the engine.
+        return style != .verbatim || engine != .parakeet || context == .coding
     }
 }

@@ -163,6 +163,19 @@ struct SettingsStoreTests {
         #expect(!SettingsStore(defaults: defaults).playsSounds)
     }
 
+    @Test func dictationStyleDefaultsToVerbatimAndRoundTrips() {
+        let defaults = makeDefaults()
+        let store = SettingsStore(defaults: defaults)
+        #expect(store.dictationStyle == .verbatim)
+        var changes: [SettingsStore.Change] = []
+        store.onChange = { changes.append($0) }
+        store.dictationStyle = .clean
+        #expect(changes == [.dictationStyle])
+        #expect(SettingsStore(defaults: defaults).dictationStyle == .clean)
+        defaults.set("fancy", forKey: "dictationStyle")
+        #expect(SettingsStore(defaults: defaults).dictationStyle == .verbatim)
+    }
+
     @Test func historyLimitMapping() {
         #expect(HistoryLimit.off.maxEntries == 0)
         #expect(HistoryLimit.ten.maxEntries == 10)

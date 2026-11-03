@@ -166,7 +166,7 @@ enum TranscriptionEngineChoice: String, CaseIterable {
 @MainActor
 @Observable
 final class SettingsStore {
-    enum Change { case hotkey, activationMode, formatting, historyLimit, transcriptionEngine, appendTrailingSpace, smartLeadingSpace, wordReplacements, inputDevice, hudColorScheme, sounds }
+    enum Change { case hotkey, activationMode, formatting, historyLimit, transcriptionEngine, appendTrailingSpace, smartLeadingSpace, wordReplacements, inputDevice, hudColorScheme, sounds, dictationStyle }
 
     @ObservationIgnored var onChange: ((Change) -> Void)?
     @ObservationIgnored private let defaults: UserDefaults
@@ -184,6 +184,7 @@ final class SettingsStore {
         static let inputDevice = "inputDevice"
         static let hudColorScheme = "hudColorScheme"
         static let playsSounds = "playsSounds"
+        static let dictationStyle = "dictationStyle"
     }
 
     var hotkey: HotkeyChoice {
@@ -272,8 +273,18 @@ final class SettingsStore {
         }
     }
 
+    /// How much the formatter may change what was said.
+    var dictationStyle: DictationStyle {
+        didSet {
+            defaults.set(dictationStyle.rawValue, forKey: Keys.dictationStyle)
+            onChange?(.dictationStyle)
+        }
+    }
+
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
+        self.dictationStyle = defaults.string(forKey: Keys.dictationStyle)
+            .flatMap(DictationStyle.init(rawValue:)) ?? .verbatim
         self.playsSounds = defaults.object(forKey: Keys.playsSounds) as? Bool ?? true
         self.hudColorScheme = defaults.string(forKey: Keys.hudColorScheme)
             .flatMap(HUDColorScheme.init(rawValue:)) ?? .ember
