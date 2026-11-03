@@ -5,6 +5,8 @@ import os
 @Observable
 final class AppState {
     let settings: SettingsStore
+    /// Fired when the HUD color scheme setting changes.
+    var onHUDColorSchemeChanged: ((HUDColorScheme) -> Void)?
     let permissionChecker = PermissionChecker()
     let pipeline = PipelineCoordinator()
 
@@ -69,6 +71,8 @@ final class AppState {
                 self.handleEngineChange()
             case .inputDevice:
                 self.pipeline.inputDeviceChoice = self.settings.inputDevice
+            case .hudColorScheme:
+                self.onHUDColorSchemeChanged?(self.settings.hudColorScheme)
             }
         }
     }

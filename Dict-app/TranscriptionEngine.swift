@@ -10,6 +10,10 @@ protocol TranscriptionEngine: AnyObject {
     /// (normalized ~0...1) to drive the waveform.
     var audioEnergy: [Float] { get }
 
+    /// Band levels (0...1, low to high frequency) of the most recent audio
+    /// buffer; drives the HUD's dot matrix. Empty while idle.
+    var audioSpectrum: [Float] { get }
+
     var isRecording: Bool { get }
 
     /// The microphone to record from next; nil leaves the engine's default.

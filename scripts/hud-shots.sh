@@ -5,15 +5,16 @@
 set -euo pipefail
 OUT=${1:?output folder}
 APP=${2:-build/Build/Products/Debug/Dict.app}
+SCHEME=${SCHEME:-ember}
 mkdir -p "$OUT"
 for appearance in dark light; do
   for mode in recording handsfree processing done failed; do
     raw="$OUT/raw-$appearance-$mode.png"
-    "$APP/Contents/MacOS/Dict" --preview-hud "$mode" --appearance "$appearance" --snapshot "$raw"
-    magick "$raw" -trim +repage "$raw" 2>/dev/null
-    read w h <<< "$(identify -format '%w %h' "$raw" 2>/dev/null)"
-    if [[ $appearance == dark ]]; then bg="gradient:#15172a-#2a1f3d"; else bg="gradient:#dbe6fa-#f6e8dc"; fi
-    magick -size "$((w + 120))x$((h + 80))" "$bg" "$raw" -gravity center -composite "$OUT/$appearance-$mode.png" 2>/dev/null
+    "$APP/Contents/MacOS/Dict" --preview-hud "$mode" --appearance "$appearance" --scheme "$SCHEME" --snapshot "$raw"
+    # The capture is the transparent panel alone; flatten it on a backdrop
+    # so the pill's glow reads the way it does over a desktop.
+    if [[ $appearance == dark ]]; then bg="#1f1b33"; else bg="#dfe6f5"; fi
+    magick "$raw" -background "$bg" -flatten -trim +repage -bordercolor "$bg" -border 40x24 "$OUT/$appearance-$mode.png" 2>/dev/null
     rm -f "$raw"
   done
 done

@@ -11,6 +11,7 @@ import os
 @Observable
 final class AppleSpeechTranscriptionService: TranscriptionEngine {
     var audioEnergy: [Float] = []
+    var audioSpectrum: [Float] = []
     private(set) var isRecording: Bool = false
     private(set) var isReady: Bool = false
     private(set) var needsDownload: Bool = false
@@ -140,7 +141,8 @@ final class AppleSpeechTranscriptionService: TranscriptionEngine {
         do {
             audioEngine.inputNode.installTap(onBus: 0, bufferSize: 4096, format: tapFormat) { [weak self] buffer, _ in
                 let level = Self.rmsLevel(buffer)
-                Task { @MainActor [weak self] in self?.appendEnergy(level) }
+                let spectrum = SpectrumAnalyzer.bands(buffer)
+                Task { @MainActor [weak self] in self?.appendEnergy(level, spectrum: spectrum) }
                 if let converter, let converted = Self.convert(buffer, using: converter, to: format) {
                     builder.yield(AnalyzerInput(buffer: converted))
                 }
@@ -209,12 +211,14 @@ final class AppleSpeechTranscriptionService: TranscriptionEngine {
 
     private func teardownAudio() {
         audioEngine.inputNode.removeTap(onBus: 0)
+        audioSpectrum = []
         if audioEngine.isRunning { audioEngine.stop() }
         inputBuilder?.finish()
         inputBuilder = nil
     }
 
-    private func appendEnergy(_ level: Float) {
+    private func appendEnergy(_ level: Float, spectrum: [Float]) {
+        audioSpectrum = spectrum
         audioEnergy.append(Self.normalizedEnergy(rms: level))
         if audioEnergy.count > maxEnergySamples {
             audioEnergy.removeFirst(audioEnergy.count - maxEnergySamples)

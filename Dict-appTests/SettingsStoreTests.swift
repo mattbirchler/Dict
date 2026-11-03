@@ -135,6 +135,23 @@ struct SettingsStoreTests {
         #expect(SettingsStore(defaults: defaults).inputDevice == .device(uid: "usb"))
     }
 
+    @Test func hudColorSchemeDefaultsToEmberAndRoundTrips() {
+        let defaults = makeDefaults()
+        let store = SettingsStore(defaults: defaults)
+        #expect(store.hudColorScheme == .ember)
+        var changes: [SettingsStore.Change] = []
+        store.onChange = { changes.append($0) }
+        store.hudColorScheme = .glacier
+        #expect(changes == [.hudColorScheme])
+        #expect(SettingsStore(defaults: defaults).hudColorScheme == .glacier)
+    }
+
+    @Test func unknownHudColorSchemeFallsBackToEmber() {
+        let defaults = makeDefaults()
+        defaults.set("neon", forKey: "hudColorScheme")
+        #expect(SettingsStore(defaults: defaults).hudColorScheme == .ember)
+    }
+
     @Test func historyLimitMapping() {
         #expect(HistoryLimit.off.maxEntries == 0)
         #expect(HistoryLimit.ten.maxEntries == 10)

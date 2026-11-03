@@ -29,15 +29,21 @@ final class HUDPanelController {
         NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
     }
 
+    /// Colors the HUD lights up in; set from Settings.
+    var colorScheme: HUDColorScheme {
+        get { hudState.colorScheme }
+        set { hudState.colorScheme = newValue }
+    }
+
     func show(
-        audioLevels: @escaping () -> [Float],
+        audioSpectrum: @escaping () -> [Float],
         micName: @escaping () -> String,
         liveTranscript: @escaping () -> LiveTranscript,
         hotkeyGlyph: String
     ) {
         pendingDismiss?.cancel()
         presentation += 1
-        hudState.audioLevels = audioLevels
+        hudState.audioSpectrum = audioSpectrum
         hudState.micName = micName
         hudState.liveTranscript = liveTranscript
         hudState.hotkeyGlyph = hotkeyGlyph
@@ -210,7 +216,8 @@ final class HUDState {
     var reduceMotion = false
     var showsLiveTranscript = false
     var hotkeyGlyph = "⌘"
-    var audioLevels: (() -> [Float])?
+    var colorScheme: HUDColorScheme = .ember
+    var audioSpectrum: (() -> [Float])?
     var micName: (() -> String)?
     var liveTranscript: (() -> LiveTranscript)?
 }
@@ -228,10 +235,11 @@ struct WaveformHUDContainer: View {
                 TimelineView(.animation(minimumInterval: 0.05)) { timeline in
                     WaveformHUD(
                         mode: state.mode,
-                        levels: state.audioLevels?() ?? [],
+                        spectrum: state.audioSpectrum?() ?? [],
                         micName: state.micName?() ?? "",
                         transcript: state.showsLiveTranscript ? (state.liveTranscript?() ?? LiveTranscript()) : nil,
                         hotkeyGlyph: state.hotkeyGlyph,
+                        scheme: state.colorScheme,
                         pulsePhase: timeline.date.timeIntervalSinceReferenceDate
                     )
                 }

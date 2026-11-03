@@ -2,7 +2,7 @@ import AppKit
 import ScreenCaptureKit
 
 /// Developer aid: `Dict --preview-hud recording [--appearance dark|light]
-/// [--snapshot out.png]` shows the HUD with sample audio and no hotkey, so it
+/// [--scheme ember|phosphor|glacier|ultraviolet|graphite] [--snapshot out.png]` shows the HUD with sample audio and no hotkey, so it
 /// can be looked at and screenshotted. With --snapshot it writes a PNG of
 /// the panel after the entrance animation and quits. Modes: recording,
 /// handsfree, processing, done, failed. Nothing else in the app starts.
@@ -14,18 +14,18 @@ enum HUDPreview {
             NSApp.appearance = NSAppearance(named: arguments[appearance + 1] == "light" ? .aqua : .darkAqua)
         }
 
-        let levels: [Float] = (0..<64).map { index -> Float in
-            let t = Double(index)
-            let envelope: Double = abs(sin(t * 0.7)) * abs(cos(t * 0.23))
-            return Float(0.1 + 0.55 * envelope)
-        }
         let transcript = LiveTranscript(
             confirmed: "I think we should ship the new build tomorrow as long as we finish testing",
             tentative: "before the deadline on Friday"
         )
+        if let scheme = arguments.firstIndex(of: "--scheme"), scheme + 1 < arguments.count,
+           let choice = HUDColorScheme(rawValue: arguments[scheme + 1]) {
+            hud.colorScheme = choice
+        }
+        let started = Date()
         hud.autoDismiss = false
         hud.show(
-            audioLevels: { levels },
+            audioSpectrum: { Self.sampleSpectrum(at: Date().timeIntervalSince(started)) },
             micName: { "MacBook Pro Microphone" },
             liveTranscript: { transcript },
             hotkeyGlyph: "⌘"
@@ -49,6 +49,18 @@ enum HUDPreview {
             }
         }
         return true
+    }
+
+    /// A speech-like spectrum: a hump of energy in the low-mid bands that
+    /// pulses like syllables, with a little wobble per band.
+    static func sampleSpectrum(at t: TimeInterval) -> [Float] {
+        let count = SpectrumAnalyzer.bandCount
+        let syllable = pow(max(0, sin(t * 7.3)), 1.6) * (0.6 + 0.4 * sin(t * 1.7))
+        return (0..<count).map { band in
+            let centre = exp(-pow((Double(band) - Double(count) * 0.38) / (Double(count) * 0.3), 2))
+            let wobble = 0.75 + 0.25 * sin(t * 2.1 + Double(band) * 0.9)
+            return Float(min(1, (0.08 + syllable * 0.95) * (0.3 + 0.9 * centre) * wobble))
+        }
     }
 
     /// Captures the panel's pixels with ScreenCaptureKit and writes a PNG.

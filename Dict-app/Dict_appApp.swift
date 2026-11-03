@@ -37,6 +37,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         if ApplicationsMover.offerIfNeeded() { return }
         if HUDPreview.present(in: hudController) { return }
+
+        hudController.colorScheme = appState.settings.hudColorScheme
+        appState.onHUDColorSchemeChanged = { [weak self] scheme in self?.hudController.colorScheme = scheme }
         appState.permissionChecker.checkAll()
 
         menuBarManager.setup(
@@ -70,12 +73,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             self.appState.startRecording()
             self.hudController.show(
-                audioLevels: { [weak self] in
-                    // The engine's rolling level history, oldest first. Scale
-                    // so normal speech pushes the bars above the bottom
-                    // without clipping at the top.
-                    let energy = self?.appState.pipeline.activeEngine.audioEnergy ?? []
-                    return energy.map { min(max($0 * 2, 0), 1) }
+                audioSpectrum: { [weak self] in
+                    self?.appState.pipeline.activeEngine.audioSpectrum ?? []
                 },
                 micName: { [weak self] in self?.appState.pipeline.currentInputDevice?.name ?? "Microphone" },
                 liveTranscript: { [weak self] in

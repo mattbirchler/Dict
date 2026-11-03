@@ -111,7 +111,7 @@ enum TranscriptionEngineChoice: String, CaseIterable {
 @MainActor
 @Observable
 final class SettingsStore {
-    enum Change { case hotkey, activationMode, formatting, historyLimit, transcriptionEngine, appendTrailingSpace, smartLeadingSpace, wordReplacements, inputDevice }
+    enum Change { case hotkey, activationMode, formatting, historyLimit, transcriptionEngine, appendTrailingSpace, smartLeadingSpace, wordReplacements, inputDevice, hudColorScheme }
 
     @ObservationIgnored var onChange: ((Change) -> Void)?
     @ObservationIgnored private let defaults: UserDefaults
@@ -127,6 +127,7 @@ final class SettingsStore {
         static let smartLeadingSpace = "smartLeadingSpace"
         static let wordReplacements = "wordReplacements"
         static let inputDevice = "inputDevice"
+        static let hudColorScheme = "hudColorScheme"
     }
 
     var hotkey: HotkeyChoice {
@@ -199,8 +200,18 @@ final class SettingsStore {
         }
     }
 
+    /// Colors the HUD lights up in.
+    var hudColorScheme: HUDColorScheme {
+        didSet {
+            defaults.set(hudColorScheme.rawValue, forKey: Keys.hudColorScheme)
+            onChange?(.hudColorScheme)
+        }
+    }
+
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
+        self.hudColorScheme = defaults.string(forKey: Keys.hudColorScheme)
+            .flatMap(HUDColorScheme.init(rawValue:)) ?? .ember
         self.inputDevice = defaults.data(forKey: Keys.inputDevice)
             .flatMap { try? JSONDecoder().decode(InputDeviceChoice.self, from: $0) } ?? .automatic
         self.hotkey = defaults.string(forKey: Keys.hotkey)

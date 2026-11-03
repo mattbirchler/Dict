@@ -10,5 +10,8 @@
 	<string>OCgTVkB0ALGcmayKSv26zkjNwtIpm61J8d7GzG8tVN4=</string>
 	<key>SUEnableAutomaticChecks</key>
 	<true/>
+	<!-- Chakra Petch (OFL) for the HUD; the .ttf files sit flat in Resources. -->
+	<key>ATSApplicationFontsPath</key>
+	<string>.</string>
 </dict>
 </plist>
