@@ -27,9 +27,10 @@ That one command:
   to Apple for notarization, staples the ticket, and zips it
   (`scripts/notarize.sh`);
 - signs the zip with Dict's Sparkle key (keychain account `dict`);
-- creates the GitHub release `v1.1-6` with the zip and your notes;
+- pushes the version commit and creates the GitHub release `v1.1-6` on it
+  with the disk image, the zip and your notes (GitHub makes the tag);
 - adds the version to `appcast.xml`, commits `release: 1.1 build 6`, and
-  pushes `main` and the tag. This push is the moment users see the update.
+  pushes `main`. This push is the moment users see the update.
 
 `DRY_RUN=1 make publish NOTES=...` does everything except the commits, the
 upload, and the push, and leaves the feed it would publish in
@@ -70,7 +71,7 @@ upload, and the push, and leaves the feed it would publish in
   rerun `make publish` (the version commit from the failed run is still
   there; `git reset --soft HEAD~1` first if you'd rather fold it in).
 - **Release created but the push failed.** The zip is up and `appcast.xml`
-  is committed locally. Run `git push origin main v<version>-<build>`.
+  is committed locally. Run `git push origin main`.
 - **Sparkle says the update can't be verified.** The zip was signed with a
   different key than the `SUPublicEDKey` in the app people have. Don't
   rotate keys; restore the backed-up private key.

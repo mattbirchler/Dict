@@ -81,12 +81,15 @@ if [[ "$DRY_RUN" == 1 ]]; then
     exit 0
 fi
 
-# The zip goes up before the feed points at it.
+# The zip goes up before the feed points at it. The version commit is
+# pushed first so GitHub tags that commit when it creates the release;
+# the feed isn't committed yet, so nothing points at a missing download.
 DMG="${ZIP%.zip}.dmg"
 [[ -f "$DMG" ]] || fail "No disk image next to the zip."
-gh release create "$TAG" "$DMG" "$ZIP" --repo "$REPO" --title "Dict $VERSION (build $BUILD)" --notes-file "$NOTES"
+git push -q origin main
+gh release create "$TAG" "$DMG" "$ZIP" --repo "$REPO" --target "$(git rev-parse HEAD)" --title "Dict $VERSION (build $BUILD)" --notes-file "$NOTES"
 git add appcast.xml
 git commit -q -m "release: $VERSION build $BUILD"
-git tag "$TAG"
-git push -q origin main "$TAG"
+git push -q origin main
+git fetch -q origin tag "$TAG"
 echo "Published Dict $VERSION build $BUILD. Macs pick it up within a day, or right away with Check for Updates."
