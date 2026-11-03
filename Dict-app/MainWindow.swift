@@ -27,22 +27,28 @@ struct MainWindow: View {
     @Bindable var model: MainWindowModel
 
     var body: some View {
+        let scheme = appState.settings.hudColorScheme
         NavigationSplitView {
-            List(selection: sidebarSelection) {
-                Label("History", systemImage: "clock.arrow.circlepath")
-                    .tag(MainSection.history)
-
-                Section("Settings") {
-                    Label("General", systemImage: "gearshape")
-                        .tag(MainSection.general)
-                    Label("Replacements", systemImage: "character.cursor.ibeam")
-                        .tag(MainSection.replacements)
-                    Label("About", systemImage: "info.circle")
-                        .tag(MainSection.about)
+            List {
+                SidebarRow(title: "History", systemImage: "clock.arrow.circlepath", section: .history, model: model, scheme: scheme)
+                Section {
+                    SidebarRow(title: "General", systemImage: "gearshape", section: .general, model: model, scheme: scheme)
+                    SidebarRow(title: "Replacements", systemImage: "character.cursor.ibeam", section: .replacements, model: model, scheme: scheme)
+                    SidebarRow(title: "About", systemImage: "info.circle", section: .about, model: model, scheme: scheme)
+                } header: {
+                    Text("SETTINGS")
+                        .font(HUDFont.label(10, weight: .semibold))
+                        .tracking(1.6)
+                        .foregroundStyle(.secondary)
                 }
             }
             .navigationSplitViewColumnWidth(min: 170, ideal: 190, max: 240)
+            .focusable()
+            .focusEffectDisabled()
+            .onKeyPress(.downArrow) { model.section = Self.step(model.section, by: 1); return .handled }
+            .onKeyPress(.upArrow) { model.section = Self.step(model.section, by: -1); return .handled }
         } detail: {
+            Group {
             switch model.section {
             case .history:
                 HistoryView(appState: appState)
@@ -56,16 +62,66 @@ struct MainWindow: View {
                 AboutSettingsTab(settings: appState.settings, updater: updater)
                     .navigationTitle("About")
             }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background { DictBackdrop(scheme: scheme) }
         }
+        // Switches, pickers and selections light up in the scheme's color.
+        .tint(scheme.accent)
+        .preferredColorScheme(.dark)
     }
 
-    /// List selection is optional; keep the model's non-optional section in
-    /// sync while ignoring deselection.
-    private var sidebarSelection: Binding<MainSection?> {
-        Binding(
-            get: { model.section },
-            set: { if let new = $0 { model.section = new } }
-        )
+    /// The sidebar's order, for the arrow keys.
+    static let order: [MainSection] = [.history, .general, .replacements, .about]
+
+    static func step(_ section: MainSection, by offset: Int) -> MainSection {
+        let index = order.firstIndex(of: section) ?? 0
+        return order[min(max(index + offset, 0), order.count - 1)]
+    }
+}
+
+/// A sidebar entry drawn by hand, because the system sidebar always paints
+/// its icons and selection in the Mac's accent color, not the scheme's.
+private struct SidebarRow: View {
+    var title: String
+    var systemImage: String
+    var section: MainSection
+    @Bindable var model: MainWindowModel
+    var scheme: HUDColorScheme
+
+    private var isSelected: Bool { model.section == section }
+
+    var body: some View {
+        Button {
+            model.section = section
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: systemImage)
+                    .foregroundStyle(scheme.accent)
+                    .frame(width: 20)
+                Text(title)
+                    .foregroundStyle(isSelected ? scheme.text : .primary)
+                    .fontWeight(isSelected ? .semibold : .regular)
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 5)
+            .background {
+                if isSelected {
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .fill(LinearGradient(colors: [scheme.pillTop, scheme.pillBottom], startPoint: .top, endPoint: .bottom))
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                .strokeBorder(scheme.glow.opacity(0.45), lineWidth: 1)
+                        }
+                        .shadow(color: scheme.glow.opacity(0.2), radius: 6)
+                }
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .listRowInsets(EdgeInsets(top: 1, leading: 4, bottom: 1, trailing: 4))
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }
 
@@ -101,8 +157,10 @@ struct HistoryView: View {
                 List {
                     ForEach(store.recentEntries) { entry in
                         HistoryEntryRow(entry: entry)
+                            .listRowBackground(Color.clear)
                     }
                 }
+                .dictBackdrop(settings.hudColorScheme)
             }
         }
         .navigationTitle("History")

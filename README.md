@@ -73,7 +73,7 @@ The menu bar icon follows the microphone while you talk, so you can see Dict is 
 ## Settings and history
 
 <p align="center">
-  <img src="docs/readme/settings.png" width="720" alt="The General settings: launch at login, dictation hotkey, activation mode, microphone and live words">
+  <img src="docs/readme/settings.png" width="720" alt="The General settings on the dark panel backdrop, with a live dot grid at the top and section titles in the panel typeface">
 </p>
 
 <p align="center">

@@ -25,6 +25,7 @@ struct GeneralSettingsTab: View {
     var appState: AppState
     @State private var loginItem = LoginItemManager()
     @State private var inputDevices: [AudioInputDevice] = []
+    private var scheme: HUDColorScheme { settings.hudColorScheme }
 
     var body: some View {
         Form {
@@ -46,6 +47,13 @@ struct GeneralSettingsTab: View {
                         .font(.caption)
                         .foregroundStyle(.red)
                 }
+            } header: {
+                // The hero sits in the first header so it gets no card of its own.
+                VStack(alignment: .leading, spacing: 22) {
+                    SettingsHero(scheme: scheme, hotkey: settings.hotkey, mode: settings.activationMode)
+                    DictSectionHeader("Startup", scheme: scheme)
+                }
+                .padding(.top, 4)
             }
 
             Section {
@@ -78,6 +86,8 @@ struct GeneralSettingsTab: View {
                 Text(activationCaption)
                     .font(.caption)
                     .foregroundStyle(.secondary)
+            } header: {
+                DictSectionHeader("Hotkey", scheme: scheme)
             }
 
             Section {
@@ -97,9 +107,11 @@ struct GeneralSettingsTab: View {
                 Text("Automatic uses your system microphone, but switches to the built-in one when a Bluetooth headset is the default. Bluetooth headsets record at low quality and take over audio output.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+            } header: {
+                DictSectionHeader("Microphone", scheme: scheme)
             }
 
-            Section("Live words") {
+            Section {
                 Toggle("Show words as you speak", isOn: $settings.showsLiveWords)
                 Text("The panel grows to show what Dict is hearing every time you hold the key. Off, it stays a small pill and only grows when you tap Space for hands-free.")
                     .font(.caption)
@@ -108,9 +120,11 @@ struct GeneralSettingsTab: View {
                 Text("Experimental. Words are typed where your cursor is as soon as they are recognized; when you let go, the final punctuated text replaces them. Keep the same field focused while you talk.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+            } header: {
+                DictSectionHeader("Live words", scheme: scheme)
             }
 
-            Section("Dictation panel") {
+            Section {
                 HUDSchemePicker(selection: $settings.hudColorScheme)
                 Text("The colors the panel lights up in while you dictate.")
                     .font(.caption)
@@ -119,6 +133,8 @@ struct GeneralSettingsTab: View {
                 Text("A short tone when recording starts, when it stops, and when the text goes in.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+            } header: {
+                DictSectionHeader("Dictation panel", scheme: scheme)
             }
 
             Section {
@@ -140,6 +156,8 @@ struct GeneralSettingsTab: View {
                     ProgressView(value: appState.engineDownloadProgress)
                         .progressViewStyle(.linear)
                 }
+            } header: {
+                DictSectionHeader("Engine", scheme: scheme)
             }
 
             Section {
@@ -151,6 +169,8 @@ struct GeneralSettingsTab: View {
                 Text(settings.dictationStyle.blurb + (settings.dictationStyle == .verbatim ? "" : " Uses the on-device Apple Intelligence model; without it, only ums and repeated words are dropped."))
                     .font(.caption)
                     .foregroundStyle(.secondary)
+            } header: {
+                DictSectionHeader("Dictation style", scheme: scheme)
             }
 
             Section {
@@ -173,9 +193,12 @@ struct GeneralSettingsTab: View {
                 Text("Inserts a space after each result so you can dictate several sentences in separate chunks without pressing space between them.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+            } header: {
+                DictSectionHeader("Formatting", scheme: scheme)
             }
         }
         .formStyle(.grouped)
+        .dictBackdrop(scheme)
         .onAppear {
             loginItem.refresh()
             inputDevices = AudioInputDevices.all()
@@ -269,6 +292,7 @@ struct AboutSettingsTab: View {
                 Link("Privacy", destination: URL(string: "https://github.com/mattbirchler/Dict-app/blob/main/PRIVACY.md")!)
             }
             .font(.callout)
+            .foregroundStyle(settings.hudColorScheme.accent)
             .padding(.top, 4)
 
             Text("Speech by Apple Speech and NVIDIA Parakeet through FluidAudio (Apache 2.0). Formatting by Apple Intelligence. Updates by Sparkle (MIT). Labels set in Chakra Petch (OFL). Dict itself is MIT licensed.")

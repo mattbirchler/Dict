@@ -32,6 +32,8 @@ struct ReplacementsView: View {
                 Button("Add Replacement") {
                     settings.wordReplacements.append(WordReplacement(spoken: "", replacement: ""))
                 }
+            } header: {
+                DictSectionHeader("Replacements", scheme: settings.hudColorScheme)
             } footer: {
                 Text("Fix names and jargon that get transcribed wrong, like \u{201C}clod code\u{201D} \u{2192} \u{201C}Claude Code.\u{201D} Matches whole words and ignores capitalization. Applied to every dictation.")
                     .font(.caption)
@@ -39,5 +41,6 @@ struct ReplacementsView: View {
             }
         }
         .formStyle(.grouped)
+        .dictBackdrop(settings.hudColorScheme)
     }
 }

@@ -17,7 +17,8 @@ struct HUDSchemePicker: View {
                         scheme: scheme,
                         spectrum: spectrum,
                         phase: timeline.date.timeIntervalSinceReferenceDate,
-                        isSelected: scheme == selection
+                        isSelected: scheme == selection,
+                        selectionColor: selection.accent
                     )
                     .onTapGesture { selection = scheme }
                     .accessibilityElement(children: .ignore)
@@ -34,6 +35,7 @@ private struct SchemeTile: View {
     var spectrum: [Float]
     var phase: Double
     var isSelected: Bool
+    var selectionColor: Color
 
     var body: some View {
         VStack(spacing: 6) {
@@ -58,11 +60,11 @@ private struct SchemeTile: View {
         .frame(maxWidth: .infinity)
         .background {
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(isSelected ? Color.accentColor.opacity(0.12) : .clear)
+                .fill(isSelected ? selectionColor.opacity(0.12) : .clear)
         }
         .overlay {
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .strokeBorder(isSelected ? Color.accentColor : .clear, lineWidth: 2)
+                .strokeBorder(isSelected ? selectionColor : .clear, lineWidth: 2)
         }
         .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         .animation(.easeOut(duration: 0.15), value: isSelected)
