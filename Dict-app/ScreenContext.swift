@@ -22,13 +22,7 @@ enum ScreenContext {
 
     /// The text of the focused field, or nil when the app doesn't expose it.
     static func focusedText() -> String? {
-        let systemWide = AXUIElementCreateSystemWide()
-        AXUIElementSetMessagingTimeout(systemWide, 0.25)
-        var focusedRef: CFTypeRef?
-        guard AXUIElementCopyAttributeValue(systemWide, kAXFocusedUIElementAttribute as CFString, &focusedRef) == .success,
-              let focusedRef, CFGetTypeID(focusedRef) == AXUIElementGetTypeID() else { return nil }
-        let focused = focusedRef as! AXUIElement
-        AXUIElementSetMessagingTimeout(focused, 0.25)
+        guard let focused = FocusedElement.current(timeout: 0.25) else { return nil }
         var valueRef: CFTypeRef?
         guard AXUIElementCopyAttributeValue(focused, kAXValueAttribute as CFString, &valueRef) == .success,
               let text = valueRef as? String, !text.isEmpty else { return nil }
