@@ -59,6 +59,25 @@ enum HUDPreview {
         return true
     }
 
+    /// `Dict --preview-onboarding welcome|listen|accessibility|key|tryit|accuracy|done [--snapshot out.png]`.
+    @MainActor
+    static func presentOnboarding(from arguments: [String] = CommandLine.arguments, show: (OnboardingStep) -> Int?) -> Bool {
+        guard let flag = arguments.firstIndex(of: "--preview-onboarding"), flag + 1 < arguments.count else { return false }
+        let step: OnboardingStep
+        switch arguments[flag + 1] {
+        case "listen": step = .listen
+        case "accessibility": step = .accessibility
+        case "key": step = .chooseKey
+        case "tryit": step = .tryIt
+        case "accuracy": step = .accuracy
+        case "done": step = .done
+        default: step = .welcome
+        }
+        let number = show(step)
+        scheduleSnapshot(from: arguments) { number }
+        return true
+    }
+
     /// With --snapshot, writes a PNG of the window after its entrance
     /// animation, then quits.
     @MainActor

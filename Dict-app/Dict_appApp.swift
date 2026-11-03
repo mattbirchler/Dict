@@ -41,6 +41,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             mainWindowController.show(section: section, appState: appState, updater: updaterController.updater)
             return mainWindowController.windowNumber
         }) { return }
+        if HUDPreview.presentOnboarding(show: { [self] step in
+            onboardingController.show(appState: appState, startingAt: step)
+            return onboardingController.windowNumber
+        }) { return }
 
         hudController.colorScheme = appState.settings.hudColorScheme
         appState.onHUDColorSchemeChanged = { [weak self] scheme in self?.hudController.colorScheme = scheme }
@@ -134,6 +138,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         if appState.permissionChecker.accessibilityGranted && appState.isEnabled {
             _ = keyMonitor.install()
+        }
+
+        appState.onAccessibilityGranted = { [weak self] in
+            guard let self, self.appState.isEnabled else { return }
+            _ = self.keyMonitor.install()
         }
 
         appState.onEnabledChanged = { [weak self] enabled in

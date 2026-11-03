@@ -17,6 +17,14 @@ final class AppState {
     /// Called when a dictation ends, with how it ended.
     var onProcessingComplete: ((DictationResult) -> Void)?
     var onHotkeySettingsChanged: (() -> Void)?
+    /// Fired by onboarding the moment Accessibility is granted, so the
+    /// key monitor can go in without waiting for the slow poller.
+    var onAccessibilityGranted: (() -> Void)?
+
+    // Parakeet downloading in the background while Apple keeps working.
+    var isDownloadingParakeet = false
+    var parakeetDownloadProgress: Double = 0
+    var isParakeetReady: Bool { pipeline.parakeetEngine.isReady }
     var isRecording = false
     var isProcessing = false
     private var processingTask: Task<Void, Never>?
@@ -125,6 +133,8 @@ final class AppState {
     func prepareEngine() {
         guard !isPreparingEngine else { return }
         let engine = pipeline.activeEngine
+        // A background Parakeet download already owns that engine's prepare.
+        if isDownloadingParakeet, engine === pipeline.parakeetEngine { return }
         if engine.isReady {
             refreshEngineReadiness()
             return
@@ -153,6 +163,36 @@ final class AppState {
             if !isEngineReady && canAutoPrepare {
                 prepareEngine()
             }
+        }
+    }
+
+    /// Downloads and loads Parakeet without switching to it, so dictation
+    /// keeps working on the current engine; once it is ready, Parakeet
+    /// becomes the engine. A failure leaves the current engine selected.
+    func downloadParakeet() {
+        guard !isDownloadingParakeet, !isParakeetReady else { return }
+        if settings.transcriptionEngine == .parakeet {
+            // Already selected: the ordinary prepare path owns progress.
+            prepareEngine()
+            return
+        }
+        let engine = pipeline.parakeetEngine
+        isDownloadingParakeet = true
+        parakeetDownloadProgress = 0
+        engine.onProgress = { [weak self] progress in
+            self?.parakeetDownloadProgress = progress
+        }
+        Task {
+            do {
+                try await engine.prepare()
+                Log.app.info("Parakeet ready in the background; switching engine")
+                settings.transcriptionEngine = .parakeet
+            } catch {
+                Log.app.error("Background Parakeet download failed: \(String(describing: error), privacy: .public)")
+                lastError = "Parakeet couldn't be downloaded. Dict is still using Apple's engine."
+            }
+            engine.onProgress = nil
+            isDownloadingParakeet = false
         }
     }
 
