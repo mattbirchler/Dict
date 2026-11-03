@@ -310,7 +310,7 @@ final class SettingsStore {
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
-        self.showsLiveWords = defaults.object(forKey: Keys.showsLiveWords) as? Bool ?? true
+        self.showsLiveWords = defaults.object(forKey: Keys.showsLiveWords) as? Bool ?? false
         self.insertsLiveWords = defaults.object(forKey: Keys.insertsLiveWords) as? Bool ?? false
         self.usesScreenContext = defaults.object(forKey: Keys.usesScreenContext) as? Bool ?? true
         self.dictationStyle = defaults.string(forKey: Keys.dictationStyle)

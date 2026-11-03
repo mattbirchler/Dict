@@ -101,7 +101,7 @@ struct GeneralSettingsTab: View {
 
             Section("Live words") {
                 Toggle("Show words as you speak", isOn: $settings.showsLiveWords)
-                Text("The panel grows to show what Dict is hearing while you hold the key, not only in hands-free.")
+                Text("The panel grows to show what Dict is hearing every time you hold the key. Off, it stays a small pill and only grows when you tap Space for hands-free.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 Toggle("Type words into the field as you speak", isOn: $settings.insertsLiveWords)
