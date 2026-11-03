@@ -55,15 +55,8 @@ final class TextInsertionService {
     /// (it's about to be replaced), or when the app doesn't expose its text
     /// (many terminals and Electron apps).
     func characterBeforeCursor() -> Character? {
-        let systemWide = AXUIElementCreateSystemWide()
-        // A hung frontmost app must not stall dictation.
-        AXUIElementSetMessagingTimeout(systemWide, 0.25)
-
-        var focusedRef: CFTypeRef?
-        guard AXUIElementCopyAttributeValue(systemWide, kAXFocusedUIElementAttribute as CFString, &focusedRef) == .success,
-              let focusedRef, CFGetTypeID(focusedRef) == AXUIElementGetTypeID() else { return nil }
-        let focused = focusedRef as! AXUIElement
-        AXUIElementSetMessagingTimeout(focused, 0.25)
+        // Short timeout: a hung frontmost app must not stall dictation.
+        guard let focused = FocusedElement.current(timeout: 0.25) else { return nil }
 
         var rangeRef: CFTypeRef?
         guard AXUIElementCopyAttributeValue(focused, kAXSelectedTextRangeAttribute as CFString, &rangeRef) == .success,

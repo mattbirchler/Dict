@@ -71,6 +71,9 @@ final class PipelineCoordinator {
         currentInputDevice = resolvedInputDevice()
         engine.inputDeviceID = currentInputDevice?.id
         startFailed = false
+        // Electron apps need a moment to build their accessibility tree;
+        // start it now so smart spacing can read the cursor later.
+        FocusedElement.prepareFrontmostApp()
         if insertsLiveWords, engine.supportsLiveTranscript {
             beginLiveInsertion(engine: engine)
         }
