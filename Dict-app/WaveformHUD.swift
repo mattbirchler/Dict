@@ -34,23 +34,25 @@ struct WaveformHUD: View {
     var pulsePhase: Double = 0
 
     static let expandedWidth: CGFloat = 530
+    /// The pill's matrix is the menu bar glyph's scale: half the full grid.
+    static let matrixScale: CGFloat = 0.5
 
     private var isRecording: Bool { mode == .recording || mode == .recordingHandsFree }
     private var isExpanded: Bool { transcript != nil }
-    private var cornerRadius: CGFloat { isExpanded ? 20 : 18 }
+    private var cornerRadius: CGFloat { isExpanded ? 20 : 14 }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 10) {
             header
-                .frame(minHeight: DotMatrix.height)
+                .frame(minHeight: DotMatrix.height * Self.matrixScale)
             if let transcript {
                 LiveTranscriptText(transcript: transcript, scheme: scheme)
                     .transition(.opacity.combined(with: .offset(y: -6)))
             }
         }
-        .padding(.leading, 18)
-        .padding(.trailing, 22)
-        .padding(.vertical, 14)
+        .padding(.leading, 12)
+        .padding(.trailing, 15)
+        .padding(.vertical, 9)
         .frame(width: isExpanded ? Self.expandedWidth : nil, alignment: .leading)
         .background {
             RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
@@ -74,7 +76,7 @@ struct WaveformHUD: View {
     }
 
     private var header: some View {
-        HStack(spacing: 14) {
+        HStack(spacing: 10) {
             if isRecording {
                 RecordLED(pulsePhase: pulsePhase, color: scheme.recording)
                     .transition(.scale.combined(with: .opacity))
@@ -87,13 +89,13 @@ struct WaveformHUD: View {
             }
 
             if isRecording || mode == .processing {
-                DotMatrix(spectrum: spectrum, isLive: isRecording, scheme: scheme, phase: pulsePhase)
+                DotMatrix(spectrum: spectrum, isLive: isRecording, scheme: scheme, phase: pulsePhase, scale: Self.matrixScale)
                     .transition(.scale(scale: 0.6).combined(with: .opacity))
             }
 
             Text(statusText)
-                .font(HUDFont.label(12.5))
-                .tracking(1.2)
+                .font(HUDFont.label(10))
+                .tracking(1)
                 .foregroundStyle(statusColor)
                 .lineLimit(1)
                 .fixedSize()
@@ -102,8 +104,8 @@ struct WaveformHUD: View {
             if let hint = hintText {
                 if isExpanded { Spacer(minLength: 12) }
                 Text(hint)
-                    .font(HUDFont.label(10.5, weight: .medium))
-                    .tracking(1.4)
+                    .font(HUDFont.label(8.5, weight: .medium))
+                    .tracking(1.2)
                     .foregroundStyle(scheme.accent.opacity(0.8))
                     .fixedSize()
                     .transition(.opacity)
@@ -198,10 +200,10 @@ private struct RecordLED: View {
         let lit = 0.45 + 0.55 * blink
         Circle()
             .fill(color)
-            .frame(width: 9, height: 9)
+            .frame(width: 7, height: 7)
             .opacity(lit)
-            .shadow(color: color.opacity(0.9 * lit), radius: 6)
-            .frame(width: 14, height: 14)
+            .shadow(color: color.opacity(0.9 * lit), radius: 5)
+            .frame(width: 11, height: 11)
     }
 }
 
@@ -212,10 +214,10 @@ private struct StatusGlyph: View {
 
     var body: some View {
         Image(systemName: systemName)
-            .font(.system(size: 14, weight: .heavy))
+            .font(.system(size: 11, weight: .heavy))
             .foregroundStyle(color)
-            .shadow(color: color.opacity(0.9), radius: 6)
-            .frame(width: 14, height: 14)
+            .shadow(color: color.opacity(0.9), radius: 5)
+            .frame(width: 11, height: 11)
     }
 }
 
@@ -236,6 +238,8 @@ struct DotMatrix: View {
     var isLive: Bool
     var scheme: HUDColorScheme
     var phase: Double
+    /// Shrinks pitch, dots and bloom together; 1 is the full-size grid.
+    var scale: CGFloat = 1
 
     @State private var peaks = [Double](repeating: 0, count: DotMatrix.columns)
     @State private var smoothed = [Double](repeating: 0, count: DotMatrix.columns)
@@ -247,10 +251,11 @@ struct DotMatrix: View {
                 size: size,
                 levels: isLive ? smoothed : Self.idleLevels(phase: phase),
                 peaks: isLive ? peaks : [],
-                scheme: scheme
+                scheme: scheme,
+                scale: scale
             )
         }
-        .frame(width: Self.width, height: Self.height)
+        .frame(width: Self.width * scale, height: Self.height * scale)
         .onChange(of: spectrum, initial: true) { _, new in
             Self.step(levels: &smoothed, peaks: &peaks, incoming: new)
         }
@@ -285,8 +290,9 @@ struct DotMatrix: View {
         }
     }
 
-    static func draw(in context: inout GraphicsContext, size: CGSize, levels: [Double], peaks: [Double], scheme: HUDColorScheme) {
+    static func draw(in context: inout GraphicsContext, size: CGSize, levels: [Double], peaks: [Double], scheme: HUDColorScheme, scale: CGFloat = 1) {
         let lowColor = scheme.low, highColor = scheme.high
+        let pitch = Self.pitch * scale, dot = Self.dot * scale
         var lit: [(CGRect, Color)] = []
         for column in 0..<columns {
             let level = column < levels.count ? levels[column] : 0
@@ -302,7 +308,7 @@ struct DotMatrix: View {
                 let rect = CGRect(x: x, y: y, width: dot, height: dot)
                 if isLit || isPeak {
                     let fraction = Double(row) / Double(max(rows - 1, 1))
-                    lit.append((isPeak ? rect.insetBy(dx: -0.5, dy: -0.5) : rect, Self.mix(lowColor, highColor, fraction)))
+                    lit.append((isPeak ? rect.insetBy(dx: -0.5 * scale, dy: -0.5 * scale) : rect, Self.mix(lowColor, highColor, fraction)))
                 } else {
                     context.fill(Circle().path(in: rect), with: .color(scheme.unlit))
                 }
@@ -310,7 +316,7 @@ struct DotMatrix: View {
         }
         // Lit dots bloom; unlit ones stay flat.
         context.drawLayer { layer in
-            layer.addFilter(.shadow(color: scheme.glow.opacity(0.9), radius: 3.5))
+            layer.addFilter(.shadow(color: scheme.glow.opacity(0.9), radius: 3.5 * scale))
             for (rect, color) in lit {
                 layer.fill(Circle().path(in: rect), with: .color(color))
             }
