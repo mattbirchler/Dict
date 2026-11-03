@@ -2,7 +2,7 @@
 <rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/" version="2.0">
     <channel>
         <title>Dict</title>
-        <link>https://raw.githubusercontent.com/mattbirchler/Dict-app/main/appcast.xml</link>
+        <link>https://raw.githubusercontent.com/mattbirchler/Dict/main/appcast.xml</link>
         <description>Updates for Dict</description>
         <language>en</language>
         <item>
@@ -22,7 +22,7 @@
 <h3>Requirements</h3>
 <p>macOS 26 or later on Apple silicon. Dict asks for Microphone access to hear you and Accessibility access to type for you, and explains both the first time it runs.</p>
             ]]></description>
-            <enclosure url="https://github.com/mattbirchler/Dict-app/releases/download/v1.0-3/Dict-1.0-3.zip" type="application/octet-stream" sparkle:edSignature="OHR+3q9BiY5HXE4WopEsSa4wREVxpCfaAyOfG9ZKvR5RzkH6gCCmt7R4GMhunQZlE1gZvNJFP/0i/lrMd9r+CA==" length="7901978"/>
+            <enclosure url="https://github.com/mattbirchler/Dict/releases/download/v1.0-3/Dict-1.0-3.zip" type="application/octet-stream" sparkle:edSignature="OHR+3q9BiY5HXE4WopEsSa4wREVxpCfaAyOfG9ZKvR5RzkH6gCCmt7R4GMhunQZlE1gZvNJFP/0i/lrMd9r+CA==" length="7901978"/>
         </item>
         <!--
             Release entries are added here by the release script.
@@ -39,7 +39,7 @@
                     <ul><li>Initial release</li></ul>
                 ]]></description>
                 <enclosure
-                    url="https://github.com/mattbirchler/Dict-app/releases/download/v1.0.0/Dict-1.0.0.dmg"
+                    url="https://github.com/mattbirchler/Dict/releases/download/v1.0.0/Dict-1.0.0.dmg"
                     sparkle:edSignature="SIGNATURE_FROM_sign_update"
                     length="FILE_SIZE_IN_BYTES"
                     type="application/octet-stream" />

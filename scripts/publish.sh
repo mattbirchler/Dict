@@ -7,7 +7,7 @@
 #    named "<version> build <number>".
 # 2. Builds, signs with Developer ID, and notarizes (scripts/notarize.sh).
 # 3. Signs the zip with Dict's Sparkle key and puts it in a GitHub release
-#    on mattbirchler/Dict-app with the notes.
+#    on mattbirchler/Dict with the notes.
 # 4. Adds the release to appcast.xml, commits it, and pushes main with a
 #    tag. The push is the moment people see the update.
 #
@@ -19,7 +19,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-REPO=mattbirchler/Dict-app
+REPO=mattbirchler/Dict
 WORK=build/publish
 DRY_RUN=${DRY_RUN:-0}
 

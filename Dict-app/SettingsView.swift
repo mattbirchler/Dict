@@ -287,9 +287,9 @@ struct AboutSettingsTab: View {
             }
 
             HStack(spacing: 16) {
-                Link("Report a Problem", destination: URL(string: "https://github.com/mattbirchler/Dict-app/issues/new")!)
-                Link("Source Code", destination: URL(string: "https://github.com/mattbirchler/Dict-app")!)
-                Link("Privacy", destination: URL(string: "https://github.com/mattbirchler/Dict-app/blob/main/PRIVACY.md")!)
+                Link("Report a Problem", destination: URL(string: "https://github.com/mattbirchler/Dict/issues/new")!)
+                Link("Source Code", destination: URL(string: "https://github.com/mattbirchler/Dict")!)
+                Link("Privacy", destination: URL(string: "https://github.com/mattbirchler/Dict/blob/main/PRIVACY.md")!)
             }
             .font(.callout)
             .foregroundStyle(settings.hudColorScheme.accent)

@@ -29,7 +29,7 @@ Dict is built so that what you say never leaves your Mac.
    carries nothing about you. The model is cached in
    `~/Library/Application Support/FluidAudio/Models`.
 2. **Update check.** Dict uses Sparkle to check
-   `https://raw.githubusercontent.com/mattbirchler/Dict-app/main/appcast.xml`
+   `https://raw.githubusercontent.com/mattbirchler/Dict/main/appcast.xml`
    once a day, and when you choose Check for Updates. That request includes
    Dict's version and your macOS version, as every update check does, and
    nothing else. Sparkle's optional system-profile reporting is off.

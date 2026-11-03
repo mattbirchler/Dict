@@ -10,9 +10,9 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/mattbirchler/Dict-app/releases/latest"><b>Download for macOS</b></a>
+  <a href="https://github.com/mattbirchler/Dict/releases/latest"><b>Download for macOS</b></a>
   &nbsp;&middot;&nbsp;
-  <a href="https://github.com/mattbirchler/Dict-app/releases">Release notes</a>
+  <a href="https://github.com/mattbirchler/Dict/releases">Release notes</a>
   &nbsp;&middot;&nbsp;
   <a href="PRIVACY.md">Privacy</a>
 </p>
@@ -45,7 +45,7 @@ The speech recognition runs on your Mac, using either Apple's built-in engine or
 
 ## Install
 
-1. [Download the latest disk image](https://github.com/mattbirchler/Dict-app/releases/latest) (`Dict-<version>-<build>.dmg`).
+1. [Download the latest disk image](https://github.com/mattbirchler/Dict/releases/latest) (`Dict-<version>-<build>.dmg`).
 2. Open it and drag Dict to the Applications folder, then open Dict from there.
 3. Follow the short setup. Dict asks for Microphone access so it can hear you and Accessibility access so it can type for you, and explains each one as it goes. You get to try dictating before setup is over.
 
@@ -97,7 +97,7 @@ Audio, transcripts, history, settings and the text Dict reads from your screen s
 
 ## Found a problem?
 
-[Open an issue](https://github.com/mattbirchler/Dict-app/issues). The About window has a Copy Diagnostic Log button; the log contains timings and error messages, never your audio or text.
+[Open an issue](https://github.com/mattbirchler/Dict/issues). The About window has a Copy Diagnostic Log button; the log contains timings and error messages, never your audio or text.
 
 ## For developers
 
