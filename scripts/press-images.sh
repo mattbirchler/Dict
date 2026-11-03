@@ -13,5 +13,7 @@ for s in phosphor glacier ultraviolet graphite; do "$BIN" --render-hud recording
 "$BIN" --preview-onboarding tryit --snapshot "$RAW/onb-tryit.png"
 "/Applications/Xcode.app/Contents/Applications/Icon Composer.app/Contents/Executables/ictool" dict-icon.icon \
   --export-image --output-file "$RAW/icon-1024.png" --platform macOS --rendition Default --width 512 --height 512 --scale 2
-python3 scripts/press-images.py "$RAW" docs/press Dict-app/Fonts "$RAW/icon-1024.png"
+"/Applications/Xcode.app/Contents/Applications/Icon Composer.app/Contents/Executables/ictool" dict-icon.icon \
+  --export-image --output-file "$RAW/icon-2048.png" --platform macOS --rendition Default --width 1024 --height 1024 --scale 2
+python3 scripts/press-images.py "$RAW" docs/press Dict-app/Fonts "$RAW/icon-1024.png" "$RAW/icon-2048.png"
 rm -rf "$RAW"

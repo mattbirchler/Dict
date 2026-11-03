@@ -2,10 +2,10 @@
 # snapshots. Usage: see scripts/press-images.sh.
 import sys, os, math
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
-RAW, OUT, FONTS, ICON = sys.argv[1:5]
+RAW, OUT, FONTS, ICON, ICON_HI = sys.argv[1:6]
 W, H = 2400, 1500
 
-def backdrop(w=W, h=H, warm=(255, 98, 46), pink=(255, 61, 128)):
+def backdrop(w=W, h=H, warm=(255, 98, 46), pink=(255, 61, 128), k=1):
     img = Image.new("RGB", (w, h), (13, 11, 18))
     glow = Image.new("RGB", (w, h), (0, 0, 0))
     d = ImageDraw.Draw(glow)
@@ -22,10 +22,10 @@ def backdrop(w=W, h=H, warm=(255, 98, 46), pink=(255, 61, 128)):
     # Faint LED dot grid, the matrix motif.
     dots = Image.new("RGBA", (w, h), (0, 0, 0, 0))
     dd = ImageDraw.Draw(dots)
-    pitch = 36
+    pitch, r = 36 * k, 2.2 * k
     for y in range(pitch // 2, h, pitch):
         for x in range(pitch // 2, w, pitch):
-            dd.ellipse([x - 2.2, y - 2.2, x + 2.2, y + 2.2], fill=(255, 255, 255, 9))
+            dd.ellipse([x - r, y - r, x + r, y + r], fill=(255, 255, 255, 9))
     out = out.convert("RGBA")
     out.alpha_composite(dots)
     return out
@@ -108,10 +108,12 @@ label(bg, "PRIVATE DICTATION FOR THE MAC", (W * .505, H * .56), size=46, anchor=
 label(bg, "FREE  ·  OPEN SOURCE  ·  100% ON-DEVICE", (W * .505, H * .64), size=34, anchor="lm", fill=(190, 180, 196), weight="Medium", track=6)
 save(bg, "dict-card.png")
 
-# 8 Icon card: the same backdrop with just the icon, centered.
-bg = backdrop()
-icon = Image.open(ICON).convert("RGBA").resize((600, 600), Image.LANCZOS)
-sh, pad = shadowed(icon, radius=40, offset=24, opacity=120)
-place_center(bg, sh, W / 2, H / 2)
+# 8 Icon card: the same backdrop with just the icon, centered. Rendered at
+# twice the size of the others (4800x3000) from a 2048 px icon.
+k = 2
+bg = backdrop(W * k, H * k, k=k)
+icon = Image.open(ICON_HI).convert("RGBA").resize((520 * k, 520 * k), Image.LANCZOS)
+sh, pad = shadowed(icon, radius=36 * k, offset=22 * k, opacity=120)
+place_center(bg, sh, W * k / 2, H * k / 2)
 save(bg, "dict-icon-card.png")
 print("ok")
