@@ -37,6 +37,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         if ApplicationsMover.offerIfNeeded() { return }
         if HUDPreview.present(in: hudController) { return }
+        if HUDPreview.presentWindow(show: { [self] section in
+            mainWindowController.show(section: section, appState: appState, updater: updaterController.updater)
+            return mainWindowController.windowNumber
+        }) { return }
 
         hudController.colorScheme = appState.settings.hudColorScheme
         appState.onHUDColorSchemeChanged = { [weak self] scheme in self?.hudController.colorScheme = scheme }

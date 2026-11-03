@@ -38,17 +38,40 @@ enum HUDPreview {
         default: break
         }
 
-        if let snapshot = arguments.firstIndex(of: "--snapshot"), snapshot + 1 < arguments.count {
-            let path = arguments[snapshot + 1]
-            Task { @MainActor in
-                try? await Task.sleep(for: .seconds(1.5))
-                if let number = hud.windowNumber {
-                    await write(windowNumber: number, to: path)
-                }
-                NSApp.terminate(nil)
-            }
-        }
+        scheduleSnapshot(from: arguments) { hud.windowNumber }
         return true
+    }
+
+    /// `Dict --preview-window general|about|history [--snapshot out.png]`:
+    /// opens the main window on that section for a look at Settings.
+    @MainActor
+    static func presentWindow(from arguments: [String] = CommandLine.arguments, show: (MainSection) -> Int?) -> Bool {
+        guard let flag = arguments.firstIndex(of: "--preview-window"), flag + 1 < arguments.count else { return false }
+        let section: MainSection
+        switch arguments[flag + 1] {
+        case "about": section = .about
+        case "history": section = .history
+        case "replacements": section = .replacements
+        default: section = .general
+        }
+        let number = show(section)
+        scheduleSnapshot(from: arguments) { number }
+        return true
+    }
+
+    /// With --snapshot, writes a PNG of the window after its entrance
+    /// animation, then quits.
+    @MainActor
+    private static func scheduleSnapshot(from arguments: [String], windowNumber: @escaping @MainActor () -> Int?) {
+        guard let snapshot = arguments.firstIndex(of: "--snapshot"), snapshot + 1 < arguments.count else { return }
+        let path = arguments[snapshot + 1]
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(1.5))
+            if let number = windowNumber() {
+                await write(windowNumber: number, to: path)
+            }
+            NSApp.terminate(nil)
+        }
     }
 
     /// A speech-like spectrum: a hump of energy in the low-mid bands that

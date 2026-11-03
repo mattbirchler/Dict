@@ -11,6 +11,8 @@ import Sparkle
 final class MainWindowController: NSObject, NSWindowDelegate {
     private var window: NSWindow?
     private let model = MainWindowModel()
+    /// For `--preview-window --snapshot`.
+    var windowNumber: Int? { window?.windowNumber }
 
     func show(section: MainSection, appState: AppState, updater: SPUUpdater) {
         model.section = section

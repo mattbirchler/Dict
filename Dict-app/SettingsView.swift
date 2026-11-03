@@ -89,6 +89,13 @@ struct GeneralSettingsTab: View {
                     .foregroundStyle(.secondary)
             }
 
+            Section("Dictation panel") {
+                HUDSchemePicker(selection: $settings.hudColorScheme)
+                Text("The colors the panel lights up in while you dictate.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
             Section {
                 Picker("Transcription engine", selection: $settings.transcriptionEngine) {
                     ForEach(TranscriptionEngineChoice.allCases, id: \.self) { choice in
