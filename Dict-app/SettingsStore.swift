@@ -166,7 +166,7 @@ enum TranscriptionEngineChoice: String, CaseIterable {
 @MainActor
 @Observable
 final class SettingsStore {
-    enum Change { case hotkey, activationMode, formatting, historyLimit, transcriptionEngine, appendTrailingSpace, smartLeadingSpace, wordReplacements, inputDevice, hudColorScheme, sounds, dictationStyle }
+    enum Change { case hotkey, activationMode, formatting, historyLimit, transcriptionEngine, appendTrailingSpace, smartLeadingSpace, wordReplacements, inputDevice, hudColorScheme, sounds, dictationStyle, screenContext }
 
     @ObservationIgnored var onChange: ((Change) -> Void)?
     @ObservationIgnored private let defaults: UserDefaults
@@ -185,6 +185,7 @@ final class SettingsStore {
         static let hudColorScheme = "hudColorScheme"
         static let playsSounds = "playsSounds"
         static let dictationStyle = "dictationStyle"
+        static let usesScreenContext = "usesScreenContext"
     }
 
     var hotkey: HotkeyChoice {
@@ -281,8 +282,17 @@ final class SettingsStore {
         }
     }
 
+    /// Read the field being dictated into so names are spelled its way.
+    var usesScreenContext: Bool {
+        didSet {
+            defaults.set(usesScreenContext, forKey: Keys.usesScreenContext)
+            onChange?(.screenContext)
+        }
+    }
+
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
+        self.usesScreenContext = defaults.object(forKey: Keys.usesScreenContext) as? Bool ?? true
         self.dictationStyle = defaults.string(forKey: Keys.dictationStyle)
             .flatMap(DictationStyle.init(rawValue:)) ?? .verbatim
         self.playsSounds = defaults.object(forKey: Keys.playsSounds) as? Bool ?? true

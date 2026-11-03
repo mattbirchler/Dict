@@ -16,6 +16,9 @@ final class PipelineCoordinator {
     /// Mirrors the user's dictation style; owned by AppState.
     var dictationStyle: DictationStyle = .verbatim
 
+    /// Mirrors the user's screen-context setting; owned by AppState.
+    var usesScreenContext = true
+
     /// Mirrors the user's "space after each dictation" setting; owned by AppState.
     var appendTrailingSpace = false
 
@@ -107,7 +110,10 @@ final class PipelineCoordinator {
         let shouldFormat = Self.shouldFormat(enabled: isFormattingEnabled, engine: engineChoice, context: context, style: dictationStyle)
         let formatted: String
         if shouldFormat {
-            formatted = await formatter.format(rawText, context: context, style: dictationStyle)
+            // Names already in the document, so the model spells them its way.
+            let terms = usesScreenContext ? ScreenContext.extractTerms(from: ScreenContext.focusedText() ?? "") : []
+            if !terms.isEmpty { Log.pipeline.debug("Screen context: \(terms.count, privacy: .public) terms") }
+            formatted = await formatter.format(rawText, context: context, style: dictationStyle, terms: terms)
         } else if dictationStyle != .verbatim {
             formatted = FillerRemover.clean(rawText)
         } else {

@@ -176,6 +176,17 @@ struct SettingsStoreTests {
         #expect(SettingsStore(defaults: defaults).dictationStyle == .verbatim)
     }
 
+    @Test func screenContextDefaultsOnAndRoundTrips() {
+        let defaults = makeDefaults()
+        let store = SettingsStore(defaults: defaults)
+        #expect(store.usesScreenContext)
+        var changes: [SettingsStore.Change] = []
+        store.onChange = { changes.append($0) }
+        store.usesScreenContext = false
+        #expect(changes == [.screenContext])
+        #expect(!SettingsStore(defaults: defaults).usesScreenContext)
+    }
+
     @Test func historyLimitMapping() {
         #expect(HistoryLimit.off.maxEntries == 0)
         #expect(HistoryLimit.ten.maxEntries == 10)

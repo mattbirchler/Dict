@@ -14,6 +14,12 @@ Dict is built so that what you say never leaves your Mac.
   (`~/Library/Application Support/Dict/History.store`) so you can copy
   them again. You choose how many to keep (or none) in History.
 - **Settings and word replacements.** Stored in Dict's preferences file.
+- **The field you dictate into.** When formatting runs, Dict reads the text
+  already in the focused field (through the Accessibility permission) and
+  hands the on-device formatter the names and terms it finds there, so they
+  are spelled the way your document spells them. The text is used for that
+  one dictation and never stored or sent anywhere. Turn this off in
+  Settings > General if you prefer.
 
 ## The only network connections
 

@@ -148,6 +148,11 @@ struct GeneralSettingsTab: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
+                Toggle("Spell names the way the document does", isOn: $settings.usesScreenContext)
+                Text("Reads the text already in the field you\u{2019}re dictating into and tells the formatter which names and terms appear there, so \u{201C}Birchtree\u{201D} comes out the same way twice. Read on this Mac for that one dictation and never stored.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
                 Toggle("Add a space before dictation when needed", isOn: $settings.smartLeadingSpace)
                 Text("Checks the character before the cursor and adds a space if the text would otherwise run into the previous word. Some apps, including many terminals, don\u{2019}t expose this; there nothing is added.")
                     .font(.caption)
