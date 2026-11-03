@@ -162,6 +162,29 @@ final class MenuBarManager: NSObject, NSMenuDelegate {
             menu.addItem(fix)
         }
 
+        let copyLast = NSMenuItem(
+            title: "Copy Last Dictation",
+            action: #selector(copyLastDictation),
+            keyEquivalent: ""
+        )
+        copyLast.target = self
+        copyLast.isEnabled = appState.pipeline.historyStore.recentEntries.first != nil
+        menu.addItem(copyLast)
+
+        let style = NSMenuItem(title: "Dictation Style", action: nil, keyEquivalent: "")
+        let styleMenu = NSMenu()
+        for choice in DictationStyle.allCases {
+            let item = NSMenuItem(title: choice.displayName, action: #selector(pickStyle(_:)), keyEquivalent: "")
+            item.target = self
+            item.representedObject = choice.rawValue
+            item.state = appState.settings.dictationStyle == choice ? .on : .off
+            styleMenu.addItem(item)
+        }
+        style.submenu = styleMenu
+        menu.addItem(style)
+
+        menu.addItem(.separator())
+
         let history = NSMenuItem(
             title: "History…",
             action: #selector(openHistory),
@@ -199,6 +222,17 @@ final class MenuBarManager: NSObject, NSMenuDelegate {
 
     @objc private func toggleEnabled() {
         appState?.isEnabled.toggle()
+    }
+
+    @objc private func copyLastDictation() {
+        guard let text = appState?.pipeline.historyStore.recentEntries.first?.cleanedText else { return }
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(text, forType: .string)
+    }
+
+    @objc private func pickStyle(_ sender: NSMenuItem) {
+        guard let raw = sender.representedObject as? String, let style = DictationStyle(rawValue: raw) else { return }
+        appState?.settings.dictationStyle = style
     }
 
     @objc private func showOnboarding() {
