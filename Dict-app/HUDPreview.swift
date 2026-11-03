@@ -94,6 +94,21 @@ enum HUDPreview {
         }
     }
 
+    /// With `--sample-stats`, a throwaway defaults suite seeded with a few
+    /// weeks of use, so the stats header can be looked at.
+    static func sampleStatsDefaults(arguments: [String] = CommandLine.arguments) -> UserDefaults? {
+        guard arguments.contains("--sample-stats"),
+              let defaults = UserDefaults(suiteName: "birchtree.Dict-app.preview") else { return nil }
+        defaults.removePersistentDomain(forName: "birchtree.Dict-app.preview")
+        var stats = DictationStats()
+        for daysAgo in (0..<12).reversed() where daysAgo != 5 {
+            let date = Calendar.current.date(byAdding: .day, value: -daysAgo, to: Date())!
+            for _ in 0..<7 { stats.record(words: 38, seconds: 14, on: date) }
+        }
+        if let data = try? JSONEncoder().encode(stats) { defaults.set(data, forKey: "dictationStats") }
+        return defaults
+    }
+
     /// A speech-like spectrum: a hump of energy in the low-mid bands that
     /// pulses like syllables, with a little wobble per band.
     static func sampleSpectrum(at t: TimeInterval) -> [Float] {

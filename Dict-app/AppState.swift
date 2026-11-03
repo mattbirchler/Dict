@@ -9,6 +9,8 @@ final class AppState {
     var onHUDColorSchemeChanged: ((HUDColorScheme) -> Void)?
     let permissionChecker = PermissionChecker()
     let pipeline = PipelineCoordinator()
+    let stats = StatsStore(defaults: HUDPreview.sampleStatsDefaults() ?? .standard)
+    private var recordingStartedAt: Date?
 
     var isEnabled = true {
         didSet { onEnabledChanged?(isEnabled) }
@@ -227,6 +229,7 @@ final class AppState {
         guard canStartRecording else { return }
         isRecording = true
         lastError = nil
+        recordingStartedAt = Date()
         pipeline.startRecording()
     }
 
@@ -249,6 +252,9 @@ final class AppState {
             guard session == processingSession else { return }
             processingTask = nil
             isProcessing = false
+            if case .inserted(let text) = result {
+                stats.record(text: text, seconds: recordingStartedAt.map { Date().timeIntervalSince($0) } ?? 0)
+            }
             onProcessingComplete?(result)
             if result == .failed {
                 lastError = "Transcription failed. Please try again."

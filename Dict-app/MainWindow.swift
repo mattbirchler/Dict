@@ -84,7 +84,13 @@ struct HistoryView: View {
     private var store: HistoryStore { appState.pipeline.historyStore }
 
     var body: some View {
-        Group {
+        VStack(spacing: 0) {
+            if appState.stats.stats.dictations > 0 {
+                StatsHeader(stats: appState.stats.stats, scheme: settings.hudColorScheme)
+                    .padding(.horizontal, 16)
+                    .padding(.top, 12)
+                    .padding(.bottom, 4)
+            }
             if store.recentEntries.isEmpty {
                 ContentUnavailableView(
                     "No Transcriptions Yet",
