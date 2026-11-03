@@ -107,4 +107,11 @@ label(bg, "DICT", (W * .5, H * .40), size=200, anchor="lm", fill=(255, 244, 236)
 label(bg, "PRIVATE DICTATION FOR THE MAC", (W * .505, H * .56), size=46, anchor="lm", fill=(255, 176, 102), track=8)
 label(bg, "FREE  ·  OPEN SOURCE  ·  100% ON-DEVICE", (W * .505, H * .64), size=34, anchor="lm", fill=(190, 180, 196), weight="Medium", track=6)
 save(bg, "dict-card.png")
+
+# 8 Icon card: the same backdrop with just the icon, centered.
+bg = backdrop()
+icon = Image.open(ICON).convert("RGBA").resize((680, 680), Image.LANCZOS)
+sh, pad = shadowed(icon, radius=44, offset=26, opacity=120)
+place_center(bg, sh, W / 2, H / 2)
+save(bg, "dict-icon-card.png")
 print("ok")
