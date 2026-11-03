@@ -14,19 +14,25 @@ enum SpectrumAnalyzer {
     private static let fftSize = 2048
     private static let log2n = vDSP_Length(11)
 
-    /// Band levels (0...1) for the first channel of `buffer`.
-    nonisolated static func bands(_ buffer: AVAudioPCMBuffer, count: Int = bandCount) -> [Float] {
+    /// Band amplitudes for the first channel of `buffer`; feed them to a
+    /// `SpectrumGain` for display levels.
+    nonisolated static func bandAmplitudes(_ buffer: AVAudioPCMBuffer, count: Int = bandCount) -> [Float] {
         guard let channel = buffer.floatChannelData?[0] else { return [] }
         let frames = Int(buffer.frameLength)
         guard frames > 0 else { return [] }
         let samples = Array(UnsafeBufferPointer(start: channel, count: frames))
-        return bands(samples: samples, sampleRate: buffer.format.sampleRate, count: count)
+        return bandAmplitudes(samples: samples, sampleRate: buffer.format.sampleRate, count: count)
     }
 
-    /// Band levels (0...1) for raw mono samples. Uses the last `fftSize`
-    /// samples (zero-padded when fewer), a Hann window, and log-spaced
-    /// bands between `lowHz` and `highHz`.
+    /// Band levels (0...1) on a fixed dB window, for tests and callers
+    /// without a `SpectrumGain`.
     nonisolated static func bands(samples: [Float], sampleRate: Double, count: Int = bandCount) -> [Float] {
+        bandAmplitudes(samples: samples, sampleRate: sampleRate, count: count).map(normalized(amplitude:))
+    }
+
+    /// Mean linear amplitude per band, scaled so a full-scale sine reads
+    /// about 1.0 in its own band and silence reads 0.
+    nonisolated static func bandAmplitudes(samples: [Float], sampleRate: Double, count: Int = bandCount) -> [Float] {
         guard count > 0, sampleRate > 0, !samples.isEmpty else { return [] }
         let n = fftSize
         var input = [Float](repeating: 0, count: n)
@@ -34,7 +40,7 @@ enum SpectrumAnalyzer {
         input.replaceSubrange(0..<tail.count, with: tail)
 
         var window = [Float](repeating: 0, count: n)
-        vDSP_hann_window(&window, vDSP_Length(n), Int32(vDSP_HANN_NORM))
+        vDSP_hann_window(&window, vDSP_Length(n), Int32(vDSP_HANN_DENORM))
         vDSP_vmul(input, 1, window, 1, &input, 1, vDSP_Length(n))
 
         guard let setup = vDSP_create_fftsetup(log2n, FFTRadix(kFFTRadix2)) else { return [] }
@@ -53,9 +59,13 @@ enum SpectrumAnalyzer {
                     }
                 }
                 vDSP_fft_zrip(setup, &split, 1, log2n, FFTDirection(FFT_FORWARD))
-                vDSP_zvmags(&split, 1, &magnitudes, 1, vDSP_Length(half))
+                // zrip packs the real FFT with a factor of 2; |X| / N then
+                // puts a full-scale sine at about 1.0 in its bin.
+                vDSP_zvabs(&split, 1, &magnitudes, 1, vDSP_Length(half))
             }
         }
+        var scale = Float(1) / Float(n)
+        vDSP_vsmul(magnitudes, 1, &scale, &magnitudes, 1, vDSP_Length(half))
 
         // Bin k holds frequency k * sampleRate / n.
         let hzPerBin = sampleRate / Double(n)
@@ -66,22 +76,58 @@ enum SpectrumAnalyzer {
             let to = lowHz * pow(ratio, Double(band + 1) / Double(count))
             let first = max(1, Int(from / hzPerBin))
             let last = max(first, min(half - 1, Int(to / hzPerBin)))
-            var sum: Float = 0
-            for bin in first...last { sum += magnitudes[bin] }
-            let mean = sum / Float(last - first + 1)
-            out[band] = normalized(power: mean)
+            // The loudest bin in the band, so a tone lights its band fully
+            // whatever the band's width.
+            out[band] = magnitudes[first...last].max() ?? 0
         }
         return out
     }
 
-    /// Maps mean band power to 0...1 on a compressed scale so quiet speech
-    /// lights the lower dots and shouting clips at the top.
-    nonisolated static func normalized(power: Float) -> Float {
-        guard power > 0 else { return 0 }
-        let amplitude = power.squareRoot()
-        // Speech bands sit around 1e-3...3e-1 after the normalized window.
-        let db = 20 * log10(max(amplitude, 1e-6))
-        let floor: Float = -62, ceiling: Float = -12
-        return min(max((db - floor) / (ceiling - floor), 0), 1)
+    /// Maps a band amplitude to 0...1 on a dB scale: `floorDB` and below
+    /// is dark, `ceilingDB` and above is fully lit. Speech from a
+    /// microphone sits around -45 to -20 dBFS per band.
+    static let floorDB: Float = -58
+    static let ceilingDB: Float = -22
+
+    nonisolated static func normalized(amplitude: Float) -> Float {
+        guard amplitude > 0 else { return 0 }
+        let db = 20 * log10(max(amplitude, 1e-7))
+        return min(max((db - floorDB) / (ceilingDB - floorDB), 0), 1)
+    }
+}
+
+/// Adapts the matrix to the microphone: the loudest band sets a reference
+/// that decays slowly, and everything is lit relative to it, so a hot
+/// podcast mic and a quiet laptop mic both show the shape of the voice
+/// instead of a solid block. One per recording.
+struct SpectrumGain {
+    /// Decibels from dark to fully lit below the reference.
+    static let range: Float = 30
+    /// The reference never drops below this, so a silent room isn't
+    /// boosted into a lit grid.
+    static let minimumReference: Float = -48
+    /// Anything quieter is unconditionally dark.
+    static let noiseFloor: Float = -74
+    /// How fast the reference falls between louder moments, per update
+    /// (updates arrive about every 85 ms, so roughly 7 dB a second).
+    static let releasePerUpdate: Float = 0.6
+
+    private(set) var reference: Float = SpectrumGain.minimumReference
+
+    /// Levels (0...1) for one update of band amplitudes.
+    mutating func levels(amplitudes: [Float]) -> [Float] {
+        guard !amplitudes.isEmpty else { return [] }
+        let decibels = amplitudes.map { 20 * log10(max($0, 1e-7)) }
+        let loudest = decibels.max() ?? Self.noiseFloor
+        if loudest > reference {
+            reference = loudest
+        } else {
+            reference = max(Self.minimumReference, reference - Self.releasePerUpdate)
+        }
+        let floor = reference - Self.range
+        return decibels.map { db in
+            guard db > Self.noiseFloor else { return 0 }
+            return min(max((db - floor) / Self.range, 0), 1)
+        }
     }
 }

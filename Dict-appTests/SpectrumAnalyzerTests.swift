@@ -65,3 +65,48 @@ struct DotMatrixTests {
         #expect(levels[DotMatrix.columns - 1] < 0.5)
     }
 }
+
+struct SpectrumGainTests {
+    private func amplitudes(db: [Float]) -> [Float] { db.map { pow(10, $0 / 20) } }
+
+    @Test func loudestBandIsLitAndQuietBandsKeepTheirDistance() {
+        var gain = SpectrumGain()
+        // A voice: one strong band, one 15 dB down, one 40 dB down.
+        let levels = gain.levels(amplitudes: amplitudes(db: [-20, -35, -60]))
+        #expect(levels[0] == 1)
+        #expect(abs(levels[1] - 0.5) < 0.01)
+        #expect(levels[2] == 0)
+    }
+
+    @Test func sameShapeAtAnyMicGain() {
+        var hot = SpectrumGain(), quiet = SpectrumGain()
+        let loud = hot.levels(amplitudes: amplitudes(db: [-15, -30, -45]))
+        let soft = quiet.levels(amplitudes: amplitudes(db: [-40, -55, -70]))
+        for (a, b) in zip(loud, soft) { #expect(abs(a - b) < 0.01) }
+    }
+
+    @Test func silenceStaysDark() {
+        var gain = SpectrumGain()
+        let levels = gain.levels(amplitudes: amplitudes(db: [-80, -85, -90]))
+        #expect(levels.allSatisfy { $0 == 0 })
+        #expect(gain.levels(amplitudes: []).isEmpty)
+    }
+
+    @Test func quietRoomIsNotBoostedIntoALitGrid() {
+        var gain = SpectrumGain()
+        // Room noise just above the floor: below the minimum reference, so
+        // it lights only a little, never fully.
+        let levels = gain.levels(amplitudes: amplitudes(db: [-70, -72, -73]))
+        #expect(levels.max()! < 0.3)
+    }
+
+    @Test func referenceReleasesSlowlyAfterALoudMoment() {
+        var gain = SpectrumGain()
+        _ = gain.levels(amplitudes: amplitudes(db: [-20]))
+        #expect(gain.reference == -20)
+        for _ in 0..<10 { _ = gain.levels(amplitudes: amplitudes(db: [-60])) }
+        #expect(gain.reference < -20 && gain.reference > -30)
+        for _ in 0..<200 { _ = gain.levels(amplitudes: amplitudes(db: [-90])) }
+        #expect(gain.reference == SpectrumGain.minimumReference)
+    }
+}

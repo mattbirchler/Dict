@@ -13,6 +13,7 @@ import os
 final class ParakeetTranscriptionService: TranscriptionEngine {
     var audioEnergy: [Float] = []
     var audioSpectrum: [Float] = []
+    private var spectrumGain = SpectrumGain()
     private(set) var isRecording = false
     private(set) var liveTranscript = LiveTranscript()
     let supportsLiveTranscript = true
@@ -109,7 +110,7 @@ final class ParakeetTranscriptionService: TranscriptionEngine {
         let samplesBox = recordedSamples
         audioEngine.inputNode.installTap(onBus: 0, bufferSize: 4096, format: tapFormat) { [weak self] buffer, _ in
             let level = Self.rmsLevel(buffer)
-            let spectrum = SpectrumAnalyzer.bands(buffer)
+            let spectrum = SpectrumAnalyzer.bandAmplitudes(buffer)
             Task { @MainActor [weak self] in self?.appendEnergy(level, spectrum: spectrum) }
             guard let converter,
                   let converted = Self.convert(buffer, using: converter, to: targetFormat),
@@ -245,6 +246,7 @@ final class ParakeetTranscriptionService: TranscriptionEngine {
     private func teardownAudio() {
         audioEngine.inputNode.removeTap(onBus: 0)
         audioSpectrum = []
+        spectrumGain = SpectrumGain()
         if audioEngine.isRunning { audioEngine.stop() }
         warmUpAudio()
     }
@@ -259,7 +261,7 @@ final class ParakeetTranscriptionService: TranscriptionEngine {
     }
 
     private func appendEnergy(_ level: Float, spectrum: [Float]) {
-        audioSpectrum = spectrum
+        audioSpectrum = spectrumGain.levels(amplitudes: spectrum)
         audioEnergy.append(Self.normalizedEnergy(rms: level))
         if audioEnergy.count > maxEnergySamples {
             audioEnergy.removeFirst(audioEnergy.count - maxEnergySamples)
