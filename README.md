@@ -18,7 +18,7 @@
 </p>
 
 <p align="center">
-  <img src="docs/readme/hero.png" width="720" alt="The Dict panel while recording, and the larger hands-free panel showing words as they arrive">
+  <img src="docs/readme/hero.png" width="630" alt="The Dict panel while recording, and the larger hands-free panel showing words as they arrive">
 </p>
 
 ## What it is
@@ -40,7 +40,7 @@ The speech recognition runs on your Mac, using either Apple's built-in engine or
 - **Looks the part.** A small panel with a live spectrum in five color schemes: Ember, Phosphor, Glacier, Ultraviolet and Graphite.
 
 <p align="center">
-  <img src="docs/readme/schemes.png" width="404" alt="The recording panel in each of the five color schemes">
+  <img src="docs/readme/schemes.png" width="387" alt="The recording panel in each of the five color schemes">
 </p>
 
 ## Install
@@ -52,7 +52,7 @@ The speech recognition runs on your Mac, using either Apple's built-in engine or
 Dict needs **macOS 26 or later** on a Mac with **Apple silicon**. Updates arrive through the app itself: Check for Updates in the menu, or automatically once a day.
 
 <p align="center">
-  <img src="docs/readme/onboarding.png" width="520" alt="The setup step where you try dictating into a text box">
+  <img src="docs/readme/onboarding.png" width="600" alt="The setup step where you try dictating into a text box">
 </p>
 
 ## Using Dict
@@ -67,7 +67,7 @@ Dict needs **macOS 26 or later** on a Mac with **Apple silicon**. Updates arrive
 The menu bar icon follows the microphone while you talk, so you can see Dict is listening even when the panel is off to the side.
 
 <p align="center">
-  <img src="docs/readme/states.png" width="404" alt="The panel while recording, while processing, and after the text is inserted">
+  <img src="docs/readme/states.png" width="387" alt="The panel while recording, while processing, and after the text is inserted">
 </p>
 
 ## Settings and history
