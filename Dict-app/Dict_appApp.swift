@@ -36,6 +36,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         if ApplicationsMover.offerIfNeeded() { return }
+        SoundPlayer.isMuted = CommandLine.arguments.contains { $0.hasPrefix("--preview-") }
         if HUDPreview.present(in: hudController) { return }
         if HUDPreview.presentWindow(show: { [self] section in
             mainWindowController.show(section: section, appState: appState, updater: updaterController.updater)
@@ -80,6 +81,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 return false
             }
             self.appState.startRecording()
+            SoundPlayer.play(.start)
             self.hudController.show(
                 audioSpectrum: { [weak self] in
                     self?.appState.pipeline.activeEngine.audioSpectrum ?? []
@@ -97,6 +99,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             // A press that was blocked (engine loading) never started a
             // recording, so its release must not leave a processing pill up.
             guard let self, self.appState.isRecording else { return }
+            SoundPlayer.play(.stop)
             self.hudController.showProcessing()
             self.appState.stopRecording()
         }
@@ -125,6 +128,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         appState.onProcessingComplete = { [weak self] result in
+            if case .inserted = result { SoundPlayer.play(.inserted) }
             self?.hudController.finish(result: result)
         }
 

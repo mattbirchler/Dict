@@ -166,7 +166,7 @@ enum TranscriptionEngineChoice: String, CaseIterable {
 @MainActor
 @Observable
 final class SettingsStore {
-    enum Change { case hotkey, activationMode, formatting, historyLimit, transcriptionEngine, appendTrailingSpace, smartLeadingSpace, wordReplacements, inputDevice, hudColorScheme }
+    enum Change { case hotkey, activationMode, formatting, historyLimit, transcriptionEngine, appendTrailingSpace, smartLeadingSpace, wordReplacements, inputDevice, hudColorScheme, sounds }
 
     @ObservationIgnored var onChange: ((Change) -> Void)?
     @ObservationIgnored private let defaults: UserDefaults
@@ -183,6 +183,7 @@ final class SettingsStore {
         static let wordReplacements = "wordReplacements"
         static let inputDevice = "inputDevice"
         static let hudColorScheme = "hudColorScheme"
+        static let playsSounds = "playsSounds"
     }
 
     var hotkey: HotkeyChoice {
@@ -263,8 +264,17 @@ final class SettingsStore {
         }
     }
 
+    /// Short sounds at the start and end of a dictation.
+    var playsSounds: Bool {
+        didSet {
+            defaults.set(playsSounds, forKey: Keys.playsSounds)
+            onChange?(.sounds)
+        }
+    }
+
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
+        self.playsSounds = defaults.object(forKey: Keys.playsSounds) as? Bool ?? true
         self.hudColorScheme = defaults.string(forKey: Keys.hudColorScheme)
             .flatMap(HUDColorScheme.init(rawValue:)) ?? .ember
         self.inputDevice = defaults.data(forKey: Keys.inputDevice)

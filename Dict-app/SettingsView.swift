@@ -104,6 +104,10 @@ struct GeneralSettingsTab: View {
                 Text("The colors the panel lights up in while you dictate.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                Toggle("Play sounds", isOn: $settings.playsSounds)
+                Text("A short tone when recording starts, when it stops, and when the text goes in.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
 
             Section {

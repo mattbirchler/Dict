@@ -152,6 +152,17 @@ struct SettingsStoreTests {
         #expect(SettingsStore(defaults: defaults).hudColorScheme == .ember)
     }
 
+    @Test func soundsDefaultOnAndRoundTrip() {
+        let defaults = makeDefaults()
+        let store = SettingsStore(defaults: defaults)
+        #expect(store.playsSounds)
+        var changes: [SettingsStore.Change] = []
+        store.onChange = { changes.append($0) }
+        store.playsSounds = false
+        #expect(changes == [.sounds])
+        #expect(!SettingsStore(defaults: defaults).playsSounds)
+    }
+
     @Test func historyLimitMapping() {
         #expect(HistoryLimit.off.maxEntries == 0)
         #expect(HistoryLimit.ten.maxEntries == 10)
