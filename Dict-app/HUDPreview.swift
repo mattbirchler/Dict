@@ -1,5 +1,6 @@
 import AppKit
 import ScreenCaptureKit
+import SwiftUI
 
 /// Developer aid: `Dict --preview-hud recording [--appearance dark|light]
 /// [--scheme ember|phosphor|glacier|ultraviolet|graphite] [--snapshot out.png]` shows the HUD with sample audio and no hotkey, so it
@@ -92,6 +93,54 @@ enum HUDPreview {
             }
             NSApp.terminate(nil)
         }
+    }
+
+    /// `Dict --render-hud recording|handsfree|processing|done [--scheme ember]
+    /// [--scale 4] --out panel.png`: draws the panel straight to a PNG at any
+    /// scale, transparent around its shadow, for marketing images. Unlike
+    /// --snapshot it needs no window or screen recording, and isn't limited
+    /// to the screen's 2x.
+    @MainActor
+    static func renderHUD(arguments: [String] = CommandLine.arguments) -> Bool {
+        guard let flag = arguments.firstIndex(of: "--render-hud"), flag + 1 < arguments.count,
+              let outFlag = arguments.firstIndex(of: "--out"), outFlag + 1 < arguments.count else { return false }
+        func value(_ name: String) -> String? {
+            guard let i = arguments.firstIndex(of: name), i + 1 < arguments.count else { return nil }
+            return arguments[i + 1]
+        }
+        let scheme = value("--scheme").flatMap(HUDColorScheme.init(rawValue:)) ?? .ember
+        let scale = value("--scale").flatMap(Double.init) ?? 4
+        let mode: HUDMode
+        var transcript: LiveTranscript?
+        switch arguments[flag + 1] {
+        case "handsfree":
+            mode = .recordingHandsFree
+            transcript = LiveTranscript(
+                confirmed: "I think we should ship the new build tomorrow as long as we finish testing",
+                tentative: "before the deadline on Friday"
+            )
+        case "processing": mode = .processing
+        case "done": mode = .done
+        default: mode = .recording
+        }
+        let view = WaveformHUD(
+            mode: mode,
+            spectrum: sampleSpectrum(at: 0.2),
+            micName: "MacBook Pro Microphone",
+            transcript: transcript,
+            scheme: scheme,
+            pulsePhase: 0
+        )
+        .fixedSize()
+        .padding(48)
+        .environment(\.colorScheme, .dark)
+        let renderer = ImageRenderer(content: view)
+        renderer.scale = scale
+        renderer.isOpaque = false
+        guard let image = renderer.cgImage,
+              let data = NSBitmapImageRep(cgImage: image).representation(using: .png, properties: [:]) else { return true }
+        try? data.write(to: URL(fileURLWithPath: arguments[outFlag + 1]))
+        return true
     }
 
     /// With `--sample-stats`, a throwaway defaults suite seeded with a few

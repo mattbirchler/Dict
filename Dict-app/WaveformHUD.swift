@@ -249,7 +249,9 @@ struct DotMatrix: View {
             Self.draw(
                 in: &context,
                 size: size,
-                levels: isLive ? smoothed : Self.idleLevels(phase: phase),
+                // Before the first reading has been smoothed in (a still
+                // render, say), draw the incoming levels as they are.
+                levels: isLive ? (smoothed.allSatisfy { $0 == 0 } ? spectrum.map(Double.init) : smoothed) : Self.idleLevels(phase: phase),
                 peaks: isLive ? peaks : [],
                 scheme: scheme,
                 scale: scale

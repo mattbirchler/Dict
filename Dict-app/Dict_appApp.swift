@@ -17,7 +17,8 @@ struct Dict_appApp: App {
 }
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
-    let appState = AppState(settings: SettingsStore())
+    // --sample-stats previews use default settings, not the real ones.
+    let appState = AppState(settings: SettingsStore(defaults: HUDPreview.sampleStatsDefaults() ?? .standard))
     let menuBarManager = MenuBarManager()
     let hudController = HUDPanelController()
     let keyMonitor = KeyMonitor()
@@ -37,6 +38,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         if ApplicationsMover.offerIfNeeded() { return }
         SoundPlayer.isMuted = CommandLine.arguments.contains { $0.hasPrefix("--preview-") }
+        if HUDPreview.renderHUD() { exit(0) }
         if HUDPreview.present(in: hudController) { return }
         if HUDPreview.presentWindow(show: { [self] section in
             mainWindowController.show(section: section, appState: appState, updater: updaterController.updater)
