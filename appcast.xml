@@ -5,6 +5,25 @@
         <link>https://raw.githubusercontent.com/mattbirchler/Dict-app/main/appcast.xml</link>
         <description>Updates for Dict</description>
         <language>en</language>
+        <item>
+            <title>Dict 1.0</title>
+            <pubDate>Tue, 03 Nov 2026 14:50:53 GMT</pubDate>
+            <sparkle:version>2</sparkle:version>
+            <sparkle:shortVersionString>1.0</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description><![CDATA[
+<h3>Dict 1.0</h3>
+<p>The first public release. Dict is a menu bar dictation app for macOS 26 that runs entirely on your Mac: no account, no server, no subscription. Hold a key, talk, let go, and the words land where your cursor is.</p>
+<h3>What you get</h3>
+<ul><li><strong>Two on-device engines.</strong> Apple&#x27;s speech engine works the moment you install. Download NVIDIA Parakeet from Settings for better accuracy on names, technical terms and long sentences. Dict switches over by itself when the download finishes.</li><li><strong>Your key.</strong> Right Command, Right Option, Right Control, Fn, or any combination you record in Settings.</li><li><strong>Hands-free.</strong> Tap Space while holding the key and Dict keeps listening until you press Command to finish or Escape to cancel. The panel grows to show the words as they arrive.</li><li><strong>Dictation styles.</strong> Verbatim keeps every word. Clean drops ums, uhs and repeated words, and keeps only your corrected version when you change your mind mid-sentence. Polished adds small grammar fixes. Clean and Polished use Apple Intelligence on your Mac, so nothing leaves it.</li><li><strong>Screen context.</strong> Dict reads the field you are typing into and spells names, acronyms and identifiers the way they already appear there. You can turn this off in Settings.</li><li><strong>Word replacements.</strong> Teach Dict how to spell the words it keeps getting wrong.</li><li><strong>History and stats.</strong> Every dictation is saved on your Mac with a limit you set, with words dictated, time saved and your day streak at the top.</li><li><strong>Five color schemes</strong> for the panel: Ember, Phosphor, Glacier, Ultraviolet and Graphite.</li></ul>
+<h3>Privacy</h3>
+<p>Audio, transcripts, history and the text Dict reads from your screen never leave your Mac. The only network requests Dict makes are checking GitHub for updates and, if you ask for it, downloading the Parakeet model from Hugging Face. The privacy statement is in the About window.</p>
+<h3>Requirements</h3>
+<p>macOS 26 or later on Apple silicon. Dict asks for Microphone access to hear you and Accessibility access to type for you, and explains both the first time it runs.</p>
+            ]]></description>
+            <enclosure url="https://github.com/mattbirchler/Dict-app/releases/download/v1.0-2/Dict-1.0-2.zip" type="application/octet-stream" sparkle:edSignature="oeMLS+6dowAzyqZFLxeW/8ARiDbYKW7UWDHd9tNNKm6MzcBc21LRvuTgUFS3woVGIL2xSzJPb9/sTJ3CjtDuAg==" length="7862473"/>
+        </item>
         <!--
             Release entries are added here by the release script.
             Newest release goes first. Each <item> looks like:
