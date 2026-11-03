@@ -1,7 +1,8 @@
 #!/bin/zsh
 # Archives Dict, exports it signed with the Developer ID certificate, has
-# Apple notarize it, staples the result, and zips it, so it opens on any
-# Mac. Prints the zip's path as the last line.
+# Apple notarize it, staples the result, zips it for Sparkle and wraps it
+# in a disk image for downloads. Prints the zip's path as the last line;
+# the dmg sits next to it.
 #
 # Needs fastlane/.env (gitignored) with an App Store Connect API key:
 #   ASC_KEY_ID, ASC_ISSUER_ID, ASC_KEY_PATH (path to the .p8)
@@ -62,5 +63,7 @@ VERSION=$(/usr/libexec/PlistBuddy -c "Print CFBundleShortVersionString" "$APP/Co
 BUILD=$(/usr/libexec/PlistBuddy -c "Print CFBundleVersion" "$APP/Contents/Info.plist")
 ZIP="$OUT/Dict-$VERSION-$BUILD.zip"
 ditto -c -k --keepParent "$APP" "$ZIP"
+# The zip feeds Sparkle; the disk image is what people download.
+DMG=$(SIGN=1 scripts/dmg.sh "$APP" | tail -1)
 echo "Notarized $VERSION build $BUILD" >&2
 echo "$ZIP"

@@ -76,3 +76,17 @@ upload, and the push, and leaves the feed it would publish in
   rotate keys; restore the backed-up private key.
 - **Never push `appcast.xml` pointing at a release that doesn't exist.**
   `publish.sh` orders the steps so this can't happen on its own.
+
+## Downloads and CI
+
+`make publish` attaches two files to the GitHub release: `Dict-<v>-<b>.dmg`,
+the download for people (a disk image with a drag-to-Applications window,
+signed and notarized), and `Dict-<v>-<b>.zip`, which only the Sparkle feed
+points at. `make dmg` builds an unsigned image of the local Release build
+for a look at the window; `scripts/dmg.sh` lays it out with dmgbuild in a
+venv under `vendor/`.
+
+Every push to `main` and every pull request builds and runs the unit tests
+on GitHub Actions (`.github/workflows/ci.yml`, a `macos-26` runner with
+Xcode 27). The Parakeet end-to-end test and the Apple Speech session test
+need a model and a microphone, so CI skips them.

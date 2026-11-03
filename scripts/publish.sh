@@ -82,7 +82,9 @@ if [[ "$DRY_RUN" == 1 ]]; then
 fi
 
 # The zip goes up before the feed points at it.
-gh release create "$TAG" "$ZIP" --repo "$REPO" --title "Dict $VERSION (build $BUILD)" --notes-file "$NOTES"
+DMG="${ZIP%.zip}.dmg"
+[[ -f "$DMG" ]] || fail "No disk image next to the zip."
+gh release create "$TAG" "$DMG" "$ZIP" --repo "$REPO" --title "Dict $VERSION (build $BUILD)" --notes-file "$NOTES"
 git add appcast.xml
 git commit -q -m "release: $VERSION build $BUILD"
 git tag "$TAG"

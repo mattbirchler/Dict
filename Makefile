@@ -3,7 +3,7 @@ SCHEME = Dict-app
 DERIVED = build
 XCODEBUILD = xcodebuild -project $(PROJECT) -scheme $(SCHEME) -derivedDataPath $(DERIVED) -destination 'platform=macOS'
 
-.PHONY: build test run install notarize publish clean
+.PHONY: build test run install notarize dmg publish clean
 
 # Build output is filtered to errors, app-source warnings, and the result line,
 # but the exit status is xcodebuild's so failures stop whatever invoked make.
@@ -40,6 +40,11 @@ install:
 # in build/notarized/ so it opens on any Mac. Needs fastlane/.env.
 notarize:
 	@scripts/notarize.sh
+
+# A disk image of the local Release build, unsigned, for a look at the
+# drag-to-Applications window. Release builds get a notarized one.
+dmg: install
+	@scripts/dmg.sh $(DERIVED)/Build/Products/Release/Dict.app
 
 # Ship a new version to everyone through Sparkle. Needs release notes:
 #   make publish NOTES=notes.md [VERSION=1.1]
