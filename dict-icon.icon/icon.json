@@ -1,39 +1,71 @@
 {
-  "fill" : {
-    "automatic-gradient" : "srgb:0.00000,0.09696,0.80576,1.00000"
+  "fill": {
+    "automatic-gradient": "srgb:0.09000,0.07000,0.08000,1.00000"
   },
-  "groups" : [
+  "groups": [
     {
-      "layers" : [
+      "layers": [
         {
-          "fill" : {
-            "automatic-gradient" : "srgb:0.89790,0.90181,1.00000,1.00000"
-          },
-          "image-name" : "wave.svg",
-          "name" : "wave"
+          "image-name": "lit.svg",
+          "name": "lit"
         }
       ],
-      "position" : {
-        "scale" : 5.6,
-        "translation-in-points" : [
-          0,
-          0
-        ]
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0.0
       },
-      "shadow" : {
-        "kind" : "neutral",
-        "opacity" : 0.5
+      "specular": false,
+      "translucency": {
+        "enabled": false,
+        "value": 0
+      }
+    },
+    {
+      "layers": [
+        {
+          "image-name": "unlit.svg",
+          "name": "unlit"
+        }
+      ],
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0.0
       },
-      "translucency" : {
-        "enabled" : true,
-        "value" : 0.3
+      "specular": false,
+      "translucency": {
+        "enabled": false,
+        "value": 0
+      }
+    },
+    {
+      "layers": [
+        {
+          "image-name": "bloom.png",
+          "name": "bloom",
+          "position": {
+            "scale": 0.5,
+            "translation-in-points": [
+              0,
+              0
+            ]
+          }
+        }
+      ],
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0.0
+      },
+      "specular": false,
+      "translucency": {
+        "enabled": false,
+        "value": 0
       }
     }
   ],
-  "supported-platforms" : {
-    "circles" : [
+  "supported-platforms": {
+    "circles": [
       "watchOS"
     ],
-    "squares" : "shared"
+    "squares": "shared"
   }
 }
