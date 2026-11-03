@@ -6,7 +6,7 @@ final class HUDPanelController {
     /// capsule so spring overshoot, width changes, and the shadow are never
     /// clipped, and fixed so mode changes animate in SwiftUI instead of
     /// resizing the window. Sized for the expanded hands-free panel.
-    private static let canvasSize = CGSize(width: 560, height: 240)
+    private static let canvasSize = CGSize(width: 720, height: 320)
     /// Gap between the capsule's bottom edge and the visible screen bottom.
     private static let bottomInset: CGFloat = 80
     /// How long the success checkmark stays up before the HUD leaves.
@@ -234,7 +234,7 @@ final class HUDState {
 struct WaveformHUDContainer: View {
     /// Space below the capsule inside the canvas, for its shadow and the
     /// entrance's upward travel.
-    static let bottomPadding: CGFloat = 24
+    static let bottomPadding: CGFloat = 64
 
     var state: HUDState
 

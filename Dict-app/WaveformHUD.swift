@@ -67,8 +67,8 @@ struct WaveformHUD: View {
                     lineWidth: 1
                 )
         }
-        .shadow(color: .black.opacity(0.55), radius: 18, y: 8)
-        .shadow(color: scheme.glow.opacity(isRecording ? 0.22 : 0.10), radius: 22)
+        .shadow(color: .black.opacity(0.5), radius: 16, y: 8)
+        .shadow(color: scheme.glow.opacity(isRecording ? 0.16 : 0.08), radius: 20)
         // New transcript lines grow the panel smoothly instead of snapping.
         .animation(.smooth(duration: 0.25), value: transcript)
     }
