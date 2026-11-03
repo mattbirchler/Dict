@@ -109,6 +109,27 @@ enum HUDPreview {
         return defaults
     }
 
+    /// With `--sample-stats`, an in-memory history with a few made-up
+    /// dictations, so the History window can be looked at without showing
+    /// anyone's real transcripts.
+    @MainActor
+    static func sampleHistoryStore(arguments: [String] = CommandLine.arguments) -> HistoryStore? {
+        guard arguments.contains("--sample-stats") else { return nil }
+        let store = HistoryStore(inMemory: true)
+        let samples: [(String, TimeInterval)] = [
+            ("Can you move our one on one to Thursday afternoon? I have a dentist appointment Wednesday and I would rather not rush back for it.", 40),
+            ("Remember to pick up the dry cleaning on the way home and grab something for dinner. Maybe the Thai place near the station.", 3 * 60),
+            ("The new onboarding flow is in review. The big change is that the accessibility step advances by itself the moment the permission is granted, so nobody has to find a Continue button.", 11 * 60),
+            ("Thanks for the detailed bug report. I was able to reproduce it with a Bluetooth headset selected as the default input, and a fix is going out in the next update.", 48 * 60),
+            ("Chapter three. The lighthouse had been dark for eleven years, which was exactly how long Mara had been avoiding the coast road.", 26 * 3600),
+            ("Add eggs, oat milk, coffee beans, and the good olive oil to the list.", 27 * 3600),
+        ]
+        for (text, ago) in samples.reversed() {
+            store.save(cleanedText: text, timestamp: Date().addingTimeInterval(-ago))
+        }
+        return store
+    }
+
     /// A speech-like spectrum: a hump of energy in the low-mid bands that
     /// pulses like syllables, with a little wobble per band.
     static func sampleSpectrum(at t: TimeInterval) -> [Float] {

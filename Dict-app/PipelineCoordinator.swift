@@ -7,7 +7,7 @@ final class PipelineCoordinator {
     let appleEngine = AppleSpeechTranscriptionService()
     let parakeetEngine = ParakeetTranscriptionService()
     let textInsertionService = TextInsertionService()
-    let historyStore = HistoryStore()
+    let historyStore = HUDPreview.sampleHistoryStore() ?? HistoryStore()
     private let formatter = TranscriptFormatter()
 
     /// Mirrors the user's "Format Transcripts" setting; owned by AppState.
