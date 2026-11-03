@@ -110,8 +110,8 @@ save(bg, "dict-card.png")
 
 # 8 Icon card: the same backdrop with just the icon, centered.
 bg = backdrop()
-icon = Image.open(ICON).convert("RGBA").resize((680, 680), Image.LANCZOS)
-sh, pad = shadowed(icon, radius=44, offset=26, opacity=120)
+icon = Image.open(ICON).convert("RGBA").resize((600, 600), Image.LANCZOS)
+sh, pad = shadowed(icon, radius=40, offset=24, opacity=120)
 place_center(bg, sh, W / 2, H / 2)
 save(bg, "dict-icon-card.png")
 print("ok")
