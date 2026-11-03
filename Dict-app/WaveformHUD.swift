@@ -10,6 +10,45 @@ enum HUDMode: Equatable {
     case failed(message: String)
 }
 
+/// The HUD's colors. The waveform and glows carry one accent gradient over
+/// dark tinted glass. The panel forces the dark appearance, so the light
+/// values are only a fallback for previews that override it.
+struct HUDPalette {
+    let colorScheme: ColorScheme
+
+    /// Left-to-right gradient across the waveform.
+    var wave: LinearGradient {
+        LinearGradient(colors: waveColors, startPoint: .leading, endPoint: .trailing)
+    }
+
+    var waveColors: [Color] {
+        switch colorScheme {
+        case .dark: [Color(red: 0.35, green: 0.55, blue: 1.0), Color(red: 0.45, green: 0.95, blue: 1.0)]
+        default: [Color(red: 0.05, green: 0.30, blue: 0.95), Color(red: 0.0, green: 0.62, blue: 0.85)]
+        }
+    }
+
+    /// Glow behind the live waveform.
+    var waveGlow: Color {
+        colorScheme == .dark ? Color(red: 0.4, green: 0.8, blue: 1.0) : Color(red: 0.1, green: 0.45, blue: 1.0)
+    }
+
+    var glassTint: Color {
+        colorScheme == .dark ? Color(white: 0.05).opacity(0.7) : Color.white.opacity(0.45)
+    }
+
+    /// Hairline along the pill's edge, brightest at the top like a lit rim.
+    var rim: LinearGradient {
+        let top = colorScheme == .dark ? Color.white.opacity(0.35) : Color.white.opacity(0.9)
+        let bottom = colorScheme == .dark ? Color.white.opacity(0.06) : Color.black.opacity(0.08)
+        return LinearGradient(colors: [top, bottom], startPoint: .top, endPoint: .bottom)
+    }
+
+    var success: Color { Color(red: 0.25, green: 0.85, blue: 0.5) }
+    var failure: Color { Color(red: 1.0, green: 0.62, blue: 0.2) }
+    var recording: Color { Color(red: 1.0, green: 0.3, blue: 0.3) }
+}
+
 struct WaveformHUD: View {
     var mode: HUDMode
     /// Recent audio levels (0...1), oldest first.
@@ -20,10 +59,14 @@ struct WaveformHUD: View {
     var hotkeyGlyph = "⌘"
     var pulsePhase: Double = 0
 
+    @Environment(\.colorScheme) private var colorScheme
+
     static let expandedWidth: CGFloat = 460
 
+    private var palette: HUDPalette { HUDPalette(colorScheme: colorScheme) }
     private var isRecording: Bool { mode == .recording || mode == .recordingHandsFree }
     private var isExpanded: Bool { transcript != nil }
+    private var cornerRadius: CGFloat { isExpanded ? 22 : 26 }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -36,12 +79,16 @@ struct WaveformHUD: View {
         }
         .padding(.leading, 18)
         .padding(.trailing, 22)
-        .padding(.vertical, 12)
+        .padding(.vertical, 13)
         .frame(width: isExpanded ? Self.expandedWidth : nil, alignment: .leading)
         // A rounded rect whose radius is half the compact height draws the
         // capsule, so the pill-to-panel morph animates one continuous shape.
-        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: isExpanded ? 20 : 24, style: .continuous))
-        .shadow(color: .black.opacity(0.18), radius: 12, y: 4)
+        .glassEffect(.regular.tint(palette.glassTint), in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .strokeBorder(palette.rim, lineWidth: 1)
+        }
+        .shadow(color: .black.opacity(colorScheme == .dark ? 0.45 : 0.22), radius: 16, y: 6)
         // New transcript lines grow the panel smoothly instead of snapping.
         .animation(.smooth(duration: 0.25), value: transcript)
     }
@@ -49,17 +96,13 @@ struct WaveformHUD: View {
     private var header: some View {
         HStack(spacing: 12) {
             if isRecording {
-                RecordingDot(pulsePhase: pulsePhase)
+                RecordingDot(pulsePhase: pulsePhase, color: palette.recording)
                     .transition(.scale.combined(with: .opacity))
             } else if mode == .done {
-                Image(systemName: "checkmark.circle.fill")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(.green)
+                StatusGlyph(systemName: "checkmark.circle.fill", color: palette.success)
                     .transition(.scale(scale: 0.3).combined(with: .opacity))
             } else if case .failed = mode {
-                Image(systemName: "exclamationmark.circle.fill")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(.orange)
+                StatusGlyph(systemName: "exclamationmark.circle.fill", color: palette.failure)
                     .transition(.scale(scale: 0.3).combined(with: .opacity))
             }
 
@@ -68,14 +111,15 @@ struct WaveformHUD: View {
                     heights: isRecording
                         ? LevelBars.recordingHeights(levels: levels)
                         : LevelBars.processingHeights(phase: pulsePhase),
-                    isLive: isRecording
+                    isLive: isRecording,
+                    palette: palette
                 )
                 .transition(.scale(scale: 0.4).combined(with: .opacity))
             }
 
             Text(statusText)
-                .font(.system(size: 12, weight: .medium))
-                .foregroundStyle(.secondary)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(.primary)
                 .lineLimit(1)
                 .fixedSize()
                 .contentTransition(.interpolate)
@@ -83,8 +127,8 @@ struct WaveformHUD: View {
             if isExpanded {
                 Spacer(minLength: 12)
                 Text("\(hotkeyGlyph) to finish · esc to cancel")
-                    .font(.system(size: 11))
-                    .foregroundStyle(.tertiary)
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(.secondary)
                     .fixedSize()
                     .transition(.opacity)
             }
@@ -141,7 +185,7 @@ private struct LiveTranscriptText: View {
     @ViewBuilder private var content: some View {
         if transcript.isEmpty {
             Text("Listening…")
-                .foregroundStyle(.tertiary)
+                .foregroundStyle(.secondary)
         } else {
             let confirmed = Text(transcript.confirmed).foregroundStyle(.primary)
             let separator = transcript.confirmed.isEmpty || transcript.tentative.isEmpty ? "" : " "
@@ -151,22 +195,37 @@ private struct LiveTranscriptText: View {
     }
 }
 
-/// Red recording dot with a soft halo that breathes.
+/// Recording dot with a glow and a halo that breathes.
 private struct RecordingDot: View {
     var pulsePhase: Double
+    var color: Color
 
     var body: some View {
         let pulse = (sin(pulsePhase * 3) + 1) / 2
         ZStack {
             Circle()
-                .fill(Color.red.opacity(0.25))
-                .frame(width: 16, height: 16)
-                .scaleEffect(0.7 + pulse * 0.3)
+                .fill(color.opacity(0.3))
+                .frame(width: 18, height: 18)
+                .scaleEffect(0.6 + pulse * 0.4)
             Circle()
-                .fill(Color.red)
-                .frame(width: 8, height: 8)
+                .fill(color)
+                .frame(width: 9, height: 9)
+                .shadow(color: color.opacity(0.9), radius: 4 + pulse * 3)
         }
-        .frame(width: 16, height: 16)
+        .frame(width: 18, height: 18)
+    }
+}
+
+/// The checkmark or warning glyph, lit from behind.
+private struct StatusGlyph: View {
+    var systemName: String
+    var color: Color
+
+    var body: some View {
+        Image(systemName: systemName)
+            .font(.system(size: 17, weight: .semibold))
+            .foregroundStyle(color)
+            .shadow(color: color.opacity(0.8), radius: 6)
     }
 }
 
@@ -176,13 +235,14 @@ private struct RecordingDot: View {
 /// travelling wave.
 private struct LevelBars: View {
     static let barCount = 24
-    static let barWidth: CGFloat = 2.5
-    static let spacing: CGFloat = 2
-    static let maxHeight: CGFloat = 24
-    static let minHeight: CGFloat = 3
+    static let barWidth: CGFloat = 3
+    static let spacing: CGFloat = 2.5
+    static let maxHeight: CGFloat = 26
+    static let minHeight: CGFloat = 3.5
 
     var heights: [CGFloat]
     var isLive: Bool
+    var palette: HUDPalette
 
     var body: some View {
         HStack(spacing: Self.spacing) {
@@ -192,14 +252,16 @@ private struct LevelBars: View {
             }
         }
         .frame(height: Self.maxHeight)
-        .foregroundStyle(isLive ? AnyShapeStyle(.primary) : AnyShapeStyle(.secondary))
+        .foregroundStyle(palette.wave)
+        .opacity(isLive ? 1 : 0.75)
         .mask {
             LinearGradient(
-                stops: [.init(color: .black.opacity(0.35), location: 0), .init(color: .black, location: 0.35)],
+                stops: [.init(color: .black.opacity(0.4), location: 0), .init(color: .black, location: 0.4)],
                 startPoint: .leading,
                 endPoint: .trailing
             )
         }
+        .shadow(color: palette.waveGlow.opacity(isLive ? 0.7 : 0), radius: 5)
         // Levels arrive roughly every 85 ms; easing each bar toward its
         // new height smooths the steps without lagging behind speech.
         .animation(.easeOut(duration: 0.12), value: heights)

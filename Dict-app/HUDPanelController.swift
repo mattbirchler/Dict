@@ -14,7 +14,11 @@ final class HUDPanelController {
     /// How long a notice ("Nothing heard", "Loading speech model") stays up.
     private static let noticeHold: Duration = .milliseconds(1400)
 
+    /// Off only for `--preview-hud`, where the HUD should stay up.
+    var autoDismiss = true
     private var panel: NSPanel?
+    /// For `--preview-hud --snapshot`: the panel's window number once shown.
+    var windowNumber: Int? { panel?.windowNumber }
     private let hudState = HUDState()
     private var pendingDismiss: Task<Void, Never>?
     /// Bumped on every show/dismiss so a finished exit animation can tell
@@ -49,6 +53,7 @@ final class HUDPanelController {
         presentation += 1
         hudState.reduceMotion = reduceMotion
         present(mode: .failed(message: message))
+        guard autoDismiss else { return }
         pendingDismiss = Task { [weak self] in
             try? await Task.sleep(for: Self.noticeHold)
             guard !Task.isCancelled else { return }
@@ -112,6 +117,7 @@ final class HUDPanelController {
             return
         }
         withAnimation(HUDAnimation.morph(reduceMotion)) { hudState.mode = mode }
+        guard autoDismiss else { return }
         pendingDismiss = Task { [weak self] in
             try? await Task.sleep(for: hold)
             guard !Task.isCancelled else { return }
@@ -145,6 +151,10 @@ final class HUDPanelController {
         panel.level = .floating
         panel.backgroundColor = .clear
         panel.isOpaque = false
+        // The HUD is always dark, whatever the system appearance: white
+        // text and a lit waveform stay readable over any wallpaper, which
+        // the light glass material could not promise.
+        panel.appearance = NSAppearance(named: .darkAqua)
         // The window shadow would trace the whole canvas mid-animation; the
         // capsule draws its own.
         panel.hasShadow = false

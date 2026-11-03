@@ -36,6 +36,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         if ApplicationsMover.offerIfNeeded() { return }
+        if HUDPreview.present(in: hudController) { return }
         appState.permissionChecker.checkAll()
 
         menuBarManager.setup(
