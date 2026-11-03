@@ -187,6 +187,21 @@ struct SettingsStoreTests {
         #expect(!SettingsStore(defaults: defaults).usesScreenContext)
     }
 
+    @Test func liveWordsDefaultsAndRoundTrip() {
+        let defaults = makeDefaults()
+        let store = SettingsStore(defaults: defaults)
+        #expect(store.showsLiveWords)
+        #expect(!store.insertsLiveWords)
+        var changes: [SettingsStore.Change] = []
+        store.onChange = { changes.append($0) }
+        store.showsLiveWords = false
+        store.insertsLiveWords = true
+        #expect(changes == [.liveWords, .liveWords])
+        let reloaded = SettingsStore(defaults: defaults)
+        #expect(!reloaded.showsLiveWords)
+        #expect(reloaded.insertsLiveWords)
+    }
+
     @Test func historyLimitMapping() {
         #expect(HistoryLimit.off.maxEntries == 0)
         #expect(HistoryLimit.ten.maxEntries == 10)

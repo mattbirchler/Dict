@@ -50,6 +50,7 @@ final class AppState {
         pipeline.isFormattingEnabled = settings.isFormattingEnabled
         pipeline.dictationStyle = settings.dictationStyle
         pipeline.usesScreenContext = settings.usesScreenContext
+        pipeline.insertsLiveWords = settings.insertsLiveWords
         SoundPlayer.isEnabled = settings.playsSounds
         pipeline.appendTrailingSpace = settings.appendTrailingSpace
         pipeline.smartLeadingSpace = settings.smartLeadingSpace
@@ -90,6 +91,8 @@ final class AppState {
                 self.pipeline.dictationStyle = self.settings.dictationStyle
             case .screenContext:
                 self.pipeline.usesScreenContext = self.settings.usesScreenContext
+            case .liveWords:
+                self.pipeline.insertsLiveWords = self.settings.insertsLiveWords
             }
         }
     }

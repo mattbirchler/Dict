@@ -116,6 +116,42 @@ final class TextInsertionService {
         pasteboard.writeObjects(pasteboardItems)
     }
 
+    /// Types `text` into the focused app as keyboard events, a few
+    /// characters per event. Used for live insertion, where pasting every
+    /// word would thrash the clipboard.
+    func typeText(_ text: String) {
+        let source = CGEventSource(stateID: .hidSystemState)
+        var chunk: [UniChar] = []
+        func flush() {
+            guard !chunk.isEmpty else { return }
+            let down = CGEvent(keyboardEventSource: source, virtualKey: 0, keyDown: true)
+            let up = CGEvent(keyboardEventSource: source, virtualKey: 0, keyDown: false)
+            down?.keyboardSetUnicodeString(stringLength: chunk.count, unicodeString: chunk)
+            up?.keyboardSetUnicodeString(stringLength: chunk.count, unicodeString: chunk)
+            down?.post(tap: .cgAnnotatedSessionEventTap)
+            up?.post(tap: .cgAnnotatedSessionEventTap)
+            chunk.removeAll()
+        }
+        for unit in text.utf16 {
+            chunk.append(unit)
+            // Keep each event under the size apps reliably accept.
+            if chunk.count >= 20, !UTF16.isLeadSurrogate(unit) { flush() }
+        }
+        flush()
+    }
+
+    /// Presses Delete `count` times in the focused app.
+    func deleteBackward(count: Int) {
+        guard count > 0 else { return }
+        let source = CGEventSource(stateID: .hidSystemState)
+        for _ in 0..<count {
+            let down = CGEvent(keyboardEventSource: source, virtualKey: 0x33, keyDown: true)
+            let up = CGEvent(keyboardEventSource: source, virtualKey: 0x33, keyDown: false)
+            down?.post(tap: .cgAnnotatedSessionEventTap)
+            up?.post(tap: .cgAnnotatedSessionEventTap)
+        }
+    }
+
     private func simulatePaste() {
         let source = CGEventSource(stateID: .hidSystemState)
 

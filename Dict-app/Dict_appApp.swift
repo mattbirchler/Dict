@@ -92,6 +92,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 },
                 hotkeyGlyph: self.appState.settings.hotkey.glyph
             )
+            if self.appState.settings.showsLiveWords {
+                let engine = self.appState.pipeline.activeEngine
+                if engine.supportsLiveTranscript {
+                    engine.beginLivePreview()
+                    self.hudController.showLiveWords()
+                }
+            }
             return true
         }
 

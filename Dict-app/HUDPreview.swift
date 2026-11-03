@@ -32,6 +32,7 @@ enum HUDPreview {
         )
         switch arguments[flag + 1] {
         case "handsfree": hud.showHandsFree(livePreview: true)
+        case "livewords": hud.showLiveWords()
         case "processing": hud.showProcessing()
         case "done": hud.finish(result: .inserted("preview"))
         case "failed": hud.finish(result: .nothingHeard)

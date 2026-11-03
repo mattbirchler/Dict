@@ -19,6 +19,13 @@ final class PipelineCoordinator {
     /// Mirrors the user's screen-context setting; owned by AppState.
     var usesScreenContext = true
 
+    /// Mirrors the user's live-insertion setting; owned by AppState.
+    var insertsLiveWords = false
+    /// Polls the engine's confirmed words into the field while recording.
+    private var liveInserter: LiveInserter?
+    private var liveInsertionTask: Task<Void, Never>?
+    static let liveInsertionInterval: Duration = .milliseconds(150)
+
     /// Mirrors the user's "space after each dictation" setting; owned by AppState.
     var appendTrailingSpace = false
 
@@ -64,6 +71,9 @@ final class PipelineCoordinator {
         currentInputDevice = resolvedInputDevice()
         engine.inputDeviceID = currentInputDevice?.id
         startFailed = false
+        if insertsLiveWords, engine.supportsLiveTranscript {
+            beginLiveInsertion(engine: engine)
+        }
         Task {
             do {
                 try await engine.start()
@@ -88,10 +98,45 @@ final class PipelineCoordinator {
 
     func cancelRecording() {
         activeEngine.cancel()
+        endLiveInsertion()?.cancel()
         Log.pipeline.info("Recording cancelled")
     }
 
+    /// Types confirmed words as they arrive. The engine's preview is
+    /// started here because, for Parakeet, it costs a decode every 700 ms.
+    private func beginLiveInsertion(engine: any TranscriptionEngine) {
+        engine.beginLivePreview()
+        let inserter = LiveInserter(insertion: textInsertionService, smartLeadingSpace: smartLeadingSpace)
+        liveInserter = inserter
+        liveInsertionTask = Task { [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(for: Self.liveInsertionInterval)
+                guard let self, !Task.isCancelled, self.liveInserter === inserter else { return }
+                inserter.update(confirmed: engine.liveTranscript.confirmed)
+            }
+        }
+    }
+
+    /// Stops the polling and hands back the inserter so the caller can
+    /// finish or cancel what it typed.
+    private func endLiveInsertion() -> LiveInserter? {
+        liveInsertionTask?.cancel()
+        liveInsertionTask = nil
+        defer { liveInserter = nil }
+        return liveInserter
+    }
+
     func stopRecordingAndProcess() async -> DictationResult {
+        let inserter = endLiveInsertion()
+        let result = await stopAndProcess(liveInserter: inserter)
+        if case .inserted = result {} else {
+            // Nothing final went in; take back whatever was typed live.
+            inserter?.cancel()
+        }
+        return result
+    }
+
+    private func stopAndProcess(liveInserter: LiveInserter?) async -> DictationResult {
         let stop: Result<String, Error>
         do {
             stop = .success(try await activeEngine.stop())
@@ -132,12 +177,20 @@ final class PipelineCoordinator {
         // Add separator spaces to the inserted text only — History keeps
         // the clean text so the list stays tidy.
         var textToInsert = appendTrailingSpace ? text + " " : text
-        if smartLeadingSpace,
-           SmartSpacing.needsLeadingSpace(preceding: textInsertionService.characterBeforeCursor(), text: text) {
-            textToInsert = " " + textToInsert
+        if let liveInserter {
+            // The field already holds the live words; the leading-space
+            // decision was made when the first of them went in.
+            if liveInserter.insertedLeadingSpace { textToInsert = " " + textToInsert }
+            liveInserter.finish(with: textToInsert)
+            Log.pipeline.info("Live text reconciled")
+        } else {
+            if smartLeadingSpace,
+               SmartSpacing.needsLeadingSpace(preceding: textInsertionService.characterBeforeCursor(), text: text) {
+                textToInsert = " " + textToInsert
+            }
+            textInsertionService.insertText(textToInsert)
+            Log.pipeline.info("Text inserted")
         }
-        textInsertionService.insertText(textToInsert)
-        Log.pipeline.info("Text inserted")
 
         return .inserted(text)
     }

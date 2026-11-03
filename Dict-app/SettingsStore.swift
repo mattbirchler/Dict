@@ -166,7 +166,7 @@ enum TranscriptionEngineChoice: String, CaseIterable {
 @MainActor
 @Observable
 final class SettingsStore {
-    enum Change { case hotkey, activationMode, formatting, historyLimit, transcriptionEngine, appendTrailingSpace, smartLeadingSpace, wordReplacements, inputDevice, hudColorScheme, sounds, dictationStyle, screenContext }
+    enum Change { case hotkey, activationMode, formatting, historyLimit, transcriptionEngine, appendTrailingSpace, smartLeadingSpace, wordReplacements, inputDevice, hudColorScheme, sounds, dictationStyle, screenContext, liveWords }
 
     @ObservationIgnored var onChange: ((Change) -> Void)?
     @ObservationIgnored private let defaults: UserDefaults
@@ -186,6 +186,8 @@ final class SettingsStore {
         static let playsSounds = "playsSounds"
         static let dictationStyle = "dictationStyle"
         static let usesScreenContext = "usesScreenContext"
+        static let showsLiveWords = "showsLiveWords"
+        static let insertsLiveWords = "insertsLiveWords"
     }
 
     var hotkey: HotkeyChoice {
@@ -290,8 +292,26 @@ final class SettingsStore {
         }
     }
 
+    /// Show the words in the panel while the key is held, not only hands-free.
+    var showsLiveWords: Bool {
+        didSet {
+            defaults.set(showsLiveWords, forKey: Keys.showsLiveWords)
+            onChange?(.liveWords)
+        }
+    }
+
+    /// Type words into the focused field as they are recognized.
+    var insertsLiveWords: Bool {
+        didSet {
+            defaults.set(insertsLiveWords, forKey: Keys.insertsLiveWords)
+            onChange?(.liveWords)
+        }
+    }
+
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
+        self.showsLiveWords = defaults.object(forKey: Keys.showsLiveWords) as? Bool ?? true
+        self.insertsLiveWords = defaults.object(forKey: Keys.insertsLiveWords) as? Bool ?? false
         self.usesScreenContext = defaults.object(forKey: Keys.usesScreenContext) as? Bool ?? true
         self.dictationStyle = defaults.string(forKey: Keys.dictationStyle)
             .flatMap(DictationStyle.init(rawValue:)) ?? .verbatim

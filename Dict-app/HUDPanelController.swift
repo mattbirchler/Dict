@@ -95,6 +95,15 @@ final class HUDPanelController {
         }
     }
 
+    /// Grows the recording pill into the panel that shows words as they
+    /// are recognized, without leaving hold-to-talk.
+    func showLiveWords() {
+        guard hudState.isPresented, hudState.mode == .recording else { return }
+        withAnimation(HUDAnimation.morph(reduceMotion)) {
+            hudState.showsLiveTranscript = true
+        }
+    }
+
     func showProcessing() {
         withAnimation(HUDAnimation.morph(reduceMotion)) {
             hudState.mode = .processing

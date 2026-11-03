@@ -99,6 +99,17 @@ struct GeneralSettingsTab: View {
                     .foregroundStyle(.secondary)
             }
 
+            Section("Live words") {
+                Toggle("Show words as you speak", isOn: $settings.showsLiveWords)
+                Text("The panel grows to show what Dict is hearing while you hold the key, not only in hands-free.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Toggle("Type words into the field as you speak", isOn: $settings.insertsLiveWords)
+                Text("Experimental. Words are typed where your cursor is as soon as they are recognized; when you let go, the final punctuated text replaces them. Keep the same field focused while you talk.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
             Section("Dictation panel") {
                 HUDSchemePicker(selection: $settings.hudColorScheme)
                 Text("The colors the panel lights up in while you dictate.")
