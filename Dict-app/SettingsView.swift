@@ -162,11 +162,15 @@ struct GeneralSettingsTab: View {
 }
 
 struct AboutSettingsTab: View {
+    var settings: SettingsStore
     @StateObject private var updaterViewModel: UpdaterViewModel
     @State private var logStatus: String?
     @State private var logStatusTask: Task<Void, Never>?
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    private let started = Date()
 
-    init(updater: SPUUpdater) {
+    init(settings: SettingsStore, updater: SPUUpdater) {
+        self.settings = settings
         self._updaterViewModel = StateObject(wrappedValue: UpdaterViewModel(updater: updater))
     }
 
@@ -197,14 +201,8 @@ struct AboutSettingsTab: View {
 
     var body: some View {
         VStack(spacing: 12) {
-            Image(nsImage: NSApp.applicationIconImage)
-                .resizable()
-                .frame(width: 64, height: 64)
-            Text("Dict")
-                .font(.title2.bold())
-            Text(versionString)
-                .font(.caption)
-                .foregroundStyle(.secondary)
+            hero
+                .padding(.bottom, 8)
 
             Text("100% on-device: transcription, formatting, and history never leave this Mac.")
                 .font(.callout)
@@ -230,5 +228,51 @@ struct AboutSettingsTab: View {
         }
         .padding(24)
         .frame(maxWidth: .infinity)
+    }
+
+    /// The HUD's panel, blown up: icon, name and version over a live grid.
+    private var hero: some View {
+        let scheme = settings.hudColorScheme
+        return TimelineView(.periodic(from: .now, by: reduceMotion ? 3600 : 0.085)) { timeline in
+            let t = timeline.date.timeIntervalSince(started)
+            HStack(spacing: 18) {
+                Image(nsImage: NSApp.applicationIconImage)
+                    .resizable()
+                    .frame(width: 64, height: 64)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("DICT")
+                        .font(HUDFont.label(22, weight: .bold))
+                        .tracking(4)
+                        .foregroundStyle(scheme.text)
+                    Text(versionString.uppercased())
+                        .font(HUDFont.label(10.5, weight: .medium))
+                        .tracking(1.6)
+                        .foregroundStyle(scheme.accent.opacity(0.85))
+                }
+                Spacer(minLength: 12)
+                DotMatrix(
+                    spectrum: HUDPreview.sampleSpectrum(at: t),
+                    isLive: true,
+                    scheme: scheme,
+                    phase: timeline.date.timeIntervalSinceReferenceDate
+                )
+            }
+            .padding(.horizontal, 22)
+            .padding(.vertical, 18)
+            .frame(maxWidth: 420)
+            .background {
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(LinearGradient(colors: [scheme.pillTop, scheme.pillBottom], startPoint: .top, endPoint: .bottom))
+            }
+            .overlay {
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .strokeBorder(
+                        LinearGradient(colors: [scheme.glow.opacity(0.45), Color.white.opacity(0.06), scheme.glow.opacity(0.12)], startPoint: .top, endPoint: .bottom),
+                        lineWidth: 1
+                    )
+            }
+            .shadow(color: scheme.glow.opacity(0.18), radius: 22)
+            .shadow(color: .black.opacity(0.25), radius: 12, y: 6)
+        }
     }
 }

@@ -29,10 +29,7 @@ final class MenuBarManager: NSObject, NSMenuDelegate {
         self.onCheckForUpdates = onCheckForUpdates
 
         let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
-        statusItem.button?.image = NSImage(
-            systemSymbolName: "waveform",
-            accessibilityDescription: "Dict"
-        )
+        statusItem.button?.image = MenuBarIcon.image(levels: MenuBarIcon.idleLevels)
 
         let menu = NSMenu()
         menu.delegate = self
@@ -41,6 +38,46 @@ final class MenuBarManager: NSObject, NSMenuDelegate {
 
         self.statusItem = statusItem
         observeDownloadState()
+        observeRecordingState()
+    }
+
+    // MARK: - Live icon while recording
+
+    private var recordingTimer: Timer?
+
+    /// While a dictation is running, the grid follows the microphone.
+    private func observeRecordingState() {
+        guard let appState else { return }
+        withObservationTracking {
+            _ = appState.isRecording
+        } onChange: { [weak self] in
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                self.refreshRecordingIndicator()
+                self.observeRecordingState()
+            }
+        }
+        refreshRecordingIndicator()
+    }
+
+    private func refreshRecordingIndicator() {
+        guard let appState else { return }
+        if appState.isRecording {
+            guard recordingTimer == nil else { return }
+            recordingTimer = Timer.scheduledTimer(withTimeInterval: 0.09, repeats: true) { [weak self] _ in
+                Task { @MainActor [weak self] in
+                    guard let self, let appState = self.appState, !self.isDownloadingModel else { return }
+                    let spectrum = appState.pipeline.activeEngine.audioSpectrum
+                    self.statusItem?.button?.image = MenuBarIcon.image(levels: MenuBarIcon.levels(from: spectrum))
+                }
+            }
+        } else {
+            recordingTimer?.invalidate()
+            recordingTimer = nil
+            if !isDownloadingModel {
+                statusItem?.button?.image = MenuBarIcon.image(levels: MenuBarIcon.idleLevels)
+            }
+        }
     }
 
     // MARK: - Model-download indicator
@@ -82,10 +119,7 @@ final class MenuBarManager: NSObject, NSMenuDelegate {
             )
             button.toolTip = "Downloading speech model: \(percent)%"
         } else {
-            button.image = NSImage(
-                systemSymbolName: "waveform",
-                accessibilityDescription: "Dict"
-            )
+            button.image = MenuBarIcon.image(levels: MenuBarIcon.idleLevels)
             button.toolTip = nil
         }
     }

@@ -53,7 +53,7 @@ struct MainWindow: View {
                 ReplacementsView(settings: appState.settings)
                     .navigationTitle("Replacements")
             case .about:
-                AboutSettingsTab(updater: updater)
+                AboutSettingsTab(settings: appState.settings, updater: updater)
                     .navigationTitle("About")
             }
         }
