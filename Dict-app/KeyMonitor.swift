@@ -2,12 +2,15 @@ import CoreGraphics
 import Foundation
 
 extension HotkeyChoice {
+    /// Keycode of the physical key. Presets are modifier keys watched via
+    /// flagsChanged; custom combos are ordinary keys watched via keyDown.
     var keycode: Int64 {
         switch self {
         case .rightCommand: 54
         case .rightControl: 62
         case .rightOption: 61
         case .fn: 63
+        case .custom(let keycode, _, _): keycode
         }
     }
 
@@ -17,7 +20,15 @@ extension HotkeyChoice {
         case .rightControl: .maskControl
         case .rightOption: .maskAlternate
         case .fn: .maskSecondaryFn
+        case .custom(_, let modifiers, _): CGEventFlags(rawValue: modifiers)
         }
+    }
+
+    /// Whether a keyDown of `keycode` with `flags` is this custom combo.
+    /// Presets never match here; they are driven by flagsChanged.
+    func matchesKeyDown(keycode: Int64, flags: CGEventFlags) -> Bool {
+        guard case .custom(let key, let modifiers, _) = self else { return false }
+        return keycode == key && (flags.rawValue & HotkeyChoice.modifierMask) == modifiers
     }
 }
 
@@ -60,6 +71,7 @@ final class KeyMonitor {
     func install() -> Bool {
         let eventMask: CGEventMask = (1 << CGEventType.flagsChanged.rawValue)
             | (1 << CGEventType.keyDown.rawValue)
+            | (1 << CGEventType.keyUp.rawValue)
 
         let refcon = Unmanaged.passUnretained(self).toOpaque()
 
@@ -107,6 +119,20 @@ final class KeyMonitor {
 
         let keycode = event.getIntegerValueField(.keyboardEventKeycode)
 
+        // A recorded combo (say ⌥Space) is an ordinary key: press starts,
+        // release ends, and the app underneath never sees it. Checked first
+        // so a combo built on Space or Escape wins over their other jobs.
+        if monitor.hotkey.isCustom {
+            if type == .keyDown && monitor.hotkey.matchesKeyDown(keycode: keycode, flags: event.flags) {
+                if !monitor.logic.isKeyHeld { monitor.perform(monitor.logic.hotkeyDown()) }
+                return nil
+            }
+            if type == .keyUp && keycode == monitor.hotkey.keycode && monitor.logic.isKeyHeld {
+                monitor.perform(monitor.logic.hotkeyUp())
+                return nil
+            }
+        }
+
         // Escape cancels a recording, or a transcription that's in flight.
         // Swallowed only when it did something.
         if type == .keyDown && keycode == escapeKeycode {
@@ -129,7 +155,7 @@ final class KeyMonitor {
             return swallow ? nil : Unmanaged.passUnretained(event)
         }
 
-        guard keycode == monitor.hotkey.keycode else {
+        guard type == .flagsChanged, !monitor.hotkey.isCustom, keycode == monitor.hotkey.keycode else {
             return Unmanaged.passUnretained(event)
         }
 

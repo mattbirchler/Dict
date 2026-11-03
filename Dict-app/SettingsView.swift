@@ -50,10 +50,20 @@ struct GeneralSettingsTab: View {
 
             Section {
                 Picker("Dictation hotkey", selection: $settings.hotkey) {
-                    ForEach(HotkeyChoice.allCases, id: \.self) { choice in
+                    ForEach(HotkeyChoice.presets, id: \.self) { choice in
                         Text(choice.displayName).tag(choice)
                     }
+                    if settings.hotkey.isCustom {
+                        Divider()
+                        Text(settings.hotkey.displayName).tag(settings.hotkey)
+                    }
                 }
+                LabeledContent("Or any key combination") {
+                    ShortcutRecorder(hotkey: $settings.hotkey)
+                }
+                Text("Click the recorder, then press the keys you want, such as \u{2325}Space or F18. Modifier keys on their own are the choices above.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
                 if settings.hotkey == .fn {
                     Text("If pressing 🌐 opens the emoji picker, set “Press 🌐 key to” to “Do Nothing” in System Settings > Keyboard.")
                         .font(.caption)

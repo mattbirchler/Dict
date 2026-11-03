@@ -392,6 +392,13 @@ private struct ChooseKeyStep: View {
                 }
             }
             .frame(maxWidth: .infinity)
+            HStack(spacing: 10) {
+                Text("Or any other key:")
+                    .font(.system(size: 13))
+                    .foregroundStyle(scheme.text.opacity(0.6))
+                ShortcutRecorder(hotkey: $settings.hotkey)
+            }
+            .frame(maxWidth: .infinity)
             if settings.hotkey == .fn {
                 Text("If pressing 🌐 opens the emoji picker, set \u{201C}Press 🌐 key to\u{201D} to \u{201C}Do Nothing\u{201D} in System Settings > Keyboard.")
                     .font(.system(size: 12))
@@ -412,7 +419,8 @@ private struct ChooseKeyStep: View {
         .padding(.top, 24)
         .onAppear {
             monitor = NSEvent.addLocalMonitorForEvents(matching: .flagsChanged) { event in
-                if let choice = Self.keycodes[Int64(event.keyCode)] {
+                // The recorder owns the keyboard while it's listening.
+                if !ShortcutRecorder.isRecording, let choice = Self.keycodes[Int64(event.keyCode)] {
                     settings.hotkey = choice
                 }
                 return event
@@ -436,6 +444,7 @@ private struct KeyCap: View {
         case .rightOption: "⌥"
         case .rightControl: "⌃"
         case .fn: "fn"
+        case .custom: ""
         }
     }
 
@@ -445,6 +454,7 @@ private struct KeyCap: View {
         case .rightOption: "Right ⌥"
         case .rightControl: "Right ⌃"
         case .fn: "fn / 🌐"
+        case .custom: ""
         }
     }
 

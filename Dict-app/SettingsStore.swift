@@ -1,7 +1,22 @@
 import Foundation
 
-enum HotkeyChoice: String, CaseIterable {
+enum HotkeyChoice: Hashable {
     case rightCommand, rightControl, rightOption, fn
+    /// Any non-modifier key plus modifiers, recorded by the user. `modifiers`
+    /// is CGEventFlags masked to command, option, control and shift; `label`
+    /// is the key's name as shown when it was recorded ("Space", "F18", "D").
+    case custom(keycode: Int64, modifiers: UInt64, label: String)
+
+    /// The modifier-only choices offered as quick picks.
+    static let presets: [HotkeyChoice] = [.rightCommand, .rightControl, .rightOption, .fn]
+
+    /// Modifier bits that take part in matching a custom combo.
+    static let modifierMask: UInt64 = (1 << 20) | (1 << 19) | (1 << 18) | (1 << 17)
+
+    var isCustom: Bool {
+        if case .custom = self { return true }
+        return false
+    }
 
     var displayName: String {
         switch self {
@@ -9,6 +24,7 @@ enum HotkeyChoice: String, CaseIterable {
         case .rightControl: "Right Control (⌃)"
         case .rightOption: "Right Option (⌥)"
         case .fn: "Fn / Globe (🌐)"
+        case .custom: glyph
         }
     }
 
@@ -19,6 +35,45 @@ enum HotkeyChoice: String, CaseIterable {
         case .rightControl: "⌃"
         case .rightOption: "⌥"
         case .fn: "fn"
+        case .custom(_, let modifiers, let label): Self.modifierGlyphs(modifiers) + label
+        }
+    }
+
+    /// "⌃⌥⇧⌘" in the order macOS shows them, for whichever bits are set.
+    static func modifierGlyphs(_ modifiers: UInt64) -> String {
+        var out = ""
+        if modifiers & (1 << 18) != 0 { out += "⌃" }
+        if modifiers & (1 << 19) != 0 { out += "⌥" }
+        if modifiers & (1 << 17) != 0 { out += "⇧" }
+        if modifiers & (1 << 20) != 0 { out += "⌘" }
+        return out
+    }
+
+    // MARK: Storage
+
+    /// Stable string for UserDefaults; presets keep their old names so
+    /// existing installs read back unchanged.
+    var storageKey: String {
+        switch self {
+        case .rightCommand: "rightCommand"
+        case .rightControl: "rightControl"
+        case .rightOption: "rightOption"
+        case .fn: "fn"
+        case .custom(let keycode, let modifiers, let label): "custom:\(keycode):\(modifiers):\(label)"
+        }
+    }
+
+    init?(storageKey: String) {
+        switch storageKey {
+        case "rightCommand": self = .rightCommand
+        case "rightControl": self = .rightControl
+        case "rightOption": self = .rightOption
+        case "fn": self = .fn
+        default:
+            let parts = storageKey.split(separator: ":", maxSplits: 3, omittingEmptySubsequences: false)
+            guard parts.count == 4, parts[0] == "custom",
+                  let keycode = Int64(parts[1]), let modifiers = UInt64(parts[2]), !parts[3].isEmpty else { return nil }
+            self = .custom(keycode: keycode, modifiers: modifiers, label: String(parts[3]))
         }
     }
 }
@@ -132,7 +187,7 @@ final class SettingsStore {
 
     var hotkey: HotkeyChoice {
         didSet {
-            defaults.set(hotkey.rawValue, forKey: Keys.hotkey)
+            defaults.set(hotkey.storageKey, forKey: Keys.hotkey)
             onChange?(.hotkey)
         }
     }
@@ -215,7 +270,7 @@ final class SettingsStore {
         self.inputDevice = defaults.data(forKey: Keys.inputDevice)
             .flatMap { try? JSONDecoder().decode(InputDeviceChoice.self, from: $0) } ?? .automatic
         self.hotkey = defaults.string(forKey: Keys.hotkey)
-            .flatMap(HotkeyChoice.init(rawValue:)) ?? .rightCommand
+            .flatMap(HotkeyChoice.init(storageKey:)) ?? .rightCommand
         self.activationMode = defaults.string(forKey: Keys.activationMode)
             .flatMap(ActivationMode.init(rawValue:)) ?? .holdToTalk
         self.isFormattingEnabled = defaults.object(forKey: Keys.isFormattingEnabled) as? Bool ?? true
