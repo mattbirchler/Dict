@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build-and-test:
+    name: Build and test
+    runs-on: macos-26
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Pick the newest Xcode 27
+        run: |
+          XCODE=$(ls -d /Applications/Xcode_27*.app 2>/dev/null | sort -V | tail -1)
+          if [[ -z "$XCODE" ]]; then
+            echo "This runner image has no Xcode 27. Installed:"; ls /Applications | grep Xcode; exit 1
+          fi
+          sudo xcode-select -s "$XCODE"
+          xcodebuild -version
+
+      - name: Build
+        run: |
+          xcodebuild -project Dict-app.xcodeproj -scheme Dict-app -configuration Debug \
+            -destination 'platform=macOS' -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO build | tail -40
+
+      - name: Test
+        run: |
+          xcodebuild -project Dict-app.xcodeproj -scheme Dict-app \
+            -destination 'platform=macOS' -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            -skip-testing:Dict-appTests/ParakeetEndToEndTests \
+            -skip-testing:Dict-appTests/AppleSpeechRepeatSessionTests \
+            test | grep -E "Test run with|error:|TEST (SUCCEEDED|FAILED)|✘"
