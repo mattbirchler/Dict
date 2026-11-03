@@ -88,5 +88,6 @@ venv under `vendor/`.
 
 Every push to `main` and every pull request builds and runs the unit tests
 on GitHub Actions (`.github/workflows/ci.yml`, a `macos-26` runner with
-Xcode 27). The Parakeet end-to-end test and the Apple Speech session test
+the newest Xcode it has; the one macOS 27 API Dict uses is behind a
+Swift version check so Xcode 26 builds it too). The Parakeet end-to-end test and the Apple Speech session test
 need a model and a microphone, so CI skips them.

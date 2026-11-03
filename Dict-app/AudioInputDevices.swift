@@ -56,15 +56,20 @@ enum AudioInputDevices {
     /// Points `engine`'s input node at `id`. Must run while the engine is
     /// stopped and before anything reads the input node's format.
     static func apply(_ id: AudioDeviceID, to engine: AVAudioEngine) throws {
+        // withAudioUnit arrived with the macOS 27 SDK (Xcode 27, Swift 6.4).
+        // Older toolchains, including the ones on GitHub's runners, build
+        // the deprecated-but-working path instead.
+        #if swift(>=6.4)
         if #available(macOS 27.0, *) {
             try engine.inputNode.withAudioUnit { unit in
                 guard let unit else { throw AudioInputError.noInputUnit }
                 try setCurrentDevice(id, on: unit)
             }
-        } else {
-            guard let unit = engine.inputNode.audioUnit else { throw AudioInputError.noInputUnit }
-            try setCurrentDevice(id, on: unit)
+            return
         }
+        #endif
+        guard let unit = engine.inputNode.audioUnit else { throw AudioInputError.noInputUnit }
+        try setCurrentDevice(id, on: unit)
     }
 
     private static func setCurrentDevice(_ id: AudioDeviceID, on unit: AudioUnit) throws {

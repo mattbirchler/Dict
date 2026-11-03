@@ -13,11 +13,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Pick the newest Xcode 27
+      - name: Pick the newest Xcode
         run: |
-          XCODE=$(ls -d /Applications/Xcode_27*.app 2>/dev/null | sort -V | tail -1)
+          XCODE=$(ls -d /Applications/Xcode_2[6-9]*.app 2>/dev/null | sort -V | tail -1)
           if [[ -z "$XCODE" ]]; then
-            echo "This runner image has no Xcode 27. Installed:"; ls /Applications | grep Xcode; exit 1
+            echo "No Xcode 26 or newer on this runner. Installed:"; ls /Applications | grep Xcode; exit 1
           fi
           sudo xcode-select -s "$XCODE"
           xcodebuild -version
