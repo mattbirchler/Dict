@@ -30,10 +30,18 @@ sides use the same test key, so a format change breaks one of them.
   `DICT_LICENSE_PRIVATE_KEY`; the public half is `License.publicKey`. Back
   the private half up with the Sparkle key. Losing it means no new keys
   without shipping a new public key; leaking it means anyone can make keys.
-- **Keys by hand** (press, gifts, lost keys):
-  `scripts/license-issue.sh someone@example.com`. To give a buyer back the
+- **Lost keys.** `scripts/license-recover.sh them@example.com` finds their
+  paid checkouts in Stripe and prints the exact key (and activation link)
+  they got at checkout. Run `scripts/license-recover.sh --setup` once
+  first: it saves a Stripe key and the Payment Link id to the keychain
+  (account `dict-stripe`). Stripe matches the email exactly as typed at
+  checkout, so if nothing turns up, find the payment in the dashboard and
+  use `license-issue.sh` with its session id, below. Buyers who still have
+  Dict on a Mac can also copy their key from Settings > License.
+- **Keys by hand** (press, gifts):
+  `scripts/license-issue.sh someone@example.com`. To rebuild a buyer's
   exact key from checkout, pass their Checkout session id and purchase
-  date: `scripts/license-issue.sh them@example.com cs_live_… 2026-11-20`.
+  date (UTC): `scripts/license-issue.sh them@example.com cs_live_… 2026-11-20`.
 - **Refunds.** A key can't be revoked; refunding is on trust. If that ever
   matters, a list of revoked purchase ids could ride along in the appcast.
 

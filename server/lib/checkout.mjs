@@ -20,6 +20,37 @@ export async function fetchStripeSession(sessionId, secretKey, fetchImpl = fetch
 }
 
 /**
+ * Finds the finished checkouts from Dict's Payment Link for an email, newest
+ * first, for giving a buyer back a lost key. Stripe matches the email
+ * exactly as the buyer typed it at checkout.
+ */
+export async function findStripeSessions(email, { secretKey, paymentLink }, fetchImpl = fetch) {
+  if (!paymentLink) throw new CheckoutError(500, "No payment link id to search.");
+  const sessions = [];
+  let startingAfter;
+  do {
+    const query = new URLSearchParams({
+      "customer_details[email]": email,
+      payment_link: paymentLink,
+      status: "complete",
+      limit: "100",
+    });
+    if (startingAfter) query.set("starting_after", startingAfter);
+    const response = await fetchImpl("https://api.stripe.com/v1/checkout/sessions?" + query, {
+      headers: { Authorization: "Bearer " + secretKey },
+    });
+    if (!response.ok) {
+      const body = await response.json().catch(() => ({}));
+      throw new CheckoutError(502, "Stripe said no: " + (body.error?.message ?? response.status));
+    }
+    const page = await response.json();
+    sessions.push(...page.data);
+    startingAfter = page.has_more ? page.data.at(-1)?.id : undefined;
+  } while (startingAfter);
+  return sessions;
+}
+
+/**
  * session: a Stripe Checkout session object.
  * paymentLink: the plink_… id of Dict's Payment Link. Sessions from any
  * other product on the same Stripe account are refused.

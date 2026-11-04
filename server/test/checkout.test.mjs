@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { verify, createPublicKey } from "node:crypto";
 import { privateKeyFromSeed, publicKeyBase64, PREFIX } from "../lib/license.mjs";
-import { licenseForSession, fetchStripeSession, CheckoutError } from "../lib/checkout.mjs";
+import { licenseForSession, fetchStripeSession, findStripeSessions, CheckoutError } from "../lib/checkout.mjs";
 
 // Same test seed as Dict-appTests/LicenseTests.swift.
 const seed = Buffer.from(Array.from({ length: 32 }, (_, i) => i + 1)).toString("base64");
@@ -69,4 +69,34 @@ test("the session is read with the secret key", async () => {
   assert.deepEqual(await fetchStripeSession("cs_test_123", "sk_test_abc", fake), paid);
   assert.equal(seen.url, "https://api.stripe.com/v1/checkout/sessions/cs_test_123");
   assert.equal(seen.init.headers.Authorization, "Bearer sk_test_abc");
+});
+
+test("lost keys are found by email, only from Dict's link and only finished checkouts", async () => {
+  let seen;
+  const fake = async (url, init) => { seen = { url: new URL(url), init }; return Response.json({ data: [paid], has_more: false }); };
+  const found = await findStripeSessions("buyer@example.com", { secretKey: "sk_test_abc", paymentLink: "plink_dict" }, fake);
+  assert.deepEqual(found, [paid]);
+  assert.equal(seen.url.pathname, "/v1/checkout/sessions");
+  assert.equal(seen.url.searchParams.get("customer_details[email]"), "buyer@example.com");
+  assert.equal(seen.url.searchParams.get("payment_link"), "plink_dict");
+  assert.equal(seen.url.searchParams.get("status"), "complete");
+  assert.equal(seen.init.headers.Authorization, "Bearer sk_test_abc");
+});
+
+test("the email search follows Stripe's pages", async () => {
+  const second = { ...paid, id: "cs_test_456" };
+  const urls = [];
+  const fake = async (url) => {
+    urls.push(new URL(url));
+    return urls.length === 1 ? Response.json({ data: [paid], has_more: true }) : Response.json({ data: [second], has_more: false });
+  };
+  const found = await findStripeSessions("buyer@example.com", { secretKey: "sk", paymentLink: "plink_dict" }, fake);
+  assert.deepEqual(found.map((s) => s.id), ["cs_test_123", "cs_test_456"]);
+  assert.equal(urls[1].searchParams.get("starting_after"), "cs_test_123");
+});
+
+test("the email search passes on Stripe's error and needs a payment link", async () => {
+  const fake = async () => Response.json({ error: { message: "Invalid API Key provided" } }, { status: 401 });
+  await assert.rejects(findStripeSessions("a@b.c", { secretKey: "sk", paymentLink: "plink_dict" }, fake), /Invalid API Key/);
+  await assert.rejects(findStripeSessions("a@b.c", { secretKey: "sk" }, fake), { status: 500 });
 });
