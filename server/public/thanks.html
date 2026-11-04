@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Thanks for buying Dict</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<main>
+  <div class="brand">DICT</div>
+
+  <section id="loading">
+    <h1>Making your license key…</h1>
+    <p>This takes a second.</p>
+  </section>
+
+  <section id="ready" hidden>
+    <h1>Thanks for buying Dict</h1>
+    <p>Click Activate and Dict unlocks. Nothing else to do.</p>
+    <div class="card">
+      <p class="key" id="key"></p>
+      <div class="actions">
+        <a class="button primary" id="activate" href="#">Activate in Dict</a>
+        <button class="button" id="copy" type="button">Copy Key</button>
+      </div>
+    </div>
+
+    <div class="label">Keep this key</div>
+    <p class="small">Your key is for <span id="email"></span> and works on all of your Macs. Save it somewhere safe, like a password manager. You can also paste it into Dict under Settings, License. Coming back to this page later shows the same key.</p>
+    <p class="small">Don't have Dict yet? <a class="accent" href="https://github.com/mattbirchler/Dict-releases/releases/latest" style="color: var(--accent)">Download it here.</a></p>
+  </section>
+
+  <section id="failed" hidden>
+    <h1>Your key isn't ready</h1>
+    <p class="error" id="error"></p>
+    <p class="small">If you were charged and this keeps happening, email <a href="mailto:matt@birchtree.me" style="color: var(--accent)">matt@birchtree.me</a> and you'll get your key by hand.</p>
+  </section>
+</main>
+<script>
+  const show = (id) => {
+    for (const section of document.querySelectorAll("main > section")) section.hidden = section.id !== id;
+  };
+  const sessionId = new URLSearchParams(location.search).get("session_id") || "";
+
+  fetch("/api/license?session_id=" + encodeURIComponent(sessionId))
+    .then(async (response) => {
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok || !body.key) throw new Error(body.error || "Something went wrong making your key.");
+      document.getElementById("key").textContent = body.key;
+      document.getElementById("email").textContent = body.email;
+      document.getElementById("activate").href = body.activate;
+      document.getElementById("copy").addEventListener("click", async (event) => {
+        try {
+          await navigator.clipboard.writeText(body.key);
+          event.target.textContent = "Copied";
+        } catch {
+          event.target.textContent = "Select the key above to copy it";
+        }
+      });
+      show("ready");
+    })
+    .catch((error) => {
+      document.getElementById("error").textContent = error.message;
+      show("failed");
+    });
+</script>
+</body>
+</html>
