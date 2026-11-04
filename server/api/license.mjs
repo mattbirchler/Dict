@@ -8,6 +8,9 @@ export async function GET(request) {
   if (!/^cs_(test|live)_[A-Za-z0-9]+$/.test(sessionId)) {
     return Response.json({ error: "This link is missing its purchase id." }, { status: 400 });
   }
+  if (!process.env.STRIPE_SECRET_KEY || !process.env.DICT_LICENSE_PRIVATE_KEY) {
+    return Response.json({ error: "The store isn't open yet." }, { status: 503 });
+  }
   try {
     const session = await fetchStripeSession(sessionId, process.env.STRIPE_SECRET_KEY);
     const license = licenseForSession(session, {
