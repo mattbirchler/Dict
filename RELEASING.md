@@ -47,7 +47,7 @@ upload, and the push, and leaves the feed it would publish in
 
 ## Making this repo private
 
-Copies of Dict 1.0 (build 4 and earlier) check
+Copies of Dict 1.0 (build 5 and earlier) check
 `raw.githubusercontent.com/mattbirchler/Dict/main/appcast.xml`, which stops
 working the moment this repo goes private. Copies built from now on check
 Dict-releases instead. So, in this order:
@@ -61,7 +61,7 @@ Dict-releases instead. So, in this order:
    only updates Dict-releases from then on.
 4. Make the repo private: `gh repo edit mattbirchler/Dict --visibility private --accept-visibility-change-consequences`.
 
-The old releases on this repo (1.0 build 4) were copied to Dict-releases,
+The old releases on this repo (1.0 builds 4 and 5) were copied to Dict-releases,
 so download links keep working.
 
 ## One-time setup
