@@ -180,7 +180,7 @@ struct GeneralSettingsTab: View {
                     .foregroundStyle(.secondary)
 
                 Toggle("Spell names the way the document does", isOn: $settings.usesScreenContext)
-                Text("Reads the text already in the field you\u{2019}re dictating into and tells the formatter which names and terms appear there, so \u{201C}Birchtree\u{201D} comes out the same way twice. Read on this Mac for that one dictation and never stored.")
+                Text("Reads the text already in the field you\u{2019}re dictating into and spells names and terms from it the same way, so \u{201C}birch tree\u{201D} comes out as \u{201C}Birchtree\u{201D} if that\u{2019}s how the document writes it. Works with any engine and in any app that shares its text. Read on this Mac for that one dictation and never stored.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
 

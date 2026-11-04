@@ -156,18 +156,30 @@ final class PipelineCoordinator {
         let bundleID = NSWorkspace.shared.frontmostApplication?.bundleIdentifier
         let context: FormattingContext = CodingAppCatalog.isCodingApp(bundleID) ? .coding : .general
         let shouldFormat = Self.shouldFormat(enabled: isFormattingEnabled, engine: engineChoice, context: context, style: dictationStyle)
+        // Names and terms already in the document, so the dictation spells
+        // them the same way. Read once, used by the formatter and the
+        // respelling pass below.
+        let terms = usesScreenContext ? ScreenContext.extractTerms(from: ScreenContext.focusedText() ?? "") : []
         let formatted: String
         if shouldFormat {
-            // Names already in the document, so the model spells them its way.
-            let terms = usesScreenContext ? ScreenContext.extractTerms(from: ScreenContext.focusedText() ?? "") : []
-            if !terms.isEmpty { Log.pipeline.debug("Screen context: \(terms.count, privacy: .public) terms") }
             formatted = await formatter.format(rawText, context: context, style: dictationStyle, terms: terms)
         } else if dictationStyle != .verbatim {
             formatted = FillerRemover.clean(rawText)
         } else {
             formatted = rawText
         }
-        let text = WordReplacement.apply(wordReplacements, to: formatted)
+        // Runs whether or not the formatter did (it's skipped for most
+        // Parakeet dictations), and before word replacements so the
+        // user's own rules still win.
+        let respelled = ScreenContextSpelling.apply(
+            terms: terms,
+            to: formatted,
+            isDictionaryWord: ScreenContextSpelling.systemDictionaryContains
+        )
+        if usesScreenContext {
+            Log.pipeline.info("Screen context: \(terms.count, privacy: .public) terms, \(respelled.fixes, privacy: .public) respelled")
+        }
+        let text = WordReplacement.apply(wordReplacements, to: respelled.text)
 
         // Escape cancelled processing while we were transcribing/formatting.
         guard !Task.isCancelled else {
