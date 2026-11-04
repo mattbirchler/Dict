@@ -35,6 +35,17 @@ enum MenuBarIcon {
         return image
     }
 
+    /// One frame of the "loading the speech model" animation: a lit peak
+    /// that sweeps back and forth across the grid. `frame` counts up.
+    static func loadingLevels(frame: Int) -> [Float] {
+        let period = columns * 2 - 2
+        let step = ((frame % period) + period) % period
+        let peak = step < columns ? step : period - step
+        return (0..<columns).map { column in
+            max(0.25, 1 - 0.375 * Float(abs(column - peak)))
+        }
+    }
+
     /// Folds the HUD's bands down to the icon's few columns by taking the
     /// loudest band in each group, so a lit grid tracks speech visibly.
     static func levels(from spectrum: [Float]) -> [Float] {

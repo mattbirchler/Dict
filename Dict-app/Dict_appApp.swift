@@ -51,6 +51,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         hudController.colorScheme = appState.settings.hudColorScheme
         appState.onHUDColorSchemeChanged = { [weak self] scheme in self?.hudController.colorScheme = scheme }
+        appState.onEngineReady = { [weak self] in
+            guard let self, self.appState.isEnabled else { return }
+            self.hudController.showReady(hotkeyGlyph: self.appState.settings.hotkey.glyph)
+        }
         appState.permissionChecker.checkAll()
 
         menuBarManager.setup(

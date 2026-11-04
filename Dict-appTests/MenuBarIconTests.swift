@@ -25,4 +25,15 @@ struct MenuBarIconTests {
         #expect(image.size.width == CGFloat(MenuBarIcon.columns) * MenuBarIcon.pitch)
         #expect(image.size.height == CGFloat(MenuBarIcon.rows) * MenuBarIcon.pitch)
     }
+
+    /// The loading peak sweeps right, bounces off the last column, and
+    /// comes back, with every frame drawing all columns.
+    @Test func loadingPeakSweepsBackAndForth() {
+        let peaks = (0..<10).map { frame -> Int in
+            let levels = MenuBarIcon.loadingLevels(frame: frame)
+            #expect(levels.count == MenuBarIcon.columns)
+            return levels.indices.max { levels[$0] < levels[$1] }!
+        }
+        #expect(peaks == [0, 1, 2, 3, 4, 3, 2, 1, 0, 1])
+    }
 }

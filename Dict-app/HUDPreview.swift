@@ -6,7 +6,7 @@ import SwiftUI
 /// [--scheme ember|phosphor|glacier|ultraviolet|graphite] [--snapshot out.png]` shows the HUD with sample audio and no hotkey, so it
 /// can be looked at and screenshotted. With --snapshot it writes a PNG of
 /// the panel after the entrance animation and quits. Modes: recording,
-/// handsfree, processing, done, failed. Nothing else in the app starts.
+/// handsfree, processing, done, failed, ready. Nothing else in the app starts.
 enum HUDPreview {
     @MainActor
     static func present(from arguments: [String] = CommandLine.arguments, in hud: HUDPanelController) -> Bool {
@@ -37,6 +37,7 @@ enum HUDPreview {
         case "processing": hud.showProcessing()
         case "done": hud.finish(result: .inserted("preview"))
         case "failed": hud.finish(result: .nothingHeard)
+        case "ready": hud.showReady(hotkeyGlyph: "⌘")
         default: break
         }
 
@@ -95,7 +96,7 @@ enum HUDPreview {
         }
     }
 
-    /// `Dict --render-hud recording|handsfree|processing|done [--scheme ember]
+    /// `Dict --render-hud recording|handsfree|processing|done|ready [--scheme ember]
     /// [--scale 4] --out panel.png`: draws the panel straight to a PNG at any
     /// scale, transparent around its shadow, for marketing images. Unlike
     /// --snapshot it needs no window or screen recording, and isn't limited
@@ -121,6 +122,7 @@ enum HUDPreview {
             )
         case "processing": mode = .processing
         case "done": mode = .done
+        case "ready": mode = .ready
         default: mode = .recording
         }
         let view = WaveformHUD(

@@ -16,6 +16,10 @@ final class MenuBarManager: NSObject, NSMenuDelegate {
     /// menu is closed.
     private var isDownloadingModel = false
     private var downloadPercent = 0
+    /// A model already on disk is loading into memory; the grid animates.
+    private var isLoadingModel = false
+    private var loadingTimer: Timer?
+    private var loadingFrame = 0
 
     func setup(
         appState: AppState,
@@ -66,7 +70,8 @@ final class MenuBarManager: NSObject, NSMenuDelegate {
             guard recordingTimer == nil else { return }
             recordingTimer = Timer.scheduledTimer(withTimeInterval: 0.09, repeats: true) { [weak self] _ in
                 Task { @MainActor [weak self] in
-                    guard let self, let appState = self.appState, !self.isDownloadingModel else { return }
+                    guard let self, let appState = self.appState,
+                          !self.isDownloadingModel, !self.isLoadingModel else { return }
                     let spectrum = appState.pipeline.activeEngine.audioSpectrum
                     self.statusItem?.button?.image = MenuBarIcon.image(levels: MenuBarIcon.levels(from: spectrum))
                 }
@@ -74,7 +79,7 @@ final class MenuBarManager: NSObject, NSMenuDelegate {
         } else {
             recordingTimer?.invalidate()
             recordingTimer = nil
-            if !isDownloadingModel {
+            if !isDownloadingModel && !isLoadingModel {
                 statusItem?.button?.image = MenuBarIcon.image(levels: MenuBarIcon.idleLevels)
             }
         }
@@ -105,7 +110,9 @@ final class MenuBarManager: NSObject, NSMenuDelegate {
     private func refreshDownloadIndicator() {
         guard let appState, let button = statusItem?.button else { return }
         let downloading = appState.isPreparingEngine && appState.engineNeedsDownload
+        let loading = appState.isPreparingEngine && !appState.engineNeedsDownload
         let percent = min(100, max(0, Int(appState.engineDownloadProgress * 100)))
+        refreshLoadingIndicator(loading)
         guard downloading != isDownloadingModel || (downloading && percent != downloadPercent) else {
             return
         }
@@ -118,9 +125,35 @@ final class MenuBarManager: NSObject, NSMenuDelegate {
                 accessibilityDescription: "Dict: downloading speech model"
             )
             button.toolTip = "Downloading speech model: \(percent)%"
-        } else {
+        } else if !isLoadingModel {
             button.image = MenuBarIcon.image(levels: MenuBarIcon.idleLevels)
             button.toolTip = nil
+        }
+    }
+
+    /// While the model loads into memory, a lit peak sweeps across the
+    /// grid so it's clear Dict is busy and not ready yet.
+    private func refreshLoadingIndicator(_ loading: Bool) {
+        guard loading != isLoadingModel, let button = statusItem?.button else { return }
+        isLoadingModel = loading
+        if loading {
+            loadingFrame = 0
+            button.toolTip = "Loading speech model…"
+            button.image = MenuBarIcon.image(levels: MenuBarIcon.loadingLevels(frame: 0))
+            loadingTimer = Timer.scheduledTimer(withTimeInterval: 0.12, repeats: true) { [weak self] _ in
+                Task { @MainActor [weak self] in
+                    guard let self, self.isLoadingModel else { return }
+                    self.loadingFrame += 1
+                    self.statusItem?.button?.image = MenuBarIcon.image(
+                        levels: MenuBarIcon.loadingLevels(frame: self.loadingFrame)
+                    )
+                }
+            }
+        } else {
+            loadingTimer?.invalidate()
+            loadingTimer = nil
+            button.toolTip = nil
+            button.image = MenuBarIcon.image(levels: MenuBarIcon.idleLevels)
         }
     }
 
@@ -138,6 +171,11 @@ final class MenuBarManager: NSObject, NSMenuDelegate {
             )
             downloading.isEnabled = false
             menu.addItem(downloading)
+            menu.addItem(.separator())
+        } else if isLoadingModel {
+            let loading = NSMenuItem(title: "Loading speech model…", action: nil, keyEquivalent: "")
+            loading.isEnabled = false
+            menu.addItem(loading)
             menu.addItem(.separator())
         }
 

@@ -8,6 +8,8 @@ enum HUDMode: Equatable {
     case done
     /// Brief notice when a dictation produced nothing, or couldn't start.
     case failed(message: String)
+    /// Brief notice that the speech model finished loading.
+    case ready
 }
 
 /// Chakra Petch, bundled with the app, for the HUD's labels. Falls back to
@@ -80,7 +82,7 @@ struct WaveformHUD: View {
             if isRecording {
                 RecordLED(pulsePhase: pulsePhase, color: scheme.recording)
                     .transition(.scale.combined(with: .opacity))
-            } else if mode == .done {
+            } else if mode == .done || mode == .ready {
                 StatusGlyph(systemName: "checkmark", color: scheme.success)
                     .transition(.scale(scale: 0.3).combined(with: .opacity))
             } else if case .failed = mode {
@@ -119,6 +121,7 @@ struct WaveformHUD: View {
         case .recordingHandsFree: return "HANDS-FREE"
         case .processing: return "PROCESSING"
         case .done: return "INSERTED"
+        case .ready: return "READY TO DICTATE"
         case .failed(let message): return message.uppercased()
         }
     }
@@ -126,7 +129,7 @@ struct WaveformHUD: View {
     private var statusColor: Color {
         switch mode {
         case .processing: scheme.accent
-        case .done: scheme.success
+        case .done, .ready: scheme.success
         default: scheme.text
         }
     }
@@ -135,6 +138,7 @@ struct WaveformHUD: View {
         switch mode {
         case .recordingHandsFree: "\(hotkeyGlyph.uppercased()) FINISH · ESC CANCEL"
         case .processing: "ESC CANCEL"
+        case .ready: "HOLD \(hotkeyGlyph.uppercased())"
         default: nil
         }
     }

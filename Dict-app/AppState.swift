@@ -18,6 +18,12 @@ final class AppState {
     var onEnabledChanged: ((Bool) -> Void)?
     /// Called when a dictation ends, with how it ended.
     var onProcessingComplete: ((DictationResult) -> Void)?
+    /// Fired when a model load the user could notice (longer than
+    /// `readyNoticeThreshold`) finishes and dictation can start.
+    var onEngineReady: (() -> Void)?
+    /// Loads quicker than this finish before anyone reaches for the hotkey,
+    /// so they don't announce themselves.
+    static let readyNoticeThreshold: TimeInterval = 1
     var onHotkeySettingsChanged: (() -> Void)?
     /// Fired by onboarding the moment Accessibility is granted, so the
     /// key monitor can go in without waiting for the slow poller.
@@ -159,6 +165,7 @@ final class AppState {
         engine.onProgress = { [weak self] progress in
             self?.engineDownloadProgress = progress
         }
+        let started = ProcessInfo.processInfo.systemUptime
         Task {
             do {
                 try await engine.prepare()
@@ -169,6 +176,11 @@ final class AppState {
             engine.onProgress = nil
             isPreparingEngine = false
             refreshEngineReadiness()
+            let elapsed = ProcessInfo.processInfo.systemUptime - started
+            if isEngineReady, engine === pipeline.activeEngine, elapsed >= Self.readyNoticeThreshold {
+                Log.app.info("Engine ready after \(elapsed, format: .fixed(precision: 1), privacy: .public)s")
+                onEngineReady?()
+            }
             // The user may have switched engines while this prepare was in
             // flight (the shared `isPreparingEngine` flag made concurrent
             // prepares no-op). If the now-active engine still needs preparing
