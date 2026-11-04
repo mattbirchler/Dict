@@ -44,6 +44,12 @@ test("/buy redirects once a payment link is set", async () => {
   assert.equal(response.headers.get("location"), "https://buy.stripe.com/test_123");
 });
 
+test("/download redirects to the newest disk image", async () => {
+  const response = await fetch(base + "/download", { redirect: "manual" });
+  assert.equal(response.status, 302);
+  assert.equal(response.headers.get("location"), "https://github.com/mattbirchler/Dict-releases/releases/latest/download/Dict.dmg");
+});
+
 test("health check and methods", async () => {
   assert.equal(await (await fetch(base + "/healthz")).text(), "ok");
   assert.equal((await fetch(base + "/", { method: "POST" })).status, 405);
