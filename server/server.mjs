@@ -3,6 +3,7 @@
 //   /                  landing page        (public/index.html)
 //   /thanks            after checkout      (public/thanks.html)
 //   /buy               → Stripe Payment Link
+//   /download          → the newest Dict.dmg on GitHub
 //   /api/license       ?session_id=cs_… → { key, activate, email }
 //   /healthz           for Railway's health check
 //
@@ -13,6 +14,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { extname, join } from "node:path";
 import { GET as license } from "./api/license.mjs";
 import { GET as buy } from "./api/buy.mjs";
+import { GET as download } from "./api/download.mjs";
 
 const TYPES = {
   ".html": "text/html; charset=utf-8",
@@ -40,7 +42,7 @@ export function loadPages(dir) {
   return pages;
 }
 
-const ROUTES = { "/api/license": license, "/buy": buy };
+const ROUTES = { "/api/license": license, "/buy": buy, "/download": download };
 
 export function createStore({ pages = loadPages(new URL("./public", import.meta.url).pathname), routes = ROUTES } = {}) {
   return createServer(async (req, res) => {

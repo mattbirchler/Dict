@@ -5,45 +5,113 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex">
   <title>Thanks for buying Dict</title>
+  <link rel="icon" href="/dict.png" type="image/png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Next:wght@400;500;700&family=Chakra+Petch:wght@600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/style.css">
 </head>
 <body>
-<main>
-  <div class="brand">DICT</div>
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="/"><img src="/dict.png" alt="" width="34" height="34">Dict</a>
+  </div>
+</header>
 
-  <section id="loading">
-    <h1>Making your license key…</h1>
-    <p>This takes a second.</p>
-  </section>
-
-  <section id="ready" hidden>
-    <h1>Thanks for buying Dict</h1>
-    <p>Click Activate and Dict unlocks. Nothing else to do.</p>
-    <div class="card">
-      <p class="key" id="key"></p>
-      <div class="actions">
-        <a class="button primary" id="activate" href="#">Activate in Dict</a>
-        <button class="button" id="copy" type="button">Copy Key</button>
+<main class="thanks">
+  <div class="wrap">
+    <section id="loading">
+      <div class="hud" data-state="process" aria-hidden="true">
+        <span class="rec"></span><span class="check">&#10003;</span>
+        <span class="meter" data-cols="16"></span>
+        <span>Making your key</span>
       </div>
-    </div>
+      <h1>One second&hellip;</h1>
+      <p class="lede"><span class="spinner" aria-hidden="true"></span>Checking your purchase with Stripe and signing your license key.</p>
+    </section>
 
-    <div class="label">Keep this key</div>
-    <p class="small">Your key is for <span id="email"></span> and works on all of your Macs. Save it somewhere safe, like a password manager. You can also paste it into Dict under Settings, License. Coming back to this page later shows the same key.</p>
-    <p class="small">Don't have Dict yet? <a class="accent" href="https://github.com/mattbirchler/Dict-releases/releases/latest" style="color: var(--accent)">Download it here.</a></p>
-  </section>
+    <section id="ready" hidden>
+      <div class="hud" data-state="done" aria-hidden="true">
+        <span class="rec"></span><span class="check">&#10003;</span>
+        <span class="meter" data-cols="16"></span>
+        <span>License ready</span>
+      </div>
+      <p class="label">Thanks for buying Dict</p>
+      <h1>Dict is <span class="hot">yours.</span></h1>
+      <p class="lede">Your key is for <strong id="email"></strong> and works on every Mac you own.</p>
 
-  <section id="failed" hidden>
-    <h1>Your key isn't ready</h1>
-    <p class="error" id="error"></p>
-    <p class="small">If you were charged and this keeps happening, email <a href="mailto:matt@birchtree.me" style="color: var(--accent)">matt@birchtree.me</a> and you'll get your key by hand.</p>
-  </section>
+      <ol class="steps">
+        <li class="step featured">
+          <h2>Unlock Dict</h2>
+          <p>Click Activate and Dict opens and unlocks. There's nothing else to do.</p>
+          <div class="actions">
+            <a class="button primary" id="activate" href="#" data-ring="live">Activate in Dict</a>
+            <button class="button" id="copy" type="button">Copy key</button>
+          </div>
+          <p class="keybox" id="key"></p>
+        </li>
+        <li class="step">
+          <h2>Save your key</h2>
+          <p>Keep it in a password manager. To use it on another Mac, paste it into Dict under Settings, License. Coming back to this page later shows the same key.</p>
+        </li>
+        <li class="step">
+          <h2>Don't have Dict yet?</h2>
+          <p>Download it, drag it into Applications, then come back and click Activate.</p>
+          <div class="actions"><a class="button" href="/download">Download Dict</a></div>
+        </li>
+      </ol>
+      <p class="small" style="margin-top: 28px">Questions or trouble? Email <a href="mailto:matt@birchtree.me">matt@birchtree.me</a>.</p>
+    </section>
+
+    <section id="failed" hidden>
+      <div class="hud" data-state="idle" aria-hidden="true">
+        <span class="rec"></span><span class="check">&#10003;</span>
+        <span class="meter" data-cols="16"></span>
+        <span>No key yet</span>
+      </div>
+      <h1>Your key isn't ready</h1>
+      <p class="error" id="error"></p>
+      <div class="actions" style="margin-top: 28px">
+        <button class="button primary" type="button" onclick="location.reload()">Try again</button>
+      </div>
+      <p class="small" style="margin-top: 24px">If you were charged and this keeps happening, email <a href="mailto:matt@birchtree.me">matt@birchtree.me</a> and you'll get your key by hand.</p>
+    </section>
+  </div>
 </main>
+
+<footer>
+  <div class="wrap">
+    <span>&copy; 2026 Birchtree Productions, LLC</span>
+    <nav>
+      <a href="https://birchtree.productions/apps/dict/">About Dict</a>
+      <a href="https://birchtree.productions/apps/dict/privacy.html">Privacy</a>
+      <a href="mailto:matt@birchtree.me">Support</a>
+    </nav>
+  </div>
+</footer>
+<script src="/store.js" defer></script>
 <script>
   const show = (id) => {
-    for (const section of document.querySelectorAll("main > section")) section.hidden = section.id !== id;
+    for (const section of document.querySelectorAll("main section")) section.hidden = section.id !== id;
+  };
+  // A spray of meter dots out of the button, for the Copy click.
+  const burst = (el) => {
+    if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const box = document.createElement("span");
+    box.className = "burst";
+    box.setAttribute("aria-hidden", "true");
+    const count = 14;
+    for (let i = 0; i < count; i++) {
+      const dot = document.createElement("i");
+      const angle = (i / count) * Math.PI * 2 + Math.random() * 0.3;
+      const reach = 30 + Math.random() * 22;
+      dot.style.setProperty("--x", Math.cos(angle) * reach * 1.6 + "px");
+      dot.style.setProperty("--y", Math.sin(angle) * reach + "px");
+      if (i % 3 === 0) dot.className = "hi";
+      box.appendChild(dot);
+    }
+    el.appendChild(box);
+    setTimeout(() => box.remove(), 700);
   };
   const sessionId = new URLSearchParams(location.search).get("session_id") || "";
 
@@ -54,13 +122,25 @@
       document.getElementById("key").textContent = body.key;
       document.getElementById("email").textContent = body.email;
       document.getElementById("activate").href = body.activate;
-      document.getElementById("copy").addEventListener("click", async (event) => {
+      const copy = document.getElementById("copy");
+      let reset;
+      copy.addEventListener("click", async () => {
         try {
           await navigator.clipboard.writeText(body.key);
-          event.target.textContent = "Copied";
         } catch {
-          event.target.textContent = "Select the key above to copy it";
+          copy.textContent = "Select the key below to copy it";
+          return;
         }
+        copy.innerHTML = '<span class="tick" aria-hidden="true">&#10003;</span> Copied';
+        copy.classList.remove("copied");
+        void copy.offsetWidth; // restart the animation on repeat clicks
+        copy.classList.add("copied");
+        burst(copy);
+        clearTimeout(reset);
+        reset = setTimeout(() => {
+          copy.classList.remove("copied");
+          copy.textContent = "Copy key";
+        }, 2200);
       });
       show("ready");
     })

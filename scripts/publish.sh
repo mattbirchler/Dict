@@ -105,9 +105,14 @@ fi
 # the release itself lives in Dict-releases.
 DMG="${ZIP%.zip}.dmg"
 [[ -f "$DMG" ]] || fail "No disk image next to the zip."
+# A copy named plain Dict.dmg gives every release the same download address:
+# https://github.com/$REPO/releases/latest/download/Dict.dmg
+LATEST_DMG="$WORK/Dict.dmg"
+mkdir -p "$WORK"
+cp "$DMG" "$LATEST_DMG"
 git tag "$TAG"
 git push -q origin main "$TAG"
-gh release create "$TAG" "$DMG" "$ZIP" --repo "$REPO" --title "Dict $VERSION (build $BUILD)" --notes-file "$NOTES"
+gh release create "$TAG" "$DMG" "$LATEST_DMG" "$ZIP" --repo "$REPO" --title "Dict $VERSION (build $BUILD)" --notes-file "$NOTES"
 git -C "$RELEASES" commit -q -am "release: $VERSION build $BUILD"
 git -C "$RELEASES" push -q origin main
 if [[ -f $LEGACY_FEED ]]; then

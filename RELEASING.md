@@ -109,10 +109,13 @@ so download links keep working.
 
 ## Downloads and CI
 
-`make publish` attaches two files to the Dict-releases GitHub release: `Dict-<v>-<b>.dmg`,
+`make publish` attaches three files to the Dict-releases GitHub release: `Dict-<v>-<b>.dmg`,
 the download for people (a disk image with a drag-to-Applications window,
-signed and notarized), and `Dict-<v>-<b>.zip`, which only the Sparkle feed
-points at. `make dmg` builds an unsigned image of the local Release build
+signed and notarized), a copy of it named `Dict.dmg`, and `Dict-<v>-<b>.zip`,
+which only the Sparkle feed points at. The `Dict.dmg` copy means the newest
+download always lives at
+`https://github.com/mattbirchler/Dict-releases/releases/latest/download/Dict.dmg`;
+the store's `/download` link redirects there, so link to that instead. `make dmg` builds an unsigned image of the local Release build
 for a look at the window; `scripts/dmg.sh` lays it out with dmgbuild in a
 venv under `vendor/`.
 
