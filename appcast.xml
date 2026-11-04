@@ -7,6 +7,22 @@
         <language>en</language>
         <item>
             <title>Dict 1.0</title>
+            <pubDate>Wed, 04 Nov 2026 22:43:56 GMT</pubDate>
+            <sparkle:version>6</sparkle:version>
+            <sparkle:shortVersionString>1.0</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description><![CDATA[
+<h3>Dict 1.0 (build 6)</h3>
+<h3>Dict is now a paid app</h3>
+<p>Dict costs $9.99, once. There&#x27;s no subscription and no account, and one purchase covers all of your Macs.</p>
+<ul><li><strong>14 days to try it.</strong> Your free trial starts the first time you open this version, and every feature works during it. The menu bar menu shows how many days are left.</li><li><strong>When the trial ends,</strong> dictation stops until you enter a license key. Your settings, word replacements and history all stay where they are.</li><li><strong>Buying takes a minute.</strong> Choose Buy Dict in the menu bar menu or in Settings under License. Checkout opens in your browser at dictapp.app. When it&#x27;s done, click Activate in Dict on the confirmation page and Dict unlocks.</li><li><strong>Your key stays on your Mac.</strong> Dict checks the key against a public key built into the app. It never sends your key anywhere or asks a server whether it&#x27;s valid, so Dict still never goes online except to check for updates and to download the Parakeet model if you choose it.</li><li><strong>Setting up another Mac?</strong> Settings, License has Copy License Key. Paste the key into Dict on the other Mac, or choose Enter License Key in the menu.</li></ul>
+<p>Thank you for trying Dict while it was free. If you have questions about the change, email matt@birchtree.me.</p>
+            ]]></description>
+            <enclosure url="https://github.com/mattbirchler/Dict-releases/releases/download/v1.0-6/Dict-1.0-6.zip" type="application/octet-stream" sparkle:edSignature="LtK9/+nUOhNBijvdgqDqfFqUIrs0lJPWarQdncEhqOXbdHSn7XOz5YUAzrbzx7TZMlfS1TKw1Z0LCm+6644wCA==" length="7993695"/>
+        </item>
+        <item>
+            <title>Dict 1.0</title>
             <pubDate>Wed, 04 Nov 2026 17:45:40 GMT</pubDate>
             <sparkle:version>5</sparkle:version>
             <sparkle:shortVersionString>1.0</sparkle:shortVersionString>
