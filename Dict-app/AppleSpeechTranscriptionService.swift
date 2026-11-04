@@ -136,15 +136,14 @@ final class AppleSpeechTranscriptionService: TranscriptionEngine {
         // Install the mic tap. The callback runs on a realtime audio thread:
         // capture Sendable/local values, never touch main-actor state directly
         // (energy is published via a MainActor Task hop).
-        let tapFormat = audioEngine.inputNode.outputFormat(forBus: 0)
-        let converter = AVAudioConverter(from: tapFormat, to: analyzerFormat)
-        let format = analyzerFormat
+        // The tap takes `format: nil`; see TapConverter for why.
+        let tapConverter = TapConverter(targetFormat: analyzerFormat)
         do {
-            audioEngine.inputNode.installTap(onBus: 0, bufferSize: 4096, format: tapFormat) { [weak self] buffer, _ in
+            audioEngine.inputNode.installTap(onBus: 0, bufferSize: 4096, format: nil) { [weak self] buffer, _ in
                 let level = Self.rmsLevel(buffer)
                 let spectrum = SpectrumAnalyzer.bandAmplitudes(buffer)
                 Task { @MainActor [weak self] in self?.appendEnergy(level, spectrum: spectrum) }
-                if let converter, let converted = Self.convert(buffer, using: converter, to: format) {
+                if let converted = tapConverter.convert(buffer) {
                     builder.yield(AnalyzerInput(buffer: converted))
                 }
             }
@@ -255,24 +254,6 @@ final class AppleSpeechTranscriptionService: TranscriptionEngine {
         var sum: Float = 0
         for i in 0..<count { let s = channel[i]; sum += s * s }
         return (sum / Float(count)).squareRoot()
-    }
-
-    /// Sample-rate-aware conversion from the tap format to the analyzer format.
-    nonisolated static func convert(_ buffer: AVAudioPCMBuffer,
-                                    using converter: AVAudioConverter,
-                                    to format: AVAudioFormat) -> AVAudioPCMBuffer? {
-        let ratio = format.sampleRate / buffer.format.sampleRate
-        let capacity = AVAudioFrameCount(Double(buffer.frameLength) * ratio) + 1
-        guard let out = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: capacity) else { return nil }
-        var supplied = false
-        var err: NSError?
-        converter.convert(to: out, error: &err) { _, status in
-            if supplied { status.pointee = .noDataNow; return nil }
-            supplied = true
-            status.pointee = .haveData
-            return buffer
-        }
-        return err == nil ? out : nil
     }
 }
 

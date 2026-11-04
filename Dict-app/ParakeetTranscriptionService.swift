@@ -40,6 +40,14 @@ final class ParakeetTranscriptionService: TranscriptionEngine {
     /// prepare) knows the session it was starting is already over.
     private var session = 0
     private let audioEngine = AVAudioEngine()
+    /// The current recording's converter, kept so a mid-recording restart
+    /// can reinstall the tap. Nil when not recording.
+    private var tapConverter: TapConverter?
+    private var configurationObserver: (any NSObjectProtocol)?
+    /// Restarts so far this recording. Capped so a device that keeps
+    /// reconfiguring can't loop us forever.
+    private var configurationRestarts = 0
+    private static let maxConfigurationRestarts = 3
     /// Recorded 16 kHz mono samples, appended from the realtime tap thread.
     /// Lock-protected rather than hopped to the main actor so stop() can't
     /// lose buffers that were still in flight between actors.
@@ -102,25 +110,12 @@ final class ParakeetTranscriptionService: TranscriptionEngine {
             throw ParakeetTranscriptionError.audioFormatUnavailable
         }
 
-        // The tap callback runs on a realtime audio thread: append samples
-        // under the lock, publish energy via a MainActor hop.
         AudioInputDevices.applyIfPossible(inputDeviceID, to: audioEngine)
-        let tapFormat = audioEngine.inputNode.outputFormat(forBus: 0)
-        let converter = AVAudioConverter(from: tapFormat, to: targetFormat)
-        let samplesBox = recordedSamples
-        audioEngine.inputNode.installTap(onBus: 0, bufferSize: 4096, format: tapFormat) { [weak self] buffer, _ in
-            let level = Self.rmsLevel(buffer)
-            let spectrum = SpectrumAnalyzer.bandAmplitudes(buffer)
-            Task { @MainActor [weak self] in self?.appendEnergy(level, spectrum: spectrum) }
-            guard let converter,
-                  let converted = Self.convert(buffer, using: converter, to: targetFormat),
-                  let channel = converted.floatChannelData?[0] else { return }
-            let frames = Int(converted.frameLength)
-            guard frames > 0 else { return }
-            samplesBox.withLock {
-                $0.append(contentsOf: UnsafeBufferPointer(start: channel, count: frames))
-            }
-        }
+        observeConfigurationChanges()
+        let tapConverter = TapConverter(targetFormat: targetFormat)
+        self.tapConverter = tapConverter
+        configurationRestarts = 0
+        installMicTap(converting: tapConverter)
         do {
             audioEngine.prepare()
             try audioEngine.start()
@@ -132,6 +127,55 @@ final class ParakeetTranscriptionService: TranscriptionEngine {
         }
         isRecording = true
         Log.engine.info("Recording started")
+    }
+
+    /// Taps the mic with `format: nil` (see TapConverter for why). The
+    /// callback runs on a realtime audio thread: append samples under the
+    /// lock, publish energy via a MainActor hop.
+    private func installMicTap(converting tapConverter: TapConverter) {
+        let samplesBox = recordedSamples
+        audioEngine.inputNode.installTap(onBus: 0, bufferSize: 4096, format: nil) { [weak self] buffer, _ in
+            let level = Self.rmsLevel(buffer)
+            let spectrum = SpectrumAnalyzer.bandAmplitudes(buffer)
+            Task { @MainActor [weak self] in self?.appendEnergy(level, spectrum: spectrum) }
+            guard let converted = tapConverter.convert(buffer),
+                  let channel = converted.floatChannelData?[0] else { return }
+            let frames = Int(converted.frameLength)
+            guard frames > 0 else { return }
+            samplesBox.withLock {
+                $0.append(contentsOf: UnsafeBufferPointer(start: channel, count: frames))
+            }
+        }
+    }
+
+    /// AVAudioEngine stops itself when the input device reconfigures, which
+    /// AirPods do as they switch into call mode for the mic. Without a
+    /// restart the rest of the recording would be silent.
+    private func observeConfigurationChanges() {
+        guard configurationObserver == nil else { return }
+        configurationObserver = NotificationCenter.default.addObserver(
+            forName: .AVAudioEngineConfigurationChange,
+            object: audioEngine,
+            queue: nil
+        ) { [weak self] _ in
+            Task { @MainActor [weak self] in self?.restartAfterConfigurationChange() }
+        }
+    }
+
+    private func restartAfterConfigurationChange() {
+        guard isRecording, let tapConverter,
+              configurationRestarts < Self.maxConfigurationRestarts else { return }
+        configurationRestarts += 1
+        Log.engine.info("Audio configuration changed mid-recording, restarting capture")
+        audioEngine.inputNode.removeTap(onBus: 0)
+        if audioEngine.isRunning { audioEngine.stop() }
+        installMicTap(converting: tapConverter)
+        do {
+            audioEngine.prepare()
+            try audioEngine.start()
+        } catch {
+            Log.engine.error("Couldn't restart capture: \(String(describing: error), privacy: .public)")
+        }
     }
 
     /// Stops the engine and throws the recording away without transcribing —
@@ -244,6 +288,7 @@ final class ParakeetTranscriptionService: TranscriptionEngine {
     }
 
     private func teardownAudio() {
+        tapConverter = nil
         audioEngine.inputNode.removeTap(onBus: 0)
         audioSpectrum = []
         spectrumGain = SpectrumGain()
@@ -290,24 +335,6 @@ final class ParakeetTranscriptionService: TranscriptionEngine {
         var sum: Float = 0
         for i in 0..<count { let s = channel[i]; sum += s * s }
         return (sum / Float(count)).squareRoot()
-    }
-
-    /// Sample-rate-aware conversion from the tap format to 16 kHz mono.
-    nonisolated static func convert(_ buffer: AVAudioPCMBuffer,
-                                    using converter: AVAudioConverter,
-                                    to format: AVAudioFormat) -> AVAudioPCMBuffer? {
-        let ratio = format.sampleRate / buffer.format.sampleRate
-        let capacity = AVAudioFrameCount(Double(buffer.frameLength) * ratio) + 1
-        guard let out = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: capacity) else { return nil }
-        var supplied = false
-        var err: NSError?
-        converter.convert(to: out, error: &err) { _, status in
-            if supplied { status.pointee = .noDataNow; return nil }
-            supplied = true
-            status.pointee = .haveData
-            return buffer
-        }
-        return err == nil ? out : nil
     }
 }
 
