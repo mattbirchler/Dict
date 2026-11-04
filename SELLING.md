@@ -7,9 +7,9 @@ the Mac; Dict never contacts a server about them.
 ## How a sale works
 
 1. Buy Dict (in the app, the menu, or the website) opens
-   `https://store-production-8e91.up.railway.app/buy`, which redirects to the Payment Link.
+   `https://dictapp.app/buy`, which redirects to the Payment Link.
 2. After paying, Stripe sends the buyer to
-   `https://store-production-8e91.up.railway.app/thanks?session_id={CHECKOUT_SESSION_ID}`.
+   `https://dictapp.app/thanks?session_id={CHECKOUT_SESSION_ID}`.
 3. That page calls `/api/license`. The function reads the checkout from
    Stripe, refuses it unless it's paid and came from Dict's Payment Link,
    and signs a key. The key is made from the checkout itself, so reloading
@@ -47,6 +47,12 @@ sides use the same test key, so a format change breaks one of them.
 
 ## Store setup (Railway project `dict-store`, service `store`)
 
+The store lives at `https://dictapp.app` (bought through Vercel, which
+hosts its DNS). The root record there is an ALIAS to the Railway target
+shown by `railway domain list`, plus a `_railway-verify` TXT record. The
+Railway address `https://store-production-8e91.up.railway.app` still works
+and older builds of Dict point there, so keep it.
+
 The site is `server/`: a dependency-free Node server (`server.mjs`) that
 serves the pages in `public/` and the two handlers in `api/`. Railway
 runs it with `npm start` and gives it `PORT`. `/healthz` answers `ok`.
@@ -73,4 +79,4 @@ Variables (production environment):
 
 In Stripe, set the Payment Link's confirmation page to "Don't show
 confirmation page" and redirect to
-`https://store-production-8e91.up.railway.app/thanks?session_id={CHECKOUT_SESSION_ID}`.
+`https://dictapp.app/thanks?session_id={CHECKOUT_SESSION_ID}`.

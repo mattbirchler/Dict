@@ -288,7 +288,7 @@ struct AboutSettingsTab: View {
 
             HStack(spacing: 16) {
                 Link("Report a Problem", destination: URL(string: "https://github.com/mattbirchler/Dict-releases/issues/new")!)
-                Link("Website", destination: URL(string: "https://store-production-8e91.up.railway.app")!)
+                Link("Website", destination: URL(string: "https://dictapp.app")!)
                 Link("Privacy", destination: URL(string: "https://github.com/mattbirchler/Dict-releases/blob/main/PRIVACY.md")!)
             }
             .font(.callout)

@@ -139,7 +139,7 @@ final class LicenseStore {
     }
 
     /// Where people buy Dict. The checkout sends them back with a key.
-    static let purchaseURL = URL(string: "https://store-production-8e91.up.railway.app/buy")!
+    static let purchaseURL = URL(string: "https://dictapp.app/buy")!
 
     private(set) var license: License?
     /// Why the last activation link didn't work, for the License screen.
