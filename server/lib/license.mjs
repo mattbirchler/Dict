@@ -38,5 +38,5 @@ export function issueLicense({ email, purchase, issued }, privateKey) {
 
 /** The link that opens Dict and activates the key in one click. */
 export function activationURL(key) {
-  return "dict://activate?key=" + encodeURIComponent(key);
+  return "dictapp://activate?key=" + encodeURIComponent(key);
 }

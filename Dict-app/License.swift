@@ -142,6 +142,8 @@ final class LicenseStore {
     static let purchaseURL = URL(string: "https://dict.birchtree.me/buy")!
 
     private(set) var license: License?
+    /// Why the last activation link didn't work, for the License screen.
+    var linkProblem: String?
     private let defaults: UserDefaults
     private let publicKey: String
     private let trialStart: Date
@@ -176,6 +178,7 @@ final class LicenseStore {
         let verified = try License.verify(text, publicKey: publicKey)
         defaults.set(verified.key, forKey: Self.keyDefaultsKey)
         license = verified
+        linkProblem = nil
         return verified
     }
 

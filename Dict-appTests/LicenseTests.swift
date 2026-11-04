@@ -56,7 +56,7 @@ struct LicenseTests {
     }
 
     @Test func keyIsFoundInTheActivationLink() throws {
-        let link = "dict://activate?key=" + Self.key.addingPercentEncoding(withAllowedCharacters: .alphanumerics)!
+        let link = "dictapp://activate?key=" + Self.key.addingPercentEncoding(withAllowedCharacters: .alphanumerics)!
         #expect(try License.verify(link, publicKey: Self.testPublicKey).key == Self.key)
     }
 }
@@ -150,5 +150,46 @@ struct LicenseStoreTests {
         let defaults = makeDefaults(), marker = markerURL()
         defaults.set(LicenseTests.forged, forKey: LicenseStore.keyDefaultsKey)
         #expect(makeStore(defaults: defaults, marker: marker, at: start).license == nil)
+    }
+}
+
+@MainActor
+struct TrialLockTests {
+    private func store(expired: Bool) -> LicenseStore {
+        let name = "TrialLockTests-\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: name)!
+        defaults.removePersistentDomain(forName: name)
+        let marker = FileManager.default.temporaryDirectory.appending(path: "dict-trial-\(UUID().uuidString)/Trial")
+        let start = Date(timeIntervalSince1970: 1_800_000_000)
+        let clock = TrialClock(defaults: defaults, markerURL: marker)
+        _ = clock.startDate(now: start)
+        return LicenseStore(defaults: defaults, trial: clock, publicKey: LicenseTests.testPublicKey,
+                            now: { start + (expired ? 15 : 1) * 86_400 })
+    }
+
+    @Test func expiredTrialBlocksTheHotkeyWithAReason() {
+        let name = "TrialLockTests-\(UUID().uuidString)"
+        let state = AppState(settings: SettingsStore(defaults: UserDefaults(suiteName: name)!), license: store(expired: true))
+        #expect(state.canStartRecording == false)
+        #expect(state.startBlockedReason == "Trial over. Buy Dict to keep dictating")
+    }
+
+    @Test func trialDoesNotAddABlockReason() {
+        let name = "TrialLockTests-\(UUID().uuidString)"
+        let state = AppState(settings: SettingsStore(defaults: UserDefaults(suiteName: name)!), license: store(expired: false))
+        #expect(state.startBlockedReason != "Trial over. Buy Dict to keep dictating")
+    }
+
+    @Test func menuShowsTrialStateUntilLicensed() throws {
+        #expect(MenuBarManager.licenseStatusTitle(.trial(daysLeft: 9)) == "Free trial: 9 days left")
+        #expect(MenuBarManager.licenseStatusTitle(.trial(daysLeft: 1)) == "Free trial: 1 day left")
+        #expect(MenuBarManager.licenseStatusTitle(.expired) == "Free trial ended")
+        let license = try License.verify(LicenseTests.key, publicKey: LicenseTests.testPublicKey)
+        #expect(MenuBarManager.licenseStatusTitle(.licensed(license)) == nil)
+    }
+
+    @Test func purchaseDateReadsNaturally() {
+        #expect(LicenseView.purchaseDate("2026-11-04").contains("2026"))
+        #expect(LicenseView.purchaseDate("garbage") == "garbage")
     }
 }

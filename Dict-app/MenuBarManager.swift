@@ -179,6 +179,19 @@ final class MenuBarManager: NSObject, NSMenuDelegate {
             menu.addItem(.separator())
         }
 
+        if let status = Self.licenseStatusTitle(appState.license.status) {
+            let line = NSMenuItem(title: status, action: nil, keyEquivalent: "")
+            line.isEnabled = false
+            menu.addItem(line)
+            let buy = NSMenuItem(title: "Buy Dict…", action: #selector(buyDict), keyEquivalent: "")
+            buy.target = self
+            menu.addItem(buy)
+            let enter = NSMenuItem(title: "Enter License Key…", action: #selector(openLicense), keyEquivalent: "")
+            enter.target = self
+            menu.addItem(enter)
+            menu.addItem(.separator())
+        }
+
         let enabled = NSMenuItem(
             title: "Dictation Enabled",
             action: #selector(toggleEnabled),
@@ -256,6 +269,23 @@ final class MenuBarManager: NSObject, NSMenuDelegate {
         )
         quit.target = self
         menu.addItem(quit)
+    }
+
+    /// The menu's trial line, or nil once Dict is licensed.
+    static func licenseStatusTitle(_ status: LicenseStore.Status) -> String? {
+        switch status {
+        case .licensed: nil
+        case .trial(let days): days == 1 ? "Free trial: 1 day left" : "Free trial: \(days) days left"
+        case .expired: "Free trial ended"
+        }
+    }
+
+    @objc private func buyDict() {
+        NSWorkspace.shared.open(LicenseStore.purchaseURL)
+    }
+
+    @objc private func openLicense() {
+        onOpen?(.license)
     }
 
     @objc private func toggleEnabled() {
