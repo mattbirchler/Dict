@@ -7,6 +7,22 @@
         <language>en</language>
         <item>
             <title>Dict 1.0</title>
+            <pubDate>Wed, 04 Nov 2026 17:45:40 GMT</pubDate>
+            <sparkle:version>5</sparkle:version>
+            <sparkle:shortVersionString>1.0</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description><![CDATA[
+<h3>Dict 1.0 (build 5)</h3>
+<h3>Fixes</h3>
+<ul><li><strong>AirPods work as a microphone.</strong> Choosing AirPods recorded nothing, and the app could crash on your next key press. AirPods switch to a different audio format when their mic turns on, and Dict now follows that change instead of tripping over it. If a mic changes format mid-recording, Dict picks the recording back up.</li></ul>
+<h3>Improvements</h3>
+<ul><li><strong>You can see when the speech model is loading.</strong> Right after launch, Parakeet takes a moment to load. The menu bar icon now animates while that happens, and the menu says &quot;Loading speech model…&quot;. When it finishes, a short &quot;Ready to dictate&quot; notice appears at the bottom of the screen so you know you can start talking.</li><li><strong>Names come out the way your document spells them, with any engine.</strong> Dict reads the field you&#x27;re typing into and fixes names and terms to match it. &quot;birchtree&quot; becomes &quot;Birchtree&quot;, &quot;iphone&quot; becomes &quot;iPhone&quot;, and a name heard as two words (&quot;birch tree&quot;) is joined back up. Before, this only worked when Apple Intelligence formatting ran, which with Parakeet was mostly in coding apps. Ordinary words are left alone, so a document that mentions &quot;Mark&quot; won&#x27;t capitalize every &quot;mark&quot;. You can turn this off in Settings under &quot;Spell names the way the document does&quot;.</li></ul>
+            ]]></description>
+            <enclosure url="https://github.com/mattbirchler/Dict/releases/download/v1.0-5/Dict-1.0-5.zip" type="application/octet-stream" sparkle:edSignature="ByIJysGyMz+VOJ8fQkvud8BUqkwgc9/6dvzjYrGaXEvYFthZN2PEMjXWpOILVC8X05TPggyy3i9FLMxdGOFWDg==" length="7931036"/>
+        </item>
+        <item>
+            <title>Dict 1.0</title>
             <pubDate>Tue, 03 Nov 2026 23:05:18 GMT</pubDate>
             <sparkle:version>4</sparkle:version>
             <sparkle:shortVersionString>1.0</sparkle:shortVersionString>
