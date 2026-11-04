@@ -8,6 +8,7 @@ struct LicenseView: View {
     @State private var keyText = ""
     @State private var problem: String?
     @State private var confirmingRemove = false
+    @State private var copied = false
 
     var body: some View {
         Form {
@@ -30,9 +31,20 @@ struct LicenseView: View {
                 Section {
                     LabeledContent("Licensed to", value: owned.email)
                     LabeledContent("Purchased", value: Self.purchaseDate(owned.issued))
-                    Button("Copy License Key") {
-                        NSPasteboard.general.clearContents()
-                        NSPasteboard.general.setString(owned.key, forType: .string)
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack(spacing: 8) {
+                            Button("Copy License Key") { copy(owned.key) }
+                            if copied {
+                                Label("Copied", systemImage: "checkmark")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                    .transition(.opacity)
+                            }
+                        }
+                        Text("Keep your key somewhere safe, like a password manager. You\u{2019}ll need it to set up Dict on another Mac.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                     Button("Remove License from This Mac…", role: .destructive) {
                         confirmingRemove = true
@@ -79,6 +91,16 @@ struct LicenseView: View {
             Button("Remove License", role: .destructive) { license.deactivate() }
         } message: {
             Text("Dict goes back to its trial state on this Mac. You can enter the same key again at any time.")
+        }
+    }
+
+    private func copy(_ key: String) {
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(key, forType: .string)
+        withAnimation { copied = true }
+        Task {
+            try? await Task.sleep(for: .seconds(2))
+            withAnimation { copied = false }
         }
     }
 
