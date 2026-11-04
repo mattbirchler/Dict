@@ -5,7 +5,7 @@
 	<!-- Sparkle: where updates are announced, and the key they must be signed with.
 	     Xcode merges this file with the Info.plist it generates from build settings. -->
 	<key>SUFeedURL</key>
-	<string>https://raw.githubusercontent.com/mattbirchler/Dict/main/appcast.xml</string>
+	<string>https://raw.githubusercontent.com/mattbirchler/Dict-releases/main/appcast.xml</string>
 	<key>SUPublicEDKey</key>
 	<string>OCgTVkB0ALGcmayKSv26zkjNwtIpm61J8d7GzG8tVN4=</string>
 	<!-- dictapp://activate?key=… from the purchase page. Not "dict", which
