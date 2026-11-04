@@ -70,7 +70,7 @@ h2 { font: 700 clamp(26px, 3.4vw, 36px)/1.1 var(--led); text-transform: uppercas
 .small a { color: var(--peach); }
 
 /* ---------- Buttons ---------- */
-.actions { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.actions { display: flex; flex-wrap: wrap; gap: 18px 20px; align-items: center; }
 .button {
   appearance: none;
   display: inline-flex;
@@ -107,6 +107,24 @@ h2 { font: 700 clamp(26px, 3.4vw, 36px)/1.1 var(--led); text-transform: uppercas
 }
 .button.primary:hover { background: #ff7a3d; border-color: #ff9a68; }
 .button.primary:hover::after { inset: -7px; border-color: var(--peach); }
+
+/* With JavaScript, store.js swaps the dotted border for real dots that
+   ripple outward like the app's meter while the button is hovered. */
+.button.primary.ringed::after { display: none; }
+.ring { position: absolute; inset: 0; pointer-events: none; }
+.ring i {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 3px;
+  height: 3px;
+  margin: -1.5px 0 0 -1.5px;
+  border-radius: 50%;
+  background: var(--ember);
+  opacity: 0.8;
+  will-change: transform;
+}
+.ring i.hi { background: var(--pink); opacity: 1; box-shadow: 0 0 4px rgba(255, 61, 128, 0.8); }
 .button .price { font-weight: 500; opacity: 0.8; }
 .button svg { width: 18px; height: 18px; flex: none; }
 

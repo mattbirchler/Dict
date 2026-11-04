@@ -48,6 +48,76 @@
     requestAnimationFrame(tick);
   }
 
+  // Buy buttons: a ring of dots around the pill. Hovering sends a waveform
+  // around it, the dots stepping outward like the meter's columns.
+  const GAP = 7; // ring distance from the button edge, to the dot centers
+  const SPACING = 7;
+  const ring = (button) => {
+    const box = document.createElement("span");
+    box.className = "ring";
+    box.setAttribute("aria-hidden", "true");
+    button.appendChild(box);
+    button.classList.add("ringed");
+    let dots = [];
+
+    // Evenly spaced points on the pill, each with its outward direction.
+    const layout = () => {
+      const w = button.offsetWidth, h = button.offsetHeight, r = h / 2;
+      const R = r + GAP, L = w - h, P = 2 * L + 2 * Math.PI * R;
+      const count = Math.round(P / SPACING);
+      box.replaceChildren();
+      dots = [];
+      for (let i = 0; i < count; i++) {
+        const s = (i * P) / count;
+        let x, y, nx, ny;
+        if (s < L) { x = r + s; y = r - R; nx = 0; ny = -1; }
+        else if (s < L + Math.PI * R) {
+          const a = -Math.PI / 2 + (s - L) / R;
+          nx = Math.cos(a); ny = Math.sin(a); x = w - r + R * nx; y = r + R * ny;
+        } else if (s < 2 * L + Math.PI * R) { x = w - r - (s - L - Math.PI * R); y = r + R; nx = 0; ny = 1; }
+        else {
+          const a = Math.PI / 2 + (s - 2 * L - Math.PI * R) / R;
+          nx = Math.cos(a); ny = Math.sin(a); x = r + R * nx; y = r + R * ny;
+        }
+        const el = document.createElement("i");
+        box.appendChild(el);
+        dots.push({ el, x, y, nx, ny, u: s / P });
+      }
+      draw(0, 0);
+    };
+
+    const draw = (amp, t) => {
+      for (const d of dots) {
+        // Two waves travelling around the ring, folded into 0 to 3 steps.
+        const wave = Math.max(0, Math.sin(d.u * Math.PI * 6 - t * 7)) * 0.65 +
+          Math.abs(Math.sin(d.u * Math.PI * 14 + t * 11)) * 0.35;
+        const step = Math.round(wave * amp * 3);
+        const out = step * 2.5;
+        d.el.style.transform = `translate(${d.x + d.nx * out}px, ${d.y + d.ny * out}px)`;
+        d.el.classList.toggle("hi", step >= 2);
+      }
+    };
+
+    let amp = 0, goal = 0, frame = 0;
+    const tick = (now) => {
+      amp += (goal - amp) * 0.12;
+      if (goal === 0 && amp < 0.02) { amp = 0; draw(0, 0); frame = 0; return; }
+      draw(amp, now / 1000);
+      frame = requestAnimationFrame(tick);
+    };
+    const set = (on) => {
+      if (still) return;
+      goal = on ? 1 : 0;
+      if (!frame) frame = requestAnimationFrame(tick);
+    };
+    button.addEventListener("pointerenter", () => set(true));
+    button.addEventListener("pointerleave", () => set(false));
+    button.addEventListener("focus", () => set(true));
+    button.addEventListener("blur", () => set(false));
+    new ResizeObserver(layout).observe(button);
+  };
+  document.querySelectorAll(".button.primary").forEach(ring);
+
   // Hero: hold the key, talk, let go, the sentence is typed.
   const stage = document.querySelector("[data-demo]");
   if (!stage) return;
