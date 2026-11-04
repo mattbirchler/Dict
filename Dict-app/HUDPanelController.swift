@@ -13,6 +13,8 @@ final class HUDPanelController {
     private static let successHold: Duration = .milliseconds(550)
     /// How long a notice ("Nothing heard", "Loading speech model") stays up.
     private static let noticeHold: Duration = .milliseconds(1400)
+    /// How long "Ready to dictate" stays up after the model loads.
+    private static let readyHold: Duration = .milliseconds(1800)
 
     /// Off only for `--preview-hud`, where the HUD should stay up.
     var autoDismiss = true
@@ -62,6 +64,29 @@ final class HUDPanelController {
         guard autoDismiss else { return }
         pendingDismiss = Task { [weak self] in
             try? await Task.sleep(for: Self.noticeHold)
+            guard !Task.isCancelled else { return }
+            self?.dismiss()
+        }
+    }
+
+    /// Tells the user the speech model finished loading. Shown on its own
+    /// or in place of a "Loading speech model" notice, never over a
+    /// dictation in progress.
+    func showReady(hotkeyGlyph: String) {
+        if hudState.isPresented {
+            switch hudState.mode {
+            case .failed, .ready, .done: break
+            case .recording, .recordingHandsFree, .processing: return
+            }
+        }
+        pendingDismiss?.cancel()
+        presentation += 1
+        hudState.hotkeyGlyph = hotkeyGlyph
+        hudState.reduceMotion = reduceMotion
+        present(mode: .ready)
+        guard autoDismiss else { return }
+        pendingDismiss = Task { [weak self] in
+            try? await Task.sleep(for: Self.readyHold)
             guard !Task.isCancelled else { return }
             self?.dismiss()
         }
