@@ -310,3 +310,34 @@ footer a:hover { color: var(--ink); }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* ---------- Copy key: squash, bounce, dot burst ---------- */
+#copy { position: relative; min-width: 8.6em; justify-content: center; }
+#copy.copied {
+  border-color: var(--ember);
+  color: var(--peach);
+  background: rgba(255, 107, 41, 0.12);
+  animation: pop 0.45s cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+#copy .tick { color: var(--gold); font-weight: 700; }
+@keyframes pop {
+  0% { transform: scale(0.9); }
+  55% { transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
+.burst { position: absolute; left: 50%; top: 50%; pointer-events: none; }
+.burst i {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  margin: -2px 0 0 -2px;
+  border-radius: 50%;
+  background: var(--ember);
+  box-shadow: 0 0 5px rgba(255, 107, 41, 0.8);
+  animation: spray 0.6s cubic-bezier(0.2, 0.7, 0.3, 1) forwards;
+}
+.burst i.hi { background: var(--pink); box-shadow: 0 0 5px rgba(255, 61, 128, 0.8); }
+@keyframes spray {
+  from { transform: translate(0, 0) scale(1.4); opacity: 1; }
+  to { transform: translate(var(--x), var(--y)) scale(0.4); opacity: 0; }
+}

@@ -83,7 +83,7 @@
         box.appendChild(el);
         dots.push({ el, x, y, nx, ny, u: s / P });
       }
-      draw(0, 0);
+      draw(amp, 0);
     };
 
     const draw = (amp, t) => {
@@ -98,7 +98,9 @@
       }
     };
 
-    let amp = 0, goal = 0, frame = 0;
+    // data-ring="live" keeps a small ripple going, for a page's one main action.
+    const rest = button.dataset.ring === "live" && !still ? 0.35 : 0;
+    let amp = rest, goal = rest, frame = 0;
     const tick = (now) => {
       amp += (goal - amp) * 0.12;
       if (goal === 0 && amp < 0.02) { amp = 0; draw(0, 0); frame = 0; return; }
@@ -107,9 +109,10 @@
     };
     const set = (on) => {
       if (still) return;
-      goal = on ? 1 : 0;
+      goal = on ? 1 : rest;
       if (!frame) frame = requestAnimationFrame(tick);
     };
+    if (rest) frame = requestAnimationFrame(tick);
     button.addEventListener("pointerenter", () => set(true));
     button.addEventListener("pointerleave", () => set(false));
     button.addEventListener("focus", () => set(true));
