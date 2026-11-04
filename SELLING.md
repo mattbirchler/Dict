@@ -7,9 +7,9 @@ the Mac; Dict never contacts a server about them.
 ## How a sale works
 
 1. Buy Dict (in the app, the menu, or the website) opens
-   `https://dict-store.vercel.app/buy`, which redirects to the Payment Link.
+   `https://store-production-8e91.up.railway.app/buy`, which redirects to the Payment Link.
 2. After paying, Stripe sends the buyer to
-   `https://dict-store.vercel.app/thanks?session_id={CHECKOUT_SESSION_ID}`.
+   `https://store-production-8e91.up.railway.app/thanks?session_id={CHECKOUT_SESSION_ID}`.
 3. That page calls `/api/license`. The function reads the checkout from
    Stripe, refuses it unless it's paid and came from Dict's Payment Link,
    and signs a key. The key is made from the checkout itself, so reloading
@@ -26,7 +26,7 @@ the Mac; Dict never contacts a server about them.
 sides use the same test key, so a format change breaks one of them.
 
 - **Signing key.** Made once with `scripts/license-keygen.sh`. The private
-  half is in the login keychain (account `dict-license`) and in Vercel as
+  half is in the login keychain (account `dict-license`) and in Railway as
   `DICT_LICENSE_PRIVATE_KEY`; the public half is `License.publicKey`. Back
   the private half up with the Sparkle key. Losing it means no new keys
   without shipping a new public key; leaking it means anyone can make keys.
@@ -37,12 +37,24 @@ sides use the same test key, so a format change breaks one of them.
 - **Refunds.** A key can't be revoked; refunding is on trust. If that ever
   matters, a list of revoked purchase ids could ride along in the appcast.
 
-## Store setup (Vercel project `dict-store`)
+## Store setup (Railway project `dict-store`, service `store`)
 
-The site is `server/`: static pages in `public/`, functions in `api/`.
-Deploy with `cd server && vercel deploy --prod`. Tests: `cd server && npm test`.
+The site is `server/`: a dependency-free Node server (`server.mjs`) that
+serves the pages in `public/` and the two handlers in `api/`. Railway
+runs it with `npm start` and gives it `PORT`. `/healthz` answers `ok`.
 
-Environment variables (Production):
+```bash
+cd server
+npm test                      # handler and server tests
+railway up                    # deploy (the folder is linked to the service)
+railway logs                  # see what it's doing
+```
+
+Set variables with `railway variable set NAME --stdin` so secrets never
+land in shell history. The signing key, straight from the keychain:
+`security find-generic-password -a dict-license -w | tr -d '\n' | railway variable set DICT_LICENSE_PRIVATE_KEY --stdin`.
+
+Variables (production environment):
 
 | Name | What |
 | --- | --- |
@@ -53,4 +65,4 @@ Environment variables (Production):
 
 In Stripe, set the Payment Link's confirmation page to "Don't show
 confirmation page" and redirect to
-`https://dict-store.vercel.app/thanks?session_id={CHECKOUT_SESSION_ID}`.
+`https://store-production-8e91.up.railway.app/thanks?session_id={CHECKOUT_SESSION_ID}`.
