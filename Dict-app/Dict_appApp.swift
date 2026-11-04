@@ -1,5 +1,6 @@
 import SwiftUI
 import Sparkle
+import os
 
 @main
 struct Dict_appApp: App {
@@ -25,6 +26,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     let onboardingController = OnboardingWindowController()
     let mainWindowController = MainWindowController()
     private var permissionCheckTimer: Timer?
+    /// The License screen opens by itself the first time an expired trial
+    /// blocks the hotkey, not on every press.
+    private var showedTrialEnded = false
 
     // Sparkle updater — starts on launch, runs automatic daily checks
     // (controlled by SUEnableAutomaticChecks / SUScheduledCheckInterval in
@@ -83,6 +87,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 // recording or processing) leaves the HUD as it is.
                 if let reason = self.appState.startBlockedReason {
                     self.hudController.showNotice(reason)
+                }
+                if !self.appState.license.status.allowsDictation && !self.showedTrialEnded {
+                    self.showedTrialEnded = true
+                    self.openMainWindow(.license)
                 }
                 return false
             }
@@ -177,6 +185,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             appState.prepareEngine()
         }
 
+        // Opened from a link before launch finished: act on it now.
+        didFinishLaunching = true
+        if let pending = pendingActivationURL {
+            pendingActivationURL = nil
+            handleActivation(pending)
+        }
+
         permissionCheckTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { [weak self] _ in
             guard let self else { return }
             let wasGranted = self.appState.permissionChecker.accessibilityGranted
@@ -185,5 +200,35 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 _ = self.keyMonitor.install()
             }
         }
+    }
+
+    // MARK: - License links
+
+    private var didFinishLaunching = false
+    private var pendingActivationURL: URL?
+
+    private func openMainWindow(_ section: MainSection) {
+        mainWindowController.show(section: section, appState: appState, updater: updaterController.updater)
+    }
+
+    /// dictapp://activate?key=… from the purchase confirmation page.
+    func application(_ application: NSApplication, open urls: [URL]) {
+        guard let url = urls.first(where: { $0.scheme == "dictapp" && $0.host == "activate" }) else { return }
+        if didFinishLaunching {
+            handleActivation(url)
+        } else {
+            pendingActivationURL = url
+        }
+    }
+
+    private func handleActivation(_ url: URL) {
+        do {
+            try appState.license.activate(url.absoluteString)
+            Log.app.info("Activated a license from a link")
+        } catch {
+            appState.license.linkProblem = error.message
+            Log.app.error("Activation link rejected")
+        }
+        openMainWindow(.license)
     }
 }

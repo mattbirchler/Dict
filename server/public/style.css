@@ -1,0 +1,74 @@
+:root {
+  --bg-top: #221a16;
+  --bg-bottom: #0f0d0c;
+  --card: rgba(255, 255, 255, 0.045);
+  --line: rgba(255, 255, 255, 0.09);
+  --text: #f4ece6;
+  --muted: #a99c93;
+  --accent: #f2a65a;
+  --accent-ink: #2a1607;
+  --error: #ff7a6b;
+}
+* { box-sizing: border-box; }
+html { background: var(--bg-bottom); }
+body {
+  margin: 0;
+  min-height: 100vh;
+  color: var(--text);
+  font: 16px/1.55 -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+  background:
+    radial-gradient(ellipse 70% 320px at 50% 0, rgba(242, 166, 90, 0.13), transparent),
+    linear-gradient(var(--bg-top), var(--bg-bottom) 70%);
+  display: flex;
+  justify-content: center;
+  padding: 72px 16px;
+}
+main { width: 100%; max-width: 560px; }
+.brand {
+  font-family: "Chakra Petch", sans-serif;
+  font-weight: 700;
+  letter-spacing: 0.28em;
+  font-size: 22px;
+}
+.label {
+  font-family: "Chakra Petch", sans-serif;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  font-size: 12px;
+  color: var(--accent);
+  margin: 36px 0 10px;
+}
+h1 { font-size: 28px; line-height: 1.2; margin: 18px 0 8px; }
+p { color: var(--muted); margin: 0 0 14px; }
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 20px;
+}
+.key {
+  font: 13px/1.5 ui-monospace, "SF Mono", Menlo, monospace;
+  color: var(--text);
+  word-break: break-all;
+  user-select: all;
+  margin: 0 0 16px;
+}
+.actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.button {
+  appearance: none;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--text);
+  font: 600 15px/1 -apple-system, BlinkMacSystemFont, sans-serif;
+  padding: 12px 18px;
+  border-radius: 10px;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-block;
+}
+.button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.error { color: var(--error); }
+.small { font-size: 14px; }
+[hidden] { display: none !important; }

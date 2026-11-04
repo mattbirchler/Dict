@@ -5,6 +5,7 @@ import os
 @Observable
 final class AppState {
     let settings: SettingsStore
+    let license: LicenseStore
     /// Fired when the HUD color scheme setting changes.
     var onHUDColorSchemeChanged: ((HUDColorScheme) -> Void)?
     let permissionChecker = PermissionChecker()
@@ -53,8 +54,9 @@ final class AppState {
         set { UserDefaults.standard.set(newValue, forKey: "hasCompletedOnboarding") }
     }
 
-    init(settings: SettingsStore) {
+    init(settings: SettingsStore, license: LicenseStore? = nil) {
         self.settings = settings
+        self.license = license ?? LicenseStore()
         pipeline.isFormattingEnabled = settings.isFormattingEnabled
         pipeline.dictationStyle = settings.dictationStyle
         pipeline.usesScreenContext = settings.usesScreenContext
@@ -225,11 +227,13 @@ final class AppState {
     /// True when a hotkey press can begin a recording right now.
     var canStartRecording: Bool {
         isEnabled && !isRecording && !isProcessing && !isPreparingEngine && isEngineReady
+            && license.status.allowsDictation
     }
 
     /// Why a hotkey press can't start a recording, for the HUD; nil when
     /// nothing is in the way (or the block is a normal busy state).
     var startBlockedReason: String? {
+        if !license.status.allowsDictation { return "Trial over. Buy Dict to keep dictating" }
         if isPreparingEngine { return "Loading speech model…" }
         if !isEngineReady {
             return engineNeedsDownload ? "Download the speech model in Settings" : "Speech model isn't ready"

@@ -7,9 +7,15 @@
 #    named "<version> build <number>".
 # 2. Builds, signs with Developer ID, and notarizes (scripts/notarize.sh).
 # 3. Signs the zip with Dict's Sparkle key and puts it in a GitHub release
-#    on mattbirchler/Dict with the notes.
-# 4. Adds the release to appcast.xml, commits it, and pushes main with a
-#    tag. The push is the moment people see the update.
+#    on mattbirchler/Dict-releases (public) with the notes. This repo, the
+#    code, is private.
+# 4. Adds the release to appcast.xml in Dict-releases and pushes it. The
+#    push is the moment people see the update.
+#
+# While this repo still has its own appcast.xml (the feed that copies
+# before the Dict-releases move check), the release goes into that feed
+# too, so those copies update and switch to the new feed. Once this repo
+# is private that file is deleted and this step stops by itself.
 #
 # NOTES is a short Markdown file written for people: what changed and why
 # they'd care. It shows in Sparkle's update window and on the release page.
@@ -19,7 +25,10 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-REPO=mattbirchler/Dict
+REPO=mattbirchler/Dict-releases
+RELEASES=build/releases-repo
+FEED=$RELEASES/appcast.xml
+LEGACY_FEED=appcast.xml
 WORK=build/publish
 DRY_RUN=${DRY_RUN:-0}
 
@@ -37,26 +46,35 @@ fi
 
 scripts/sparkle-tools.sh >/dev/null
 
+if [[ -d "$RELEASES/.git" ]]; then
+    git -C "$RELEASES" checkout -q main
+    git -C "$RELEASES" pull -q --ff-only
+else
+    gh repo clone "$REPO" "$RELEASES" -- -q
+fi
+[[ -z "$(git -C "$RELEASES" status --porcelain)" ]] || fail "$RELEASES has uncommitted changes."
+
 # The next build number is one past both the project and the live feed, so
 # Sparkle always sees it as newer.
 rm -rf "$WORK" && mkdir -p "$WORK"
 CURRENT=$(python3 scripts/version.py get)
 CURRENT_VERSION=${CURRENT% *}
 CURRENT_BUILD=${CURRENT#* }
-FEED_BUILD=$(grep -o '<sparkle:version>[0-9]*</sparkle:version>' appcast.xml | grep -o '[0-9]*' | sort -n | tail -1 || true)
+FEED_BUILD=$(cat "$FEED" $([[ -f $LEGACY_FEED ]] && echo $LEGACY_FEED) | grep -o '<sparkle:version>[0-9]*</sparkle:version>' | grep -o '[0-9]*' | sort -n | tail -1 || true)
 BUILD=$(( (CURRENT_BUILD > ${FEED_BUILD:-0} ? CURRENT_BUILD : ${FEED_BUILD:-0}) + 1 ))
 VERSION=${VERSION:-$CURRENT_VERSION}
 TAG="v$VERSION-$BUILD"
 echo "Publishing Dict $VERSION build $BUILD"
 
 cp Dict-app.xcodeproj/project.pbxproj "$WORK/project.pbxproj.before"
-cp appcast.xml "$WORK/appcast.xml.before"
+[[ -f $LEGACY_FEED ]] && cp $LEGACY_FEED "$WORK/legacy-appcast.xml.before"
 python3 scripts/version.py set "$VERSION" "$BUILD"
 # A dry run puts the project and the feed back the way they were.
 restore() {
     if [[ "$DRY_RUN" == 1 ]]; then
         cp "$WORK/project.pbxproj.before" Dict-app.xcodeproj/project.pbxproj
-        cp "$WORK/appcast.xml.before" appcast.xml
+        [[ -f "$WORK/legacy-appcast.xml.before" ]] && cp "$WORK/legacy-appcast.xml.before" $LEGACY_FEED
+        git -C "$RELEASES" checkout -q -- appcast.xml
     fi
 }
 trap restore EXIT
@@ -73,23 +91,28 @@ SIGNATURE=$(vendor/sparkle/bin/sign_update --account dict "$ZIP")
 [[ "$SIGNATURE" == *edSignature* ]] || fail "Couldn't sign the update: $SIGNATURE"
 ZIP_URL="https://github.com/$REPO/releases/download/$TAG/$(basename "$ZIP")"
 
-python3 scripts/appcast.py appcast.xml "$VERSION" "$BUILD" "$ZIP_URL" "$SIGNATURE" "$NOTES"
+python3 scripts/appcast.py "$FEED" "$VERSION" "$BUILD" "$ZIP_URL" "$SIGNATURE" "$NOTES"
+[[ -f $LEGACY_FEED ]] && python3 scripts/appcast.py $LEGACY_FEED "$VERSION" "$BUILD" "$ZIP_URL" "$SIGNATURE" "$NOTES"
 
 if [[ "$DRY_RUN" == 1 ]]; then
-    cp appcast.xml "$WORK/appcast.xml"
+    cp "$FEED" "$WORK/appcast.xml"
     echo "Dry run done. Zip: $ZIP  Feed: $WORK/appcast.xml"
     exit 0
 fi
 
-# The zip goes up before the feed points at it. The version commit is
-# pushed first so GitHub tags that commit when it creates the release;
-# the feed isn't committed yet, so nothing points at a missing download.
+# The zip goes up before either feed points at it, so nothing ever points
+# at a missing download. The code repo gets a tag for the version commit;
+# the release itself lives in Dict-releases.
 DMG="${ZIP%.zip}.dmg"
 [[ -f "$DMG" ]] || fail "No disk image next to the zip."
-git push -q origin main
-gh release create "$TAG" "$DMG" "$ZIP" --repo "$REPO" --target "$(git rev-parse HEAD)" --title "Dict $VERSION (build $BUILD)" --notes-file "$NOTES"
-git add appcast.xml
-git commit -q -m "release: $VERSION build $BUILD"
-git push -q origin main
-git fetch -q origin tag "$TAG"
+git tag "$TAG"
+git push -q origin main "$TAG"
+gh release create "$TAG" "$DMG" "$ZIP" --repo "$REPO" --title "Dict $VERSION (build $BUILD)" --notes-file "$NOTES"
+git -C "$RELEASES" commit -q -am "release: $VERSION build $BUILD"
+git -C "$RELEASES" push -q origin main
+if [[ -f $LEGACY_FEED ]]; then
+    git add $LEGACY_FEED
+    git commit -q -m "release: $VERSION build $BUILD"
+    git push -q origin main
+fi
 echo "Published Dict $VERSION build $BUILD. Macs pick it up within a day, or right away with Check for Updates."

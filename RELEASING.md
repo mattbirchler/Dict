@@ -1,8 +1,13 @@
 # Releasing Dict
 
-Dict ships outside the App Store. People download a notarized zip from
-GitHub Releases, and Sparkle tells running copies about new versions
-through `appcast.xml` on this repo's `main` branch.
+Dict ships outside the App Store. This repo (the code) is private. The
+public repo [mattbirchler/Dict-releases](https://github.com/mattbirchler/Dict-releases)
+holds everything people download: the notarized disk image and zip on its
+GitHub Releases, `appcast.xml` (the Sparkle feed running copies check),
+the public README, and `PRIVACY.md`. `make publish` keeps a clone of it in
+`build/releases-repo`.
+
+Sales and license keys are covered in [SELLING.md](SELLING.md).
 
 ## Shipping a version
 
@@ -27,14 +32,37 @@ That one command:
   to Apple for notarization, staples the ticket, and zips it
   (`scripts/notarize.sh`);
 - signs the zip with Dict's Sparkle key (keychain account `dict`);
-- pushes the version commit and creates the GitHub release `v1.1-6` on it
-  with the disk image, the zip and your notes (GitHub makes the tag);
-- adds the version to `appcast.xml`, commits `release: 1.1 build 6`, and
-  pushes `main`. This push is the moment users see the update.
+- tags the version commit `v1.1-6` and pushes it here;
+- creates the GitHub release `v1.1-6` on Dict-releases with the disk
+  image, the zip and your notes;
+- adds the version to Dict-releases' `appcast.xml`, commits
+  `release: 1.1 build 6`, and pushes it. This push is the moment users see
+  the update;
+- while this repo still has its own `appcast.xml` (see below), adds the
+  version there too and pushes `main`.
 
 `DRY_RUN=1 make publish NOTES=...` does everything except the commits, the
 upload, and the push, and leaves the feed it would publish in
 `build/publish/appcast.xml`. Run it before the first real release.
+
+## Making this repo private
+
+Copies of Dict 1.0 (build 5 and earlier) check
+`raw.githubusercontent.com/mattbirchler/Dict/main/appcast.xml`, which stops
+working the moment this repo goes private. Copies built from now on check
+Dict-releases instead. So, in this order:
+
+1. Ship the first version with licensing through `make publish` while this
+   repo is still public. It lands in both feeds.
+2. Wait for those copies to update. Sparkle checks once a day, so most
+   update within a week or two. Copies that never update keep working;
+   they just won't hear about updates.
+3. Delete `appcast.xml` here, commit, and push. `make publish` notices and
+   only updates Dict-releases from then on.
+4. Make the repo private: `gh repo edit mattbirchler/Dict --visibility private --accept-visibility-change-consequences`.
+
+The old releases on this repo (1.0 builds 4 and 5) were copied to Dict-releases,
+so download links keep working.
 
 ## One-time setup
 
@@ -70,8 +98,9 @@ upload, and the push, and leaves the feed it would publish in
   an unsigned helper, or a missing hardened-runtime entitlement. Fix, then
   rerun `make publish` (the version commit from the failed run is still
   there; `git reset --soft HEAD~1` first if you'd rather fold it in).
-- **Release created but the push failed.** The zip is up and `appcast.xml`
-  is committed locally. Run `git push origin main`.
+- **Release created but the push failed.** The zip is up and the feed is
+  committed locally. Run `git -C build/releases-repo push origin main` (and
+  `git push origin main` here, while the old feed exists).
 - **Sparkle says the update can't be verified.** The zip was signed with a
   different key than the `SUPublicEDKey` in the app people have. Don't
   rotate keys; restore the backed-up private key.
@@ -80,7 +109,7 @@ upload, and the push, and leaves the feed it would publish in
 
 ## Downloads and CI
 
-`make publish` attaches two files to the GitHub release: `Dict-<v>-<b>.dmg`,
+`make publish` attaches two files to the Dict-releases GitHub release: `Dict-<v>-<b>.dmg`,
 the download for people (a disk image with a drag-to-Applications window,
 signed and notarized), and `Dict-<v>-<b>.zip`, which only the Sparkle feed
 points at. `make dmg` builds an unsigned image of the local Release build
@@ -88,7 +117,8 @@ for a look at the window; `scripts/dmg.sh` lays it out with dmgbuild in a
 venv under `vendor/`.
 
 Every push to `main` and every pull request builds and runs the unit tests
-on GitHub Actions (`.github/workflows/ci.yml`, a `macos-26` runner with
+on GitHub Actions (on a private repo, macOS minutes count against the
+account's Actions allowance at 10x) (`.github/workflows/ci.yml`, a `macos-26` runner with
 the newest Xcode it has; the one macOS 27 API Dict uses is behind a
 Swift version check so Xcode 26 builds it too). The Parakeet end-to-end test and the Apple Speech session test
 need a model and a microphone, so CI skips them.

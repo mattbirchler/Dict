@@ -45,7 +45,7 @@ enum HUDPreview {
         return true
     }
 
-    /// `Dict --preview-window general|about|history [--snapshot out.png]`:
+    /// `Dict --preview-window general|about|history|replacements|license [--snapshot out.png]`:
     /// opens the main window on that section for a look at Settings.
     @MainActor
     static func presentWindow(from arguments: [String] = CommandLine.arguments, show: (MainSection) -> Int?) -> Bool {
@@ -55,6 +55,7 @@ enum HUDPreview {
         case "about": section = .about
         case "history": section = .history
         case "replacements": section = .replacements
+        case "license": section = .license
         default: section = .general
         }
         let number = show(section)

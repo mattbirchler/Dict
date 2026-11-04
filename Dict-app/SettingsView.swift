@@ -287,15 +287,15 @@ struct AboutSettingsTab: View {
             }
 
             HStack(spacing: 16) {
-                Link("Report a Problem", destination: URL(string: "https://github.com/mattbirchler/Dict/issues/new")!)
-                Link("Source Code", destination: URL(string: "https://github.com/mattbirchler/Dict")!)
-                Link("Privacy", destination: URL(string: "https://github.com/mattbirchler/Dict/blob/main/PRIVACY.md")!)
+                Link("Report a Problem", destination: URL(string: "https://github.com/mattbirchler/Dict-releases/issues/new")!)
+                Link("Website", destination: URL(string: "https://store-production-8e91.up.railway.app")!)
+                Link("Privacy", destination: URL(string: "https://github.com/mattbirchler/Dict-releases/blob/main/PRIVACY.md")!)
             }
             .font(.callout)
             .foregroundStyle(settings.hudColorScheme.accent)
             .padding(.top, 4)
 
-            Text("Speech by Apple Speech and NVIDIA Parakeet through FluidAudio (Apache 2.0). Formatting by Apple Intelligence. Updates by Sparkle (MIT). Labels set in Chakra Petch (OFL). Dict itself is MIT licensed.")
+            Text("Speech by Apple Speech and NVIDIA Parakeet through FluidAudio (Apache 2.0). Formatting by Apple Intelligence. Updates by Sparkle (MIT). Labels set in Chakra Petch (OFL).")
                 .font(.caption2)
                 .multilineTextAlignment(.center)
                 .foregroundStyle(.tertiary)

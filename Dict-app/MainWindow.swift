@@ -8,6 +8,7 @@ enum MainSection: Hashable {
     case history
     case general
     case replacements
+    case license
     case about
 }
 
@@ -34,6 +35,7 @@ struct MainWindow: View {
                 Section {
                     SidebarRow(title: "General", systemImage: "gearshape", section: .general, model: model, scheme: scheme)
                     SidebarRow(title: "Replacements", systemImage: "character.cursor.ibeam", section: .replacements, model: model, scheme: scheme)
+                    SidebarRow(title: "License", systemImage: "key", section: .license, model: model, scheme: scheme)
                     SidebarRow(title: "About", systemImage: "info.circle", section: .about, model: model, scheme: scheme)
                 } header: {
                     Text("SETTINGS")
@@ -58,6 +60,9 @@ struct MainWindow: View {
             case .replacements:
                 ReplacementsView(settings: appState.settings)
                     .navigationTitle("Replacements")
+            case .license:
+                LicenseView(license: appState.license, scheme: scheme)
+                    .navigationTitle("License")
             case .about:
                 AboutSettingsTab(settings: appState.settings, updater: updater)
                     .navigationTitle("About")
@@ -72,7 +77,7 @@ struct MainWindow: View {
     }
 
     /// The sidebar's order, for the arrow keys.
-    static let order: [MainSection] = [.history, .general, .replacements, .about]
+    static let order: [MainSection] = [.history, .general, .replacements, .license, .about]
 
     static func step(_ section: MainSection, by offset: Int) -> MainSection {
         let index = order.firstIndex(of: section) ?? 0
