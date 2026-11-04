@@ -2,7 +2,12 @@
   "name": "dict-store",
   "private": true,
   "type": "module",
-  "description": "Sells Dict through a Stripe Payment Link and issues signed license keys.",
-  "engines": { "node": ">=22" },
-  "scripts": { "test": "node --test" }
+  "description": "Sells Dict through a Stripe Payment Link and issues signed license keys. Runs on Railway.",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node server.mjs",
+    "test": "node --test"
+  }
 }
