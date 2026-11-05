@@ -281,6 +281,7 @@ final class MenuBarManager: NSObject, NSMenuDelegate {
     }
 
     @objc private func buyDict() {
+        Analytics.shared.log(.buyClicked, properties: ["from": "menu"])
         NSWorkspace.shared.open(LicenseStore.purchaseURL)
     }
 

@@ -72,3 +72,12 @@ extension AnalyticsTests {
         #expect(Analytics.failureReason(.inserted("hi")) == nil)
     }
 }
+
+extension AnalyticsTests {
+    @Test func trialExpiredIsClaimedOnce() {
+        let defaults = UserDefaults(suiteName: "AnalyticsTests-\(UUID().uuidString)")!
+        #expect(!Analytics.claimTrialExpired(status: .trial(daysLeft: 2), defaults: defaults))
+        #expect(Analytics.claimTrialExpired(status: .expired, defaults: defaults))
+        #expect(!Analytics.claimTrialExpired(status: .expired, defaults: defaults))
+    }
+}

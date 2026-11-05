@@ -86,6 +86,26 @@ final class Analytics {
         }
     }
 
+    /// Sends `trial_expired` the first time this Mac is seen past its trial,
+    /// and never again. Called at launch and when a blocked hotkey press
+    /// finds the trial over, so a trial that ends mid-session still counts.
+    /// Skipped while opted out, so turning sharing back on later can still
+    /// report it.
+    func logTrialExpiredOnce(status: LicenseStore.Status, defaults: UserDefaults = .standard) {
+        guard !Self.isRunningInTests, hasSetUp, !PostHogSDK.shared.isOptOut(),
+              Self.claimTrialExpired(status: status, defaults: defaults) else { return }
+        log(.trialExpired)
+    }
+
+    static let trialExpiredLoggedKey = "analyticsTrialExpiredLogged"
+
+    /// True the first time it's called with `.expired`, false after that.
+    static func claimTrialExpired(status: LicenseStore.Status, defaults: UserDefaults) -> Bool {
+        guard status == .expired, !defaults.bool(forKey: trialExpiredLoggedKey) else { return false }
+        defaults.set(true, forKey: trialExpiredLoggedKey)
+        return true
+    }
+
     func log(_ event: Event, properties: [String: Any] = [:]) {
         guard !Self.isRunningInTests, hasSetUp else { return }
         PostHogSDK.shared.capture(event.rawValue, properties: properties.isEmpty ? nil : properties)
