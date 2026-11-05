@@ -40,7 +40,12 @@ final class AppleSpeechTranscriptionService: TranscriptionEngine {
             tentative: Self.plainText(volatileText).trimmingCharacters(in: .whitespacesAndNewlines)
         )
     }
-    private let audioEngine = AVAudioEngine()
+    private let capture = AudioCapture()
+    /// Token of the capture this recording started; see AudioCapture.stop.
+    private var captureGeneration: Int?
+    /// Bumped by cancel()/stop() so an in-flight start() knows the session
+    /// it was starting is already over.
+    private var session = 0
 
     // MARK: - Prepare (asset install)
 
@@ -90,6 +95,7 @@ final class AppleSpeechTranscriptionService: TranscriptionEngine {
         }
         analyzerFormat = format
         isReady = true
+        await capture.warmUp()
     }
 
     // MARK: - Recording lifecycle
@@ -99,7 +105,7 @@ final class AppleSpeechTranscriptionService: TranscriptionEngine {
         guard isReady, let analyzerFormat else {
             throw AppleSpeechError.notPrepared
         }
-        AudioInputDevices.applyIfPossible(inputDeviceID, to: audioEngine)
+        let startedSession = session
         finalizedText = AttributedString()
         volatileText = AttributedString()
         audioEnergy = []
@@ -133,13 +139,14 @@ final class AppleSpeechTranscriptionService: TranscriptionEngine {
             }
         }
 
-        // Install the mic tap. The callback runs on a realtime audio thread:
-        // capture Sendable/local values, never touch main-actor state directly
-        // (energy is published via a MainActor Task hop).
-        // The tap takes `format: nil`; see TapConverter for why.
+        // The tap callback runs on a realtime audio thread: capture
+        // Sendable/local values, never touch main-actor state directly
+        // (energy is published via a MainActor Task hop). Buffers are
+        // converted from whatever format they arrive in (TapConverter).
         let tapConverter = TapConverter(targetFormat: analyzerFormat)
+        var generation: Int?
         do {
-            audioEngine.inputNode.installTap(onBus: 0, bufferSize: 4096, format: nil) { [weak self] buffer, _ in
+            generation = try await capture.start(deviceID: inputDeviceID) { [weak self] buffer in
                 let level = Self.rmsLevel(buffer)
                 let spectrum = SpectrumAnalyzer.bandAmplitudes(buffer)
                 Task { @MainActor [weak self] in self?.appendEnergy(level, spectrum: spectrum) }
@@ -147,27 +154,41 @@ final class AppleSpeechTranscriptionService: TranscriptionEngine {
                     builder.yield(AnalyzerInput(buffer: converted))
                 }
             }
-            audioEngine.prepare()
-            try audioEngine.start()
+            // The key was released while the mic was still opening (a
+            // second or more on Bluetooth); nobody else will stop this.
+            guard session == startedSession else {
+                await capture.stop(generation: generation)
+                rollBackStart()
+                return
+            }
             try await analyzer.start(inputSequence: inputSequence)
         } catch {
             // Roll back everything start() created so a failed attempt can't
-            // leak the tap (a second installTap on the same bus crashes) or
-            // orphan the results task / analyzer.
-            teardownAudio()
-            resultsTask?.cancel()
-            resultsTask = nil
-            self.analyzer = nil
+            // leave the mic open or orphan the results task / analyzer.
+            await capture.stop(generation: generation)
+            rollBackStart()
             Log.engine.error("start failed, rolled back: \(String(describing: error), privacy: .public)")
             throw error
         }
+        captureGeneration = generation
         isRecording = true
         Log.engine.info("Recording started")
     }
 
+    private func rollBackStart() {
+        teardownAudio()
+        resultsTask?.cancel()
+        resultsTask = nil
+        analyzer = nil
+        transcriber = nil
+    }
+
     func cancel() {
+        session += 1
         guard isRecording else { return }
         isRecording = false
+        let generation = captureGeneration
+        Task { await capture.stop(generation: generation) }
         teardownAudio()
         resultsTask?.cancel()
         resultsTask = nil
@@ -182,8 +203,10 @@ final class AppleSpeechTranscriptionService: TranscriptionEngine {
     }
 
     func stop() async throws -> String {
+        session += 1
         guard isRecording else { return "" }
         isRecording = false
+        await capture.stop(generation: captureGeneration)
         teardownAudio()
 
         var finalizeError: Error?
@@ -209,11 +232,12 @@ final class AppleSpeechTranscriptionService: TranscriptionEngine {
         return text
     }
 
+    /// Resets the HUD-facing audio state and ends the analyzer's input
+    /// once the capture is stopped.
     private func teardownAudio() {
-        audioEngine.inputNode.removeTap(onBus: 0)
+        captureGeneration = nil
         audioSpectrum = []
         spectrumGain = SpectrumGain()
-        if audioEngine.isRunning { audioEngine.stop() }
         inputBuilder?.finish()
         inputBuilder = nil
     }

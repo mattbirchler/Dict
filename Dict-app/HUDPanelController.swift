@@ -40,6 +40,7 @@ final class HUDPanelController {
     func show(
         audioSpectrum: @escaping () -> [Float],
         micName: @escaping () -> String,
+        isListening: @escaping () -> Bool = { true },
         liveTranscript: @escaping () -> LiveTranscript,
         hotkeyGlyph: String
     ) {
@@ -47,6 +48,7 @@ final class HUDPanelController {
         presentation += 1
         hudState.audioSpectrum = audioSpectrum
         hudState.micName = micName
+        hudState.isListening = isListening
         hudState.liveTranscript = liveTranscript
         hudState.hotkeyGlyph = hotkeyGlyph
         hudState.reduceMotion = reduceMotion
@@ -253,6 +255,8 @@ final class HUDState {
     var colorScheme: HUDColorScheme = .ember
     var audioSpectrum: (() -> [Float])?
     var micName: (() -> String)?
+    /// False while the mic is still opening (Bluetooth takes a moment).
+    var isListening: (() -> Bool)?
     var liveTranscript: (() -> LiveTranscript)?
 }
 
@@ -271,6 +275,7 @@ struct WaveformHUDContainer: View {
                         mode: state.mode,
                         spectrum: state.audioSpectrum?() ?? [],
                         micName: state.micName?() ?? "",
+                        isListening: state.isListening?() ?? true,
                         transcript: state.showsLiveTranscript ? (state.liveTranscript?() ?? LiveTranscript()) : nil,
                         hotkeyGlyph: state.hotkeyGlyph,
                         scheme: state.colorScheme,

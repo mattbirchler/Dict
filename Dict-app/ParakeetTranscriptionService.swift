@@ -39,15 +39,9 @@ final class ParakeetTranscriptionService: TranscriptionEngine {
     /// Bumped by cancel()/stop() so an in-flight start() (suspended in
     /// prepare) knows the session it was starting is already over.
     private var session = 0
-    private let audioEngine = AVAudioEngine()
-    /// The current recording's converter, kept so a mid-recording restart
-    /// can reinstall the tap. Nil when not recording.
-    private var tapConverter: TapConverter?
-    private var configurationObserver: (any NSObjectProtocol)?
-    /// Restarts so far this recording. Capped so a device that keeps
-    /// reconfiguring can't loop us forever.
-    private var configurationRestarts = 0
-    private static let maxConfigurationRestarts = 3
+    private let capture = AudioCapture()
+    /// Token of the capture this recording started; see AudioCapture.stop.
+    private var captureGeneration: Int?
     /// Recorded 16 kHz mono samples, appended from the realtime tap thread.
     /// Lock-protected rather than hopped to the main actor so stop() can't
     /// lose buffers that were still in flight between actors.
@@ -85,7 +79,7 @@ final class ParakeetTranscriptionService: TranscriptionEngine {
         try await manager.loadModels(models)
         self.manager = manager
         Log.engine.info("Model loaded")
-        warmUpAudio()
+        await capture.warmUp()
     }
 
     // MARK: - Recording lifecycle
@@ -110,31 +104,13 @@ final class ParakeetTranscriptionService: TranscriptionEngine {
             throw ParakeetTranscriptionError.audioFormatUnavailable
         }
 
-        AudioInputDevices.applyIfPossible(inputDeviceID, to: audioEngine)
-        observeConfigurationChanges()
+        // The tap callback runs on a realtime audio thread: append samples
+        // under the lock, publish energy via a MainActor hop. Buffers are
+        // converted from whatever format they arrive in (TapConverter), so
+        // AirPods dropping to 24 kHz mid-recording just works.
         let tapConverter = TapConverter(targetFormat: targetFormat)
-        self.tapConverter = tapConverter
-        configurationRestarts = 0
-        installMicTap(converting: tapConverter)
-        do {
-            audioEngine.prepare()
-            try audioEngine.start()
-        } catch {
-            // Roll back so a failed attempt can't leak the tap (a second
-            // installTap on the same bus crashes).
-            teardownAudio()
-            throw error
-        }
-        isRecording = true
-        Log.engine.info("Recording started")
-    }
-
-    /// Taps the mic with `format: nil` (see TapConverter for why). The
-    /// callback runs on a realtime audio thread: append samples under the
-    /// lock, publish energy via a MainActor hop.
-    private func installMicTap(converting tapConverter: TapConverter) {
         let samplesBox = recordedSamples
-        audioEngine.inputNode.installTap(onBus: 0, bufferSize: 4096, format: nil) { [weak self] buffer, _ in
+        let generation = try await capture.start(deviceID: inputDeviceID) { [weak self] buffer in
             let level = Self.rmsLevel(buffer)
             let spectrum = SpectrumAnalyzer.bandAmplitudes(buffer)
             Task { @MainActor [weak self] in self?.appendEnergy(level, spectrum: spectrum) }
@@ -142,40 +118,19 @@ final class ParakeetTranscriptionService: TranscriptionEngine {
                   let channel = converted.floatChannelData?[0] else { return }
             let frames = Int(converted.frameLength)
             guard frames > 0 else { return }
-            samplesBox.withLock {
-                $0.append(contentsOf: UnsafeBufferPointer(start: channel, count: frames))
-            }
+            let samples = Array(UnsafeBufferPointer(start: channel, count: frames))
+            samplesBox.withLock { $0.append(contentsOf: samples) }
         }
-    }
-
-    /// AVAudioEngine stops itself when the input device reconfigures, which
-    /// AirPods do as they switch into call mode for the mic. Without a
-    /// restart the rest of the recording would be silent.
-    private func observeConfigurationChanges() {
-        guard configurationObserver == nil else { return }
-        configurationObserver = NotificationCenter.default.addObserver(
-            forName: .AVAudioEngineConfigurationChange,
-            object: audioEngine,
-            queue: nil
-        ) { [weak self] _ in
-            Task { @MainActor [weak self] in self?.restartAfterConfigurationChange() }
+        // The key was released (or Escape pressed) while the mic was still
+        // opening, which takes a second or more on Bluetooth. Nobody will
+        // stop this capture, so stop it here.
+        guard session == startedSession else {
+            await capture.stop(generation: generation)
+            return
         }
-    }
-
-    private func restartAfterConfigurationChange() {
-        guard isRecording, let tapConverter,
-              configurationRestarts < Self.maxConfigurationRestarts else { return }
-        configurationRestarts += 1
-        Log.engine.info("Audio configuration changed mid-recording, restarting capture")
-        audioEngine.inputNode.removeTap(onBus: 0)
-        if audioEngine.isRunning { audioEngine.stop() }
-        installMicTap(converting: tapConverter)
-        do {
-            audioEngine.prepare()
-            try audioEngine.start()
-        } catch {
-            Log.engine.error("Couldn't restart capture: \(String(describing: error), privacy: .public)")
-        }
+        captureGeneration = generation
+        isRecording = true
+        Log.engine.info("Recording started")
     }
 
     /// Stops the engine and throws the recording away without transcribing —
@@ -185,6 +140,8 @@ final class ParakeetTranscriptionService: TranscriptionEngine {
         endLivePreview()
         guard isRecording else { return }
         isRecording = false
+        let generation = captureGeneration
+        Task { await capture.stop(generation: generation) }
         teardownAudio()
         recordedSamples.withLock { $0 = [] }
         audioEnergy = []
@@ -206,6 +163,7 @@ final class ParakeetTranscriptionService: TranscriptionEngine {
         let preview = previewTask
         endLivePreview()
         await preview?.value
+        await capture.stop(generation: captureGeneration)
         teardownAudio()
         audioEnergy = []
 
@@ -287,22 +245,11 @@ final class ParakeetTranscriptionService: TranscriptionEngine {
         liveTranscript = LiveTranscript()
     }
 
+    /// Resets the HUD-facing audio state once the capture is stopped.
     private func teardownAudio() {
-        tapConverter = nil
-        audioEngine.inputNode.removeTap(onBus: 0)
+        captureGeneration = nil
         audioSpectrum = []
         spectrumGain = SpectrumGain()
-        if audioEngine.isRunning { audioEngine.stop() }
-        warmUpAudio()
-    }
-
-    /// Creates the input node and allocates the engine's resources ahead of
-    /// the next key press, so start() only has to begin IO and the first
-    /// syllable isn't lost to engine setup. Preparing doesn't start capture,
-    /// so the mic-in-use indicator stays off.
-    private func warmUpAudio() {
-        _ = audioEngine.inputNode
-        audioEngine.prepare()
     }
 
     private func appendEnergy(_ level: Float, spectrum: [Float]) {

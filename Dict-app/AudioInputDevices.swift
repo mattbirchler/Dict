@@ -23,7 +23,7 @@ enum AudioInputError: Error {
 }
 
 /// CoreAudio lookups for the microphones Dict can record from.
-enum AudioInputDevices {
+nonisolated enum AudioInputDevices {
     /// Every device with at least one input stream.
     static func all() -> [AudioInputDevice] {
         var address = AudioObjectPropertyAddress(
