@@ -196,6 +196,15 @@ struct GeneralSettingsTab: View {
             } header: {
                 DictSectionHeader("Formatting", scheme: scheme)
             }
+
+            Section {
+                Toggle("Share anonymous usage data", isOn: $settings.sharesUsageData)
+                Text("Sends counts like how many words you dictated and which engine you use, to show how Dict gets used. Never your audio, your words, or your license key, and not tied to you or your IP address.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } header: {
+                DictSectionHeader("Privacy", scheme: scheme)
+            }
         }
         .formStyle(.grouped)
         .dictBackdrop(scheme)
@@ -268,7 +277,7 @@ struct AboutSettingsTab: View {
             hero
                 .padding(.bottom, 8)
 
-            Text("100% on-device: transcription, formatting, and history never leave this Mac.")
+            Text("Transcription, formatting, and history never leave this Mac. Anonymous usage counts can be turned off in Settings.")
                 .font(.callout)
                 .multilineTextAlignment(.center)
                 .foregroundStyle(.secondary)
