@@ -53,6 +53,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return onboardingController.windowNumber
         }) { return }
 
+        // Screenshot runs use made-up stats and shouldn't count as usage.
+        let isSampleRun = CommandLine.arguments.contains("--sample-stats")
+        Analytics.shared.setup(enabled: appState.settings.sharesUsageData && !isSampleRun, launchProperties: [
+            "engine": appState.settings.transcriptionEngine.rawValue,
+            "style": appState.settings.dictationStyle.rawValue,
+            "license": Analytics.licenseStatusName(appState.license.status),
+        ])
+        Analytics.shared.logTrialExpiredOnce(status: appState.license.status)
+
         hudController.colorScheme = appState.settings.hudColorScheme
         appState.onHUDColorSchemeChanged = { [weak self] scheme in self?.hudController.colorScheme = scheme }
         appState.onEngineReady = { [weak self] in
@@ -88,6 +97,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 if let reason = self.appState.startBlockedReason {
                     self.hudController.showNotice(reason)
                 }
+                Analytics.shared.logTrialExpiredOnce(status: self.appState.license.status)
                 if !self.appState.license.status.allowsDictation && !self.showedTrialEnded {
                     self.showedTrialEnded = true
                     self.openMainWindow(.license)
@@ -224,6 +234,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func handleActivation(_ url: URL) {
         do {
             try appState.license.activate(url.absoluteString)
+            Analytics.shared.log(.licenseActivated, properties: ["method": "link"])
             Log.app.info("Activated a license from a link")
         } catch {
             appState.license.linkProblem = error.message

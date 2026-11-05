@@ -54,7 +54,10 @@ struct LicenseView: View {
                 }
             } else {
                 Section {
-                    Button("Buy Dict…") { NSWorkspace.shared.open(LicenseStore.purchaseURL) }
+                    Button("Buy Dict…") {
+                        Analytics.shared.log(.buyClicked, properties: ["from": "license_screen"])
+                        NSWorkspace.shared.open(LicenseStore.purchaseURL)
+                    }
                         .buttonStyle(.borderedProminent)
                     Text("Checkout opens in your browser. When you\u{2019}re done, click Activate on the confirmation page and Dict unlocks. One purchase covers all of your Macs.")
                         .font(.caption)
@@ -107,6 +110,7 @@ struct LicenseView: View {
     private func activate() {
         do {
             try license.activate(keyText)
+            Analytics.shared.log(.licenseActivated, properties: ["method": "pasted"])
             keyText = ""
             problem = nil
         } catch {

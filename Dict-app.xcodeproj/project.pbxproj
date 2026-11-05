@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		C9A7A0032FC0000000000003 /* PostHog in Frameworks */ = {isa = PBXBuildFile; productRef = C9A7A0022FC0000000000002 /* PostHog */; };
 		C9893E232F87284E00707FF3 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = C9893E222F87284E00707FF3 /* Sparkle */; };
 		C9BD1CFE2FA8E32A00F2211F /* dict-icon.icon in Resources */ = {isa = PBXBuildFile; fileRef = C9BD1CFD2FA8E32A00F2211F /* dict-icon.icon */; };
 /* End PBXBuildFile section */
@@ -59,6 +60,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				C9893E232F87284E00707FF3 /* Sparkle in Frameworks */,
+				C9A7A0032FC0000000000003 /* PostHog in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -113,6 +115,7 @@
 			packageProductDependencies = (
 				C9893E222F87284E00707FF3 /* Sparkle */,
 				C9FA0D022FB2000000000002 /* FluidAudio */,
+				C9A7A0022FC0000000000002 /* PostHog */,
 			);
 			productName = "Dict-app";
 			productReference = C95EB2BF2F7FF45300B3F4AE /* Dict.app */;
@@ -168,6 +171,7 @@
 			packageReferences = (
 				C9893E212F87284E00707FF3 /* XCRemoteSwiftPackageReference "Sparkle" */,
 				C9FA0D012FB2000000000001 /* XCRemoteSwiftPackageReference "FluidAudio" */,
+				C9A7A0012FC0000000000001 /* XCRemoteSwiftPackageReference "posthog-ios" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = C95EB2C02F7FF45300B3F4AE /* Products */;
@@ -511,6 +515,14 @@
 				version = 0.15.5;
 			};
 		};
+		C9A7A0012FC0000000000001 /* XCRemoteSwiftPackageReference "posthog-ios" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/PostHog/posthog-ios";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 3.66.1;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -523,6 +535,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = C9FA0D012FB2000000000001 /* XCRemoteSwiftPackageReference "FluidAudio" */;
 			productName = FluidAudio;
+		};
+		C9A7A0022FC0000000000002 /* PostHog */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C9A7A0012FC0000000000001 /* XCRemoteSwiftPackageReference "posthog-ios" */;
+			productName = PostHog;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
