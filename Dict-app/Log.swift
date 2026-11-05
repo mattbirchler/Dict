@@ -4,7 +4,7 @@ import os
 /// the `birchtree.Dict-app` subsystem, which is what DiagnosticLog reads back
 /// for bug reports. Mark transcripts and pasted text `.private`; everything
 /// else can be `.public` so it shows up in a copied log.
-enum Log {
+nonisolated enum Log {
     static let subsystem = "birchtree.Dict-app"
 
     static let app = Logger(subsystem: subsystem, category: "app")
