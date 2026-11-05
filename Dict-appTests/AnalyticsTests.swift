@@ -18,11 +18,10 @@ struct AnalyticsTests {
         ])
     }
 
-    @Test func superPropertiesNameTheAppAndDropTheIP() {
+    @Test func superPropertiesNameTheAppAndSkipLocation() {
         let props = Analytics.privacySuperProperties
         #expect(props["app"] as? String == "Dict")
         #expect(props["$geoip_disable"] as? Bool == true)
-        #expect(props["$ip"] is NSNull)
     }
 
     @Test func configTurnsOffAutocaptureAndProfiles() {

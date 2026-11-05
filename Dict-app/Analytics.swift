@@ -5,8 +5,7 @@ import PostHog
 /// file so the rest of the app only sees `Analytics.shared.log(...)`.
 ///
 /// What is never sent: audio, transcript text, replacements, the license key
-/// or its email, and the IP address (see `privacySuperProperties`). People
-/// can turn all of it off in Settings.
+/// or its email. People can turn all of it off in Settings.
 final class Analytics {
     static let shared = Analytics()
 
@@ -40,10 +39,11 @@ final class Analytics {
     }
 
     /// Merged into every event. `$geoip_disable` stops PostHog looking up a
-    /// location, and a null `$ip` keeps the address from being stored at
-    /// all. Both are needed: the first alone still lets the IP through.
+    /// location. The IP address itself can't be dropped from here (the SDK
+    /// strips a null `$ip`), so it's discarded by the project's "Discard
+    /// client IP data" setting in PostHog.
     static var privacySuperProperties: [String: Any] {
-        ["app": appName, "$geoip_disable": true, "$ip": NSNull()]
+        ["app": appName, "$geoip_disable": true]
     }
 
     /// Split out from `setup` so the privacy settings are testable, since
