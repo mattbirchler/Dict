@@ -108,6 +108,29 @@ extension Analytics {
         ]
     }
 
+    /// Stable snake_case names, so renaming a Swift case can't split a funnel.
+    static func onboardingStepName(_ step: OnboardingStep) -> String {
+        switch step {
+        case .welcome: "welcome"
+        case .listen: "microphone"
+        case .accessibility: "accessibility"
+        case .chooseKey: "choose_key"
+        case .tryIt: "try_it"
+        case .accuracy: "accuracy"
+        case .done: "done"
+        }
+    }
+
+    /// How a dictation that produced no text ended, for `dictation_failed`.
+    /// Inserted and cancelled dictations aren't failures, so they get nil.
+    static func failureReason(_ result: DictationResult) -> String? {
+        switch result {
+        case .failed: "transcription_failed"
+        case .nothingHeard: "nothing_heard"
+        case .inserted, .cancelled: nil
+        }
+    }
+
     /// "trial", "licensed" or "expired", without anything from the key.
     static func licenseStatusName(_ status: LicenseStore.Status) -> String {
         switch status {

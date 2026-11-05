@@ -54,6 +54,7 @@ struct OnboardingView: View {
         }
         .tint(scheme.accent)
         .onAppear {
+            logStepViewed(step)
             appState.permissionChecker.checkAll()
             appState.refreshEngineReadiness()
             if appState.canAutoPrepare && !appState.isEngineReady && !appState.isPreparingEngine {
@@ -117,11 +118,25 @@ struct OnboardingView: View {
     private func go(to target: OnboardingStep, forward: Bool) {
         direction = forward ? .trailing : .leading
         withAnimation(.smooth(duration: 0.3)) { step = target }
+        if forward { logStepViewed(target) }
     }
 
     private func finish() {
+        Analytics.shared.log(.onboardingCompleted, properties: [
+            "first_run": !appState.hasCompletedOnboarding,
+            "engine": appState.settings.transcriptionEngine.rawValue,
+        ])
         appState.hasCompletedOnboarding = true
         onComplete()
+    }
+
+    /// Only forward moves count, so Back and Continue don't double up the
+    /// funnel. `first_run` separates new installs from a replay from the menu.
+    private func logStepViewed(_ step: OnboardingStep) {
+        Analytics.shared.log(.onboardingStepViewed, properties: [
+            "step": Analytics.onboardingStepName(step),
+            "first_run": !appState.hasCompletedOnboarding,
+        ])
     }
 }
 

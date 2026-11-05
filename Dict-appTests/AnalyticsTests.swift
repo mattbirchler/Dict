@@ -58,3 +58,17 @@ struct AnalyticsTests {
         #expect(!SettingsStore(defaults: defaults).sharesUsageData)
     }
 }
+
+extension AnalyticsTests {
+    @Test func onboardingStepNamesCoverEveryStep() {
+        let names = OnboardingStep.allCases.map(Analytics.onboardingStepName)
+        #expect(names == ["welcome", "microphone", "accessibility", "choose_key", "try_it", "accuracy", "done"])
+    }
+
+    @Test func onlyEmptyResultsAreFailures() {
+        #expect(Analytics.failureReason(.failed) == "transcription_failed")
+        #expect(Analytics.failureReason(.nothingHeard) == "nothing_heard")
+        #expect(Analytics.failureReason(.cancelled) == nil)
+        #expect(Analytics.failureReason(.inserted("hi")) == nil)
+    }
+}

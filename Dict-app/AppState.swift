@@ -71,6 +71,10 @@ final class AppState {
         pipeline.onStartFailed = { [weak self] in
             guard let self, self.isRecording else { return }
             self.isRecording = false
+            Analytics.shared.log(.dictationFailed, properties: [
+                "reason": "start_failed",
+                "engine": self.settings.transcriptionEngine.rawValue,
+            ])
             self.onProcessingComplete?(.failed)
         }
         refreshEngineReadiness()
@@ -166,6 +170,7 @@ final class AppState {
         isPreparingEngine = true
         engineDownloadProgress = 0
         engineNeedsDownload = engine.needsDownload
+        let isParakeetDownload = engine.needsDownload && engine === pipeline.parakeetEngine
         engine.onProgress = { [weak self] progress in
             self?.engineDownloadProgress = progress
         }
@@ -173,6 +178,9 @@ final class AppState {
         Task {
             do {
                 try await engine.prepare()
+                if isParakeetDownload {
+                    Analytics.shared.log(.parakeetModelDownloaded, properties: ["where": "selected"])
+                }
             } catch {
                 Log.app.error("Engine failed to prepare: \(String(describing: error), privacy: .public)")
                 lastError = "Speech engine failed to prepare."
@@ -215,6 +223,7 @@ final class AppState {
         Task {
             do {
                 try await engine.prepare()
+                Analytics.shared.log(.parakeetModelDownloaded, properties: ["where": "background"])
                 Log.app.info("Parakeet ready in the background; switching engine")
                 settings.transcriptionEngine = .parakeet
             } catch {
@@ -270,8 +279,17 @@ final class AppState {
             guard session == processingSession else { return }
             processingTask = nil
             isProcessing = false
+            let seconds = recordingStartedAt.map { Date().timeIntervalSince($0) } ?? 0
             if case .inserted(let text) = result {
-                stats.record(text: text, seconds: recordingStartedAt.map { Date().timeIntervalSince($0) } ?? 0)
+                stats.record(text: text, seconds: seconds)
+                Analytics.shared.log(.dictationCompleted, properties: Analytics.dictationProperties(
+                    text: text, seconds: seconds,
+                    engine: settings.transcriptionEngine, style: settings.dictationStyle))
+            } else if let reason = Analytics.failureReason(result) {
+                Analytics.shared.log(.dictationFailed, properties: [
+                    "reason": reason,
+                    "engine": settings.transcriptionEngine.rawValue,
+                ])
             }
             onProcessingComplete?(result)
             if result == .failed {
