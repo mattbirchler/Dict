@@ -29,6 +29,9 @@ struct WaveformHUD: View {
     /// Band levels (0...1), low to high frequency, for the matrix.
     var spectrum: [Float]
     var micName: String
+    /// False while the mic is still opening, so the label can say so
+    /// instead of looking like a recording that hears nothing.
+    var isListening = true
     /// Non-nil while the expanded hands-free panel is showing.
     var transcript: LiveTranscript? = nil
     var hotkeyGlyph = "⌘"
@@ -117,7 +120,7 @@ struct WaveformHUD: View {
 
     private var statusText: String {
         switch mode {
-        case .recording: return micName.uppercased()
+        case .recording: return isListening ? micName.uppercased() : "CONNECTING \(micName.uppercased())"
         case .recordingHandsFree: return "HANDS-FREE"
         case .processing: return "PROCESSING"
         case .done: return "INSERTED"
@@ -130,6 +133,7 @@ struct WaveformHUD: View {
         switch mode {
         case .processing: scheme.accent
         case .done, .ready: scheme.success
+        case .recording where !isListening: scheme.text.opacity(0.55)
         default: scheme.text
         }
     }

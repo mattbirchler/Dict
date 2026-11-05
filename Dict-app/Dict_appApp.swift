@@ -111,6 +111,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     self?.appState.pipeline.activeEngine.audioSpectrum ?? []
                 },
                 micName: { [weak self] in self?.appState.pipeline.currentInputDevice?.name ?? "Microphone" },
+                isListening: { [weak self] in self?.appState.pipeline.activeEngine.isRecording ?? true },
                 liveTranscript: { [weak self] in
                     self?.appState.pipeline.activeEngine.liveTranscript ?? LiveTranscript()
                 },
