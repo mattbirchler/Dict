@@ -7,6 +7,25 @@
         <language>en</language>
         <item>
             <title>Dict 1.0</title>
+            <pubDate>Thu, 05 Nov 2026 13:50:12 GMT</pubDate>
+            <sparkle:version>7</sparkle:version>
+            <sparkle:shortVersionString>1.0</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description><![CDATA[
+<h3>Dict 1.0 (build 7)</h3>
+<h3>Insert a dictation again from the menu bar</h3>
+<p>Dictated while the wrong field was focused? Click into the right one, open the Dict menu, and choose <strong>Insert Last Dictation</strong>. The text goes in with the same spacing a new dictation would get.</p>
+<ul><li><strong>Recent Dictations</strong> lists your last five, so you can put any of them back without opening History. <strong>Show All</strong> opens the full list.</li><li><strong>Hold Option</strong> while the menu is open to copy instead of insert.</li></ul>
+<h3>Anonymous usage data</h3>
+<p>Dict now sends a few anonymous counts, like how many words a dictation had and which engine you use. They show how much Dict gets used and where people get stuck setting it up.</p>
+<ul><li><strong>Never sent:</strong> your audio, your words, your history, your word replacements, or your license key. Your IP address and location aren&#x27;t stored either.</li><li><strong>Turn it off</strong> in Settings, General, Share anonymous usage data. Nothing is sent after that.</li></ul>
+<p>The full list of what&#x27;s sent is in the [privacy statement](https://github.com/mattbirchler/Dict-releases/blob/main/PRIVACY.md).</p>
+            ]]></description>
+            <enclosure url="https://github.com/mattbirchler/Dict-releases/releases/download/v1.0-7/Dict-1.0-7.zip" type="application/octet-stream" sparkle:edSignature="uZlG16Kmu3uKRERCbiB2XyXIRxzCZqHDK12vrvVMmSEGuKD7Wxc736/W/+R5agN+LpKlVtoaHUVryCRtfa7zCA==" length="9214554"/>
+        </item>
+        <item>
+            <title>Dict 1.0</title>
             <pubDate>Wed, 04 Nov 2026 22:43:56 GMT</pubDate>
             <sparkle:version>6</sparkle:version>
             <sparkle:shortVersionString>1.0</sparkle:shortVersionString>
