@@ -7,6 +7,22 @@
         <language>en</language>
         <item>
             <title>Dict 1.0</title>
+            <pubDate>Thu, 05 Nov 2026 20:09:02 GMT</pubDate>
+            <sparkle:version>8</sparkle:version>
+            <sparkle:shortVersionString>1.0</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description><![CDATA[
+<h3>Dict 1.0 (build 8)</h3>
+<h3>AirPods work properly now</h3>
+<p>If you dictate with AirPods, or switch between AirPods and another microphone, this build is for you.</p>
+<ul><li><strong>No more crashes when you change mics.</strong> Taking AirPods out and dictating with your Mac&#x27;s built-in mic or a USB mic used to crash Dict on the next keypress. Dict now reads the microphone&#x27;s current format every time it starts recording instead of trusting what it saw last time, which is what the crash came down to.</li><li><strong>The waveform appears right away.</strong> Bluetooth mics take about a second to switch on, and Dict used to wait for that before showing anything. Now the HUD comes up immediately and says <strong>CONNECTING</strong> until your AirPods are actually listening.</li><li><strong>Recordings don&#x27;t go silent.</strong> When a mic changes its settings mid-sentence, Dict picks the recording back up within a fraction of a second instead of recording silence until you let go.</li></ul>
+<p>Other microphones get the same treatment, so plugging one in or unplugging it between dictations is safe too.</p>
+            ]]></description>
+            <enclosure url="https://github.com/mattbirchler/Dict-releases/releases/download/v1.0-8/Dict-1.0-8.zip" type="application/octet-stream" sparkle:edSignature="IriBUV0Ka0ynpYbtLYqOmMIulcZp7w1jjxdOEIkUrgpPDqiyGXZO/gc6HBnV3KskV2u1KAKmOkeBS6he6Jz7AA==" length="9232587"/>
+        </item>
+        <item>
+            <title>Dict 1.0</title>
             <pubDate>Thu, 05 Nov 2026 13:50:12 GMT</pubDate>
             <sparkle:version>7</sparkle:version>
             <sparkle:shortVersionString>1.0</sparkle:shortVersionString>
