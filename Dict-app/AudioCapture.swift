@@ -32,6 +32,9 @@ actor AudioCapture {
     /// reconfiguring can't loop forever.
     private var restarts = 0
     private static let maxRestarts = 3
+    /// True while a restart is waiting on the hardware, so the watchdog
+    /// and a configuration-change notification don't start a second one.
+    private var restarting = false
     /// Bumped by every start(). stop(generation:) only stops a capture
     /// that is still the one the caller started.
     private var generation = 0
@@ -50,9 +53,10 @@ actor AudioCapture {
     /// and feeds every buffer to `tap` on the realtime audio thread.
     /// Returns a generation token for stop(generation:).
     @discardableResult
-    func start(deviceID: AudioDeviceID?, tap: @escaping Tap) throws -> Int {
+    func start(deviceID: AudioDeviceID?, tap: @escaping Tap) async throws -> Int {
         if isCapturing { stop() }
         generation += 1
+        let generation = generation
         let clock = ContinuousClock()
         let started = clock.now
         AudioInputDevices.applyIfPossible(deviceID, to: engine)
@@ -60,10 +64,19 @@ actor AudioCapture {
         self.tap = tap
         restarts = 0
         do {
-            try installTapAndStart()
+            try await installTapAndStart()
         } catch {
-            self.tap = nil
+            if generation == self.generation { self.tap = nil }
             throw error
+        }
+        guard generation == self.generation, self.tap != nil else {
+            // A stop() or newer start() came in while we waited on the
+            // hardware; that one owns the engine now.
+            if generation == self.generation {
+                engine.inputNode.removeTap(onBus: 0)
+                if engine.isRunning { engine.stop() }
+            }
+            throw CancellationError()
         }
         observeConfigurationChanges()
         isCapturing = true
@@ -88,27 +101,56 @@ actor AudioCapture {
         if engine.isRunning { engine.stop() }
     }
 
-    /// Taps with the hardware format and starts the engine. If starting
-    /// fails because the hardware changed in between, retries once with
-    /// the new format; anything else leaves no tap behind and rethrows.
-    private func installTapAndStart() throws {
-        let format = try hardwareFormat()
-        try installTap(format: format)
+    /// Taps with the hardware format and starts the engine.
+    ///
+    /// Starting is what makes AirPods open their mic, and that drops them
+    /// from 48 kHz to 24 kHz. The start then fails with a format error
+    /// and the input node keeps reporting the old rate for another
+    /// ~200 ms, so an immediate retry fails the same way. On failure this
+    /// waits for the node's format to actually change (up to
+    /// `formatSettleTimeout`), then retries with the new one, a few times
+    /// if the device keeps moving. Anything else leaves no tap behind and
+    /// rethrows.
+    private func installTapAndStart() async throws {
+        var format = try hardwareFormat()
+        var lastError: any Error
         do {
+            try installTap(format: format)
             try startEngine()
+            return
         } catch {
             engine.inputNode.removeTap(onBus: 0)
-            let changed = try hardwareFormat()
-            guard changed != format else { throw error }
+            lastError = error
+        }
+        for _ in 0..<Self.maxStartRetries {
+            guard let changed = try await waitForFormatChange(from: format) else { break }
             Log.engine.info("Input format changed while starting (\(Self.describe(format), privacy: .public) to \(Self.describe(changed), privacy: .public)), retrying")
-            try installTap(format: changed)
+            format = changed
             do {
+                try installTap(format: format)
                 try startEngine()
+                return
             } catch {
                 engine.inputNode.removeTap(onBus: 0)
-                throw error
+                lastError = error
             }
         }
+        throw lastError
+    }
+
+    private static let maxStartRetries = 3
+    private static let formatSettleTimeout: Duration = .milliseconds(1500)
+
+    /// Polls the input node until its format differs from `format`.
+    /// Returns nil if it hasn't within `formatSettleTimeout`.
+    private func waitForFormatChange(from format: AVAudioFormat) async throws -> AVAudioFormat? {
+        let deadline = ContinuousClock.now + Self.formatSettleTimeout
+        while ContinuousClock.now < deadline {
+            try await Task.sleep(for: .milliseconds(50))
+            let current = try hardwareFormat()
+            if current != format { return current }
+        }
+        return nil
     }
 
     private func hardwareFormat() throws -> AVAudioFormat {
@@ -131,7 +173,9 @@ actor AudioCapture {
     }
 
     private func installTap(format: AVAudioFormat) throws {
-        guard let tap else { return }
+        // stop() clears the tap; if that happened while a start or
+        // restart was waiting on the hardware, don't bring the engine up.
+        guard let tap else { throw CancellationError() }
         let heartbeat = heartbeat
         let block: AVAudioNodeTapBlock = { buffer, _ in
             heartbeat.beat()
@@ -177,18 +221,20 @@ actor AudioCapture {
         }
     }
 
-    private func restartIfStalled(generation: Int) {
-        guard isCapturing, self.generation == generation else { return }
+    private func restartIfStalled(generation: Int) async {
+        guard isCapturing, self.generation == generation, !restarting else { return }
         let silence = heartbeat.age()
         guard silence > Self.stallThreshold else { return }
-        restart(reason: "no audio for \(silence)")
+        await restart(reason: "no audio for \(silence)")
     }
 
     /// Tears the tap and engine down and brings them back on the current
     /// hardware format. Capped at `maxRestarts` per capture.
-    private func restart(reason: String) {
-        guard isCapturing, tap != nil, restarts < Self.maxRestarts else { return }
+    private func restart(reason: String) async {
+        guard isCapturing, tap != nil, restarts < Self.maxRestarts, !restarting else { return }
         restarts += 1
+        restarting = true
+        defer { restarting = false }
         let generation = generation
         engine.inputNode.removeTap(onBus: 0)
         if engine.isRunning { engine.stop() }
@@ -196,16 +242,20 @@ actor AudioCapture {
         // hardware format; without this it can still report the old one.
         AudioInputDevices.applyIfPossible(deviceID, to: engine)
         do {
-            try installTapAndStart()
+            try await installTapAndStart()
+            guard generation == self.generation else { return }
             heartbeat.beat()
             Log.engine.info("Capture restarted (\(reason, privacy: .public)) at \(Self.describe(self.engine.inputNode.inputFormat(forBus: 0)), privacy: .public)")
         } catch {
+            guard generation == self.generation, !(error is CancellationError) else { return }
             Log.engine.error("Couldn't restart capture (\(reason, privacy: .public)): \(String(describing: error), privacy: .public)")
             // The device may still be mid-transition; try again shortly.
+            // Keep the heartbeat fresh so the watchdog waits its turn.
+            heartbeat.beat()
             Task {
                 try? await Task.sleep(for: .milliseconds(200))
                 guard self.generation == generation else { return }
-                self.restart(reason: reason)
+                await self.restart(reason: reason)
             }
         }
     }
