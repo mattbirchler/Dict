@@ -103,6 +103,8 @@ final class AppState {
                 self.pipeline.usesScreenContext = self.settings.usesScreenContext
             case .liveWords:
                 self.pipeline.insertsLiveWords = self.settings.insertsLiveWords
+            case .usageData:
+                Analytics.shared.setEnabled(self.settings.sharesUsageData)
             }
         }
     }

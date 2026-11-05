@@ -166,7 +166,7 @@ enum TranscriptionEngineChoice: String, CaseIterable {
 @MainActor
 @Observable
 final class SettingsStore {
-    enum Change { case hotkey, activationMode, formatting, historyLimit, transcriptionEngine, appendTrailingSpace, smartLeadingSpace, wordReplacements, inputDevice, hudColorScheme, sounds, dictationStyle, screenContext, liveWords }
+    enum Change { case hotkey, activationMode, formatting, historyLimit, transcriptionEngine, appendTrailingSpace, smartLeadingSpace, wordReplacements, inputDevice, hudColorScheme, sounds, dictationStyle, screenContext, liveWords, usageData }
 
     @ObservationIgnored var onChange: ((Change) -> Void)?
     @ObservationIgnored private let defaults: UserDefaults
@@ -188,6 +188,7 @@ final class SettingsStore {
         static let usesScreenContext = "usesScreenContext"
         static let showsLiveWords = "showsLiveWords"
         static let insertsLiveWords = "insertsLiveWords"
+        static let sharesUsageData = "sharesUsageData"
     }
 
     var hotkey: HotkeyChoice {
@@ -308,8 +309,17 @@ final class SettingsStore {
         }
     }
 
+    /// Send anonymous usage counts (see Analytics). On unless turned off.
+    var sharesUsageData: Bool {
+        didSet {
+            defaults.set(sharesUsageData, forKey: Keys.sharesUsageData)
+            onChange?(.usageData)
+        }
+    }
+
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
+        self.sharesUsageData = defaults.object(forKey: Keys.sharesUsageData) as? Bool ?? true
         self.showsLiveWords = defaults.object(forKey: Keys.showsLiveWords) as? Bool ?? false
         self.insertsLiveWords = defaults.object(forKey: Keys.insertsLiveWords) as? Bool ?? false
         self.usesScreenContext = defaults.object(forKey: Keys.usesScreenContext) as? Bool ?? true

@@ -53,6 +53,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return onboardingController.windowNumber
         }) { return }
 
+        // Screenshot runs use made-up stats and shouldn't count as usage.
+        let isSampleRun = CommandLine.arguments.contains("--sample-stats")
+        Analytics.shared.setup(enabled: appState.settings.sharesUsageData && !isSampleRun, launchProperties: [
+            "engine": appState.settings.transcriptionEngine.rawValue,
+            "style": appState.settings.dictationStyle.rawValue,
+            "license": Analytics.licenseStatusName(appState.license.status),
+        ])
+
         hudController.colorScheme = appState.settings.hudColorScheme
         appState.onHUDColorSchemeChanged = { [weak self] scheme in self?.hudController.colorScheme = scheme }
         appState.onEngineReady = { [weak self] in
