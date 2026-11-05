@@ -213,14 +213,23 @@ final class MenuBarManager: NSObject, NSMenuDelegate {
             menu.addItem(fix)
         }
 
-        let copyLast = NSMenuItem(
-            title: "Copy Last Dictation",
-            action: #selector(copyLastDictation),
-            keyEquivalent: ""
-        )
-        copyLast.target = self
-        copyLast.isEnabled = appState.pipeline.historyStore.recentEntries.first != nil
-        menu.addItem(copyLast)
+        let recent = Array(appState.pipeline.historyStore.recentEntries.prefix(Self.recentCount))
+        addInsertItems(title: "Insert Last Dictation", copyTitle: "Copy Last Dictation",
+                       text: recent.first?.cleanedText, to: menu)
+
+        let recentItem = NSMenuItem(title: "Recent Dictations", action: nil, keyEquivalent: "")
+        let recentMenu = NSMenu()
+        for entry in recent {
+            let title = Self.recentTitle(for: entry.cleanedText)
+            addInsertItems(title: title, copyTitle: "Copy \u{201C}\(title)\u{201D}",
+                           text: entry.cleanedText, to: recentMenu)
+        }
+        if !recent.isEmpty { recentMenu.addItem(.separator()) }
+        let showAll = NSMenuItem(title: "Show All…", action: #selector(openHistory), keyEquivalent: "")
+        showAll.target = self
+        recentMenu.addItem(showAll)
+        recentItem.submenu = recentMenu
+        menu.addItem(recentItem)
 
         let style = NSMenuItem(title: "Dictation Style", action: nil, keyEquivalent: "")
         let styleMenu = NSMenu()
@@ -293,8 +302,50 @@ final class MenuBarManager: NSObject, NSMenuDelegate {
         appState?.isEnabled.toggle()
     }
 
-    @objc private func copyLastDictation() {
-        guard let text = appState?.pipeline.historyStore.recentEntries.first?.cleanedText else { return }
+    // MARK: - Inserting past dictations
+
+    /// How many dictations the Recent submenu lists.
+    static let recentCount = 5
+    static let recentTitleLength = 50
+
+    /// One line, at most `recentTitleLength` characters, for a menu title.
+    static func recentTitle(for text: String) -> String {
+        let oneLine = text.split(whereSeparator: \.isWhitespace).joined(separator: " ")
+        guard oneLine.count > recentTitleLength else { return oneLine }
+        let cut = oneLine.prefix(recentTitleLength - 1)
+        return cut.trimmingCharacters(in: .whitespaces) + "…"
+    }
+
+    /// An item that inserts `text` into the focused field, plus an Option
+    /// alternate that copies it instead. Disabled when there's no text.
+    private func addInsertItems(title: String, copyTitle: String, text: String?, to menu: NSMenu) {
+        let insert = NSMenuItem(title: title, action: #selector(insertDictation(_:)), keyEquivalent: "")
+        insert.target = self
+        insert.representedObject = text
+        insert.isEnabled = text != nil
+        menu.addItem(insert)
+
+        let copy = NSMenuItem(title: copyTitle, action: #selector(copyDictation(_:)), keyEquivalent: "")
+        copy.target = self
+        copy.representedObject = text
+        copy.isEnabled = text != nil
+        copy.isAlternate = true
+        copy.keyEquivalentModifierMask = .option
+        menu.addItem(copy)
+    }
+
+    /// The status menu doesn't take focus from the app underneath, so the
+    /// field that was focused before the click still is. The short wait lets
+    /// the menu finish closing before the paste keystroke goes out.
+    @objc private func insertDictation(_ sender: NSMenuItem) {
+        guard let text = sender.representedObject as? String, let appState else { return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+            appState.pipeline.insertSpaced(text)
+        }
+    }
+
+    @objc private func copyDictation(_ sender: NSMenuItem) {
+        guard let text = sender.representedObject as? String else { return }
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(text, forType: .string)
     }

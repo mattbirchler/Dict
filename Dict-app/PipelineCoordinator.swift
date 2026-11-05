@@ -191,23 +191,31 @@ final class PipelineCoordinator {
         Log.pipeline.info("Saved to history. Inserting text...")
         // Add separator spaces to the inserted text only — History keeps
         // the clean text so the list stays tidy.
-        var textToInsert = appendTrailingSpace ? text + " " : text
         if let liveInserter {
+            var textToInsert = appendTrailingSpace ? text + " " : text
             // The field already holds the live words; the leading-space
             // decision was made when the first of them went in.
             if liveInserter.insertedLeadingSpace { textToInsert = " " + textToInsert }
             liveInserter.finish(with: textToInsert)
             Log.pipeline.info("Live text reconciled")
         } else {
-            if smartLeadingSpace,
-               SmartSpacing.needsLeadingSpace(preceding: textInsertionService.characterBeforeCursor(), text: text) {
-                textToInsert = " " + textToInsert
-            }
-            textInsertionService.insertText(textToInsert)
+            insertSpaced(text)
             Log.pipeline.info("Text inserted")
         }
 
         return .inserted(text)
+    }
+
+    /// Pastes `text` into the focused field with the same spacing a new
+    /// dictation gets. Used for dictations and for inserting one again from
+    /// the menu bar.
+    func insertSpaced(_ text: String) {
+        var textToInsert = appendTrailingSpace ? text + " " : text
+        if smartLeadingSpace,
+           SmartSpacing.needsLeadingSpace(preceding: textInsertionService.characterBeforeCursor(), text: text) {
+            textToInsert = " " + textToInsert
+        }
+        textInsertionService.insertText(textToInsert)
     }
 
     /// Parakeet already punctuates and capitalizes, so outside coding apps
