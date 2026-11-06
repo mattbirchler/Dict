@@ -153,6 +153,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         keyMonitor.onHandsFreeChanged = { [weak self] handsFree in
             guard let self, self.appState.isRecording else { return }
             if handsFree {
+                self.appState.pipeline.markHandsFree()
                 let engine = self.appState.pipeline.activeEngine
                 engine.beginLivePreview()
                 self.hudController.showHandsFree(livePreview: engine.supportsLiveTranscript)

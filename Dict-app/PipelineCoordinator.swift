@@ -16,6 +16,27 @@ final class PipelineCoordinator {
     /// Mirrors the user's dictation style; owned by AppState.
     var dictationStyle: DictationStyle = .verbatim
 
+    /// Whether the current recording went hands-free (Space while holding).
+    private(set) var wentHandsFree = false
+
+    /// The style the last dictation was formatted with, which can differ
+    /// from the setting (see `effectiveStyle`).
+    private(set) var lastStyle: DictationStyle = .verbatim
+
+    /// Called when the user taps Space to go hands-free.
+    func markHandsFree() {
+        wentHandsFree = true
+    }
+
+    /// Hands-free dictations run longer (a blog post, a long message), so
+    /// Verbatim tidies them: smarter capitals and punctuation, ums and
+    /// stutters gone, wording untouched. Held dictations stay instant.
+    /// Coding apps keep Verbatim's own technical-term pass.
+    static func effectiveStyle(selected: DictationStyle, handsFree: Bool, context: FormattingContext) -> DictationStyle {
+        guard selected == .verbatim, handsFree, context == .general else { return selected }
+        return .tidy
+    }
+
     /// Mirrors the user's screen-context setting; owned by AppState.
     var usesScreenContext = true
 
@@ -71,6 +92,7 @@ final class PipelineCoordinator {
         currentInputDevice = resolvedInputDevice()
         engine.inputDeviceID = currentInputDevice?.id
         startFailed = false
+        wentHandsFree = false
         // Electron apps need a moment to build their accessibility tree;
         // start it now so smart spacing can read the cursor later.
         FocusedElement.prepareFrontmostApp()
@@ -155,15 +177,19 @@ final class PipelineCoordinator {
 
         let bundleID = NSWorkspace.shared.frontmostApplication?.bundleIdentifier
         let context: FormattingContext = CodingAppCatalog.isCodingApp(bundleID) ? .coding : .general
-        let shouldFormat = Self.shouldFormat(enabled: isFormattingEnabled, engine: engineChoice, context: context, style: dictationStyle)
+        let style = Self.effectiveStyle(selected: dictationStyle, handsFree: wentHandsFree, context: context)
+        lastStyle = style
+        let shouldFormat = Self.shouldFormat(enabled: isFormattingEnabled, engine: engineChoice, context: context, style: style)
         // Names and terms already in the document, so the dictation spells
         // them the same way. Read once, used by the formatter and the
         // respelling pass below.
         let terms = usesScreenContext ? ScreenContext.extractTerms(from: ScreenContext.focusedText() ?? "") : []
         let formatted: String
         if shouldFormat {
-            formatted = await formatter.format(rawText, context: context, style: dictationStyle, terms: terms)
-        } else if dictationStyle != .verbatim {
+            formatted = await formatter.format(rawText, context: context, style: style, terms: terms)
+        } else if style == .tidy {
+            formatted = FillerRemover.cleanPunctuated(rawText)
+        } else if style != .verbatim {
             formatted = FillerRemover.clean(rawText)
         } else {
             formatted = rawText
@@ -226,7 +252,7 @@ final class PipelineCoordinator {
     /// coding apps it still earns its keep fixing technical terms.
     static func shouldFormat(enabled: Bool, engine: TranscriptionEngineChoice, context: FormattingContext, style: DictationStyle = .verbatim) -> Bool {
         guard enabled else { return false }
-        // Clean and Polished need the model whatever the engine.
+        // Clean, Polished and Tidy need the model whatever the engine.
         return style != .verbatim || engine != .parakeet || context == .coding
     }
 }

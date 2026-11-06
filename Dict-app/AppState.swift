@@ -284,7 +284,7 @@ final class AppState {
                 stats.record(text: text, seconds: seconds)
                 Analytics.shared.log(.dictationCompleted, properties: Analytics.dictationProperties(
                     text: text, seconds: seconds,
-                    engine: settings.transcriptionEngine, style: settings.dictationStyle))
+                    engine: settings.transcriptionEngine, style: pipeline.lastStyle))
             } else if let reason = Analytics.failureReason(result) {
                 Analytics.shared.log(.dictationFailed, properties: [
                     "reason": reason,
