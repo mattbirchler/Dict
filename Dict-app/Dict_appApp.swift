@@ -44,6 +44,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         SoundPlayer.isMuted = CommandLine.arguments.contains { $0.hasPrefix("--preview-") }
         if HUDPreview.renderHUD() { exit(0) }
         if HUDPreview.present(in: hudController) { return }
+        HUDPreview.applyPreviewSettings(to: appState.settings)
         if HUDPreview.presentWindow(show: { [self] section in
             mainWindowController.show(section: section, appState: appState, updater: updaterController.updater)
             return mainWindowController.windowNumber

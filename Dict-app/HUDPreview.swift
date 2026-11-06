@@ -45,6 +45,20 @@ enum HUDPreview {
         return true
     }
 
+    /// With `--sample-stats` (a throwaway defaults suite, so real settings
+    /// are untouched), `--scheme ember` and `--window-appearance light|dark|system`
+    /// set those preferences for a preview run.
+    @MainActor
+    static func applyPreviewSettings(to settings: SettingsStore, arguments: [String] = CommandLine.arguments) {
+        guard arguments.contains("--sample-stats") else { return }
+        func value(_ name: String) -> String? {
+            guard let i = arguments.firstIndex(of: name), i + 1 < arguments.count else { return nil }
+            return arguments[i + 1]
+        }
+        if let scheme = value("--scheme").flatMap(HUDColorScheme.init(rawValue:)) { settings.hudColorScheme = scheme }
+        if let appearance = value("--window-appearance").flatMap(AppAppearance.init(rawValue:)) { settings.appearance = appearance }
+    }
+
     /// `Dict --preview-window general|about|history|replacements|license [--snapshot out.png]`:
     /// opens the main window on that section for a look at Settings.
     @MainActor
@@ -59,6 +73,13 @@ enum HUDPreview {
         default: section = .general
         }
         let number = show(section)
+        // `--window-height 1100` makes room to see more of a long section.
+        if let i = arguments.firstIndex(of: "--window-height"), i + 1 < arguments.count,
+           let height = Double(arguments[i + 1]),
+           let window = NSApp.windows.first(where: { $0.windowNumber == number }) {
+            window.setContentSize(NSSize(width: window.contentLayoutRect.width, height: height))
+            window.center()
+        }
         scheduleSnapshot(from: arguments) { number }
         return true
     }
