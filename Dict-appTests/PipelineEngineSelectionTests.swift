@@ -48,6 +48,17 @@ struct PipelineEngineSelectionTests {
         #expect(!PipelineCoordinator.shouldFormat(enabled: false, engine: .apple, context: .general, style: .clean))
     }
 
+    @Test func verbatimTidiesHandsFreeDictations() {
+        #expect(PipelineCoordinator.effectiveStyle(selected: .verbatim, handsFree: true, context: .general) == .tidy)
+        #expect(PipelineCoordinator.effectiveStyle(selected: .verbatim, handsFree: false, context: .general) == .verbatim)
+        // Coding apps keep Verbatim's technical-term pass.
+        #expect(PipelineCoordinator.effectiveStyle(selected: .verbatim, handsFree: true, context: .coding) == .verbatim)
+        // Other styles are left as chosen.
+        #expect(PipelineCoordinator.effectiveStyle(selected: .clean, handsFree: true, context: .general) == .clean)
+        #expect(PipelineCoordinator.effectiveStyle(selected: .polished, handsFree: true, context: .general) == .polished)
+        #expect(PipelineCoordinator.shouldFormat(enabled: true, engine: .parakeet, context: .general, style: .tidy))
+    }
+
     @Test func parakeetPadsBothEdgesWithSilence() {
         let samples: [Float] = [0.5, -0.5]
         let padded = ParakeetTranscriptionService.padded(samples, seconds: 0.25, sampleRate: 16)
