@@ -1,18 +1,21 @@
 import SwiftUI
 
-/// The main window's share of the panel's look: the panel's near-black
-/// gradient behind every section, section titles in the panel's typeface,
-/// and native controls tinted with the chosen color scheme.
+/// The main window's share of the panel's look: the scheme's gradient
+/// behind every section (near-black in dark mode, a tinted paper white in
+/// light), section titles in the panel's typeface, and native controls
+/// tinted with the chosen color scheme.
 
 /// The window background: the scheme's panel colors, with a faint glow at
 /// the top like light catching the panel's rim.
 struct DictBackdrop: View {
     var scheme: HUDColorScheme
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
+        let palette = scheme.window(colorScheme)
         ZStack(alignment: .top) {
-            LinearGradient(colors: [scheme.pillTop, scheme.pillBottom], startPoint: .top, endPoint: .bottom)
-            RadialGradient(colors: [scheme.glow.opacity(0.10), .clear], center: .top, startRadius: 0, endRadius: 420)
+            LinearGradient(colors: [palette.backdropTop, palette.backdropBottom], startPoint: .top, endPoint: .bottom)
+            RadialGradient(colors: [palette.glow.opacity(palette.glowOpacity), .clear], center: .top, startRadius: 0, endRadius: 420)
                 .frame(height: 320)
         }
         .ignoresSafeArea()
@@ -23,6 +26,7 @@ struct DictBackdrop: View {
 struct DictSectionHeader: View {
     var title: String
     var scheme: HUDColorScheme
+    @Environment(\.colorScheme) private var colorScheme
 
     init(_ title: String, scheme: HUDColorScheme) {
         self.title = title
@@ -33,7 +37,7 @@ struct DictSectionHeader: View {
         Text(title.uppercased())
             .font(HUDFont.label(11, weight: .semibold))
             .tracking(1.6)
-            .foregroundStyle(scheme.accent.opacity(0.9))
+            .foregroundStyle(scheme.window(colorScheme).accent.opacity(0.9))
             .accessibilityAddTraits(.isHeader)
     }
 }

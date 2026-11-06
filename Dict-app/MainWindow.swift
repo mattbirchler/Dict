@@ -26,6 +26,7 @@ struct MainWindow: View {
     let appState: AppState
     let updater: SPUUpdater
     @Bindable var model: MainWindowModel
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         let scheme = appState.settings.hudColorScheme
@@ -72,8 +73,8 @@ struct MainWindow: View {
             .background { DictBackdrop(scheme: scheme) }
         }
         // Switches, pickers and selections light up in the scheme's color.
-        .tint(scheme.accent)
-        .preferredColorScheme(.dark)
+        .tint(scheme.window(colorScheme).accent)
+        .background { WindowAppearanceSetter(appearance: appState.settings.appearance) }
     }
 
     /// The sidebar's order, for the arrow keys.
@@ -93,19 +94,21 @@ private struct SidebarRow: View {
     var section: MainSection
     @Bindable var model: MainWindowModel
     var scheme: HUDColorScheme
+    @Environment(\.colorScheme) private var colorScheme
 
     private var isSelected: Bool { model.section == section }
 
     var body: some View {
+        let palette = scheme.window(colorScheme)
         Button {
             model.section = section
         } label: {
             HStack(spacing: 8) {
                 Image(systemName: systemImage)
-                    .foregroundStyle(scheme.accent)
+                    .foregroundStyle(palette.accent)
                     .frame(width: 20)
                 Text(title)
-                    .foregroundStyle(isSelected ? scheme.text : .primary)
+                    .foregroundStyle(isSelected ? palette.text : .primary)
                     .fontWeight(isSelected ? .semibold : .regular)
                 Spacer(minLength: 0)
             }
@@ -114,12 +117,12 @@ private struct SidebarRow: View {
             .background {
                 if isSelected {
                     RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .fill(LinearGradient(colors: [scheme.pillTop, scheme.pillBottom], startPoint: .top, endPoint: .bottom))
+                        .fill(palette.selectionFill)
                         .overlay {
                             RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                .strokeBorder(scheme.glow.opacity(0.45), lineWidth: 1)
+                                .strokeBorder(palette.selectionStroke, lineWidth: 1)
                         }
-                        .shadow(color: scheme.glow.opacity(0.2), radius: 6)
+                        .shadow(color: palette.selectionShadow, radius: 6)
                 }
             }
             .contentShape(Rectangle())

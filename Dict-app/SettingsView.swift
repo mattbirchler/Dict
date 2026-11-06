@@ -125,6 +125,20 @@ struct GeneralSettingsTab: View {
             }
 
             Section {
+                Picker("Window appearance", selection: $settings.appearance) {
+                    ForEach(AppAppearance.allCases) { appearance in
+                        Text(appearance.displayName).tag(appearance)
+                    }
+                }
+                .pickerStyle(.segmented)
+                Text("Match System switches between dark and light along with your Mac. The dictation panel stays dark in every mode so the lit dots stand out.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } header: {
+                DictSectionHeader("Appearance", scheme: scheme)
+            }
+
+            Section {
                 HUDSchemePicker(selection: $settings.hudColorScheme)
                 Text("The colors the panel lights up in while you dictate.")
                     .font(.caption)
@@ -240,6 +254,7 @@ struct AboutSettingsTab: View {
     @State private var logStatus: String?
     @State private var logStatusTask: Task<Void, Never>?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.colorScheme) private var colorScheme
     private let started = Date()
 
     init(settings: SettingsStore, updater: SPUUpdater) {
@@ -301,7 +316,7 @@ struct AboutSettingsTab: View {
                 Link("Privacy", destination: URL(string: "https://github.com/mattbirchler/Dict-releases/blob/main/PRIVACY.md")!)
             }
             .font(.callout)
-            .foregroundStyle(settings.hudColorScheme.accent)
+            .foregroundStyle(settings.hudColorScheme.window(colorScheme).accent)
             .padding(.top, 4)
 
             Text("Speech by Apple Speech and NVIDIA Parakeet through FluidAudio (Apache 2.0). Formatting by Apple Intelligence. Updates by Sparkle (MIT). Labels set in Chakra Petch (OFL).")

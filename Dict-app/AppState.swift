@@ -109,6 +109,8 @@ final class AppState {
                 self.pipeline.insertsLiveWords = self.settings.insertsLiveWords
             case .usageData:
                 Analytics.shared.setEnabled(self.settings.sharesUsageData)
+            case .appearance:
+                break // The main window observes the setting itself.
             }
         }
     }

@@ -5,6 +5,7 @@ import SwiftUI
 struct HUDSchemePicker: View {
     @Binding var selection: HUDColorScheme
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.colorScheme) private var colorScheme
 
     private let started = Date()
 
@@ -18,7 +19,7 @@ struct HUDSchemePicker: View {
                         spectrum: spectrum,
                         phase: timeline.date.timeIntervalSinceReferenceDate,
                         isSelected: scheme == selection,
-                        selectionColor: selection.accent
+                        selectionColor: selection.window(colorScheme).accent
                     )
                     .onTapGesture { selection = scheme }
                     .accessibilityElement(children: .ignore)
