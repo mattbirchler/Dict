@@ -8,14 +8,22 @@ enum DictationStyle: String, CaseIterable, Identifiable {
     case clean
     /// Clean, plus light grammar fixes so it reads as written text.
     case polished
+    /// Verbatim with smarter capitalization and punctuation, minus ums and
+    /// stutters. Not offered in Settings yet: Verbatim switches to it for
+    /// hands-free dictations.
+    case tidy
 
     var id: String { rawValue }
+
+    /// The styles offered in Settings and the menu bar.
+    static var allCases: [DictationStyle] { [.verbatim, .clean, .polished] }
 
     var displayName: String {
         switch self {
         case .verbatim: "Verbatim"
         case .clean: "Clean"
         case .polished: "Polished"
+        case .tidy: "Tidy"
         }
     }
 
@@ -24,6 +32,7 @@ enum DictationStyle: String, CaseIterable, Identifiable {
         case .verbatim: "Every word as spoken, with punctuation added. Ums and all."
         case .clean: "Drops ums, uhs and repeated words, and keeps only your corrected version when you change your mind mid-sentence. Never rewords."
         case .polished: "Clean, plus small grammar fixes so it reads like you typed it. Your words and meaning stay."
+        case .tidy: "Every word as spoken, with smarter capitals and punctuation. Ums and stumbles removed."
         }
     }
 }

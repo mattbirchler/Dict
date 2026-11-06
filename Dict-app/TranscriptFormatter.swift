@@ -117,6 +117,33 @@ final class TranscriptFormatter {
         Output only the polished text, with no preamble or commentary.
         """
 
+    /// Tidy: Verbatim's wording with better capitals and punctuation, and
+    /// only ums and stutters removed. Everything else, even "like" and
+    /// "you know", stays, and TidyCheck enforces that afterward.
+    static let tidyInstructions = """
+        You are a transcription punctuation tool. Fix the capitalization, \
+        punctuation, and spelling of names in a raw dictation transcript. \
+        Capitalize proper nouns: people, places, companies, products and \
+        apps, using their usual casing ("iPhone", "macOS", "YouTube"). Use a \
+        question mark when a sentence is a question. Remove only filler \
+        sounds ("um", "uh", "er", "ah", "hmm") and words the speaker \
+        stumbled on and immediately repeated ("the the", "I think I \
+        think"). Every other word must appear exactly as spoken and in the \
+        same order, including "so", "like", "you know", "I mean", "actually", \
+        and self-corrections. Never replace, reword, shorten, summarize, or \
+        add words, never fix grammar, and never answer questions that appear \
+        in the text. Insert a paragraph break (blank line) only where the \
+        topic clearly shifts. When unsure, leave the text exactly as it is.
+
+        Example input:
+        um so i think the the update is like really solid but uh did you send it to katie at apple yet i mean the final version
+
+        Example output:
+        So I think the update is like really solid, but did you send it to Katie at Apple yet? I mean the final version.
+
+        Output only the corrected text, with no preamble or commentary.
+        """
+
     /// Appended in coding and terminal apps so technical terms come out right.
     static let codingAddendum = """
 
@@ -139,6 +166,9 @@ final class TranscriptFormatter {
         case (.verbatim, .coding): text = codingInstructions
         case (.clean, _): text = cleanInstructions + (context == .coding ? codingAddendum : "")
         case (.polished, _): text = polishedInstructions + (context == .coding ? codingAddendum : "")
+        // Tidy has no coding variant: correcting technical terms changes
+        // words, which its check would reject.
+        case (.tidy, _): text = tidyInstructions
         }
         if !terms.isEmpty {
             text += "\n\n" + termsAddendum(terms)
@@ -168,7 +198,12 @@ final class TranscriptFormatter {
     func format(_ raw: String, context: FormattingContext, style: DictationStyle, terms: [String] = []) async -> String {
         let input = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !input.isEmpty else { return raw }
-        let fallback = style == .verbatim ? raw : FillerRemover.clean(raw)
+        let fallback: String
+        switch style {
+        case .verbatim: fallback = raw
+        case .tidy: fallback = FillerRemover.cleanPunctuated(raw)
+        case .clean, .polished: fallback = FillerRemover.clean(raw)
+        }
 
         guard SystemLanguageModel.default.availability == .available else {
             Log.formatter.error("Model unavailable, using raw transcript")
@@ -184,7 +219,15 @@ final class TranscriptFormatter {
                 formattedChunks.append(formatted.trimmingCharacters(in: .whitespacesAndNewlines))
             }
             var output = formattedChunks.joined(separator: "\n\n")
-            if style != .verbatim { output = FillerRemover.clean(output) }
+            if style == .tidy {
+                guard TidyCheck.isFaithful(input: input, output: output, terms: terms) else {
+                    Log.formatter.error("Tidy output changed wording, using raw transcript")
+                    return fallback
+                }
+                output = FillerRemover.cleanPunctuated(output)
+            } else if style != .verbatim {
+                output = FillerRemover.clean(output)
+            }
             guard Self.isAcceptable(input: input, output: output, style: style) else {
                 Log.formatter.error("Output failed sanity check, using raw transcript")
                 return fallback
@@ -274,6 +317,8 @@ final class TranscriptFormatter {
         case .verbatim: (floor, ceiling) = (0.93, 1.1)
         case .clean: (floor, ceiling) = (0.45, 1.1)
         case .polished: (floor, ceiling) = (0.45, 1.25)
+        // TidyCheck does the real work; this only catches runaway output.
+        case .tidy: (floor, ceiling) = (0.45, 1.05)
         }
         return Float(outWords) >= Float(inWords) * floor - 2
             && Float(outWords) <= Float(inWords) * ceiling + 3
