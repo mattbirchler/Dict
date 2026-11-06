@@ -4,6 +4,9 @@ import SwiftUI
 struct StatsHeader: View {
     var stats: DictationStats
     var scheme: HUDColorScheme
+    @Environment(\.colorScheme) private var colorScheme
+
+    private var palette: HUDPalette { scheme.hud(colorScheme) }
 
     var body: some View {
         HStack(spacing: 0) {
@@ -17,18 +20,8 @@ struct StatsHeader: View {
         }
         .padding(.vertical, 14)
         .padding(.horizontal, 8)
-        .background {
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(LinearGradient(colors: [scheme.pillTop, scheme.pillBottom], startPoint: .top, endPoint: .bottom))
-        }
-        .overlay {
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .strokeBorder(
-                    LinearGradient(colors: [scheme.glow.opacity(0.4), Color.white.opacity(0.05), scheme.glow.opacity(0.1)], startPoint: .top, endPoint: .bottom),
-                    lineWidth: 1
-                )
-        }
-        .shadow(color: scheme.glow.opacity(0.12), radius: 16)
+        .panelSurface(palette, cornerRadius: 14, glow: 0.12)
+        .shadow(color: palette.isLight ? palette.shadow.opacity(0.4) : .clear, radius: 8, y: 3)
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(stats.words) words dictated, \(stats.dictations) dictations, \(Self.duration(stats.secondsSaved)) saved, \(stats.streak()) day streak")
     }
@@ -37,22 +30,22 @@ struct StatsHeader: View {
         VStack(spacing: 4) {
             Text(value)
                 .font(HUDFont.label(24, weight: .bold))
-                .foregroundStyle(scheme.high)
-                .shadow(color: scheme.glow.opacity(0.6), radius: 6)
+                .foregroundStyle(palette.isLight ? palette.accent : palette.high)
+                .shadow(color: palette.glow.opacity(palette.isLight ? 0.15 : 0.6), radius: 6)
                 .monospacedDigit()
                 .lineLimit(1)
                 .minimumScaleFactor(0.6)
             Text(label.uppercased())
                 .font(HUDFont.label(10, weight: .medium))
                 .tracking(1.6)
-                .foregroundStyle(scheme.accent.opacity(0.8))
+                .foregroundStyle(palette.accent.opacity(0.8))
         }
         .frame(maxWidth: .infinity)
     }
 
     private var divider: some View {
         Rectangle()
-            .fill(Color.white.opacity(0.08))
+            .fill(palette.text.opacity(palette.isLight ? 0.10 : 0.08))
             .frame(width: 1, height: 36)
     }
 

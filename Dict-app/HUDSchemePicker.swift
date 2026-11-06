@@ -37,22 +37,17 @@ private struct SchemeTile: View {
     var phase: Double
     var isSelected: Bool
     var selectionColor: Color
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
+        let palette = scheme.hud(colorScheme)
         VStack(spacing: 6) {
             DotMatrix(spectrum: spectrum, isLive: true, scheme: scheme, phase: phase)
                 .scaleEffect(0.55)
                 .frame(width: DotMatrix.width * 0.55, height: DotMatrix.height * 0.55)
                 .padding(.horizontal, 10)
                 .padding(.vertical, 8)
-                .background {
-                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .fill(LinearGradient(colors: [scheme.pillTop, scheme.pillBottom], startPoint: .top, endPoint: .bottom))
-                }
-                .overlay {
-                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .strokeBorder(scheme.glow.opacity(0.35), lineWidth: 1)
-                }
+                .panelSurface(palette, cornerRadius: 10, glow: 0, glowRadius: 0)
             Text(scheme.displayName)
                 .font(.caption)
                 .foregroundStyle(isSelected ? .primary : .secondary)

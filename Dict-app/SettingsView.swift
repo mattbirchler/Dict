@@ -125,13 +125,13 @@ struct GeneralSettingsTab: View {
             }
 
             Section {
-                Picker("Window appearance", selection: $settings.appearance) {
+                Picker("Appearance", selection: $settings.appearance) {
                     ForEach(AppAppearance.allCases) { appearance in
                         Text(appearance.displayName).tag(appearance)
                     }
                 }
                 .pickerStyle(.segmented)
-                Text("Match System switches between dark and light along with your Mac. The dictation panel stays dark in every mode so the lit dots stand out.")
+                Text("Applies to this window and the dictation panel. Match System switches between dark and light along with your Mac.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             } header: {
@@ -331,6 +331,7 @@ struct AboutSettingsTab: View {
 
     /// The HUD's panel, blown up: icon, name and version over a live grid.
     private var hero: some View {
+        let palette = settings.hudColorScheme.hud(colorScheme)
         let scheme = settings.hudColorScheme
         return TimelineView(.periodic(from: .now, by: reduceMotion ? 3600 : 0.085)) { timeline in
             let t = timeline.date.timeIntervalSince(started)
@@ -342,11 +343,11 @@ struct AboutSettingsTab: View {
                     Text("DICT")
                         .font(HUDFont.label(22, weight: .bold))
                         .tracking(4)
-                        .foregroundStyle(scheme.text)
+                        .foregroundStyle(palette.text)
                     Text(versionString.uppercased())
                         .font(HUDFont.label(10.5, weight: .medium))
                         .tracking(1.6)
-                        .foregroundStyle(scheme.accent.opacity(0.85))
+                        .foregroundStyle(palette.accent.opacity(0.85))
                 }
                 Spacer(minLength: 12)
                 DotMatrix(
@@ -359,19 +360,8 @@ struct AboutSettingsTab: View {
             .padding(.horizontal, 22)
             .padding(.vertical, 18)
             .frame(maxWidth: 420)
-            .background {
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .fill(LinearGradient(colors: [scheme.pillTop, scheme.pillBottom], startPoint: .top, endPoint: .bottom))
-            }
-            .overlay {
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .strokeBorder(
-                        LinearGradient(colors: [scheme.glow.opacity(0.45), Color.white.opacity(0.06), scheme.glow.opacity(0.12)], startPoint: .top, endPoint: .bottom),
-                        lineWidth: 1
-                    )
-            }
-            .shadow(color: scheme.glow.opacity(0.18), radius: 22)
-            .shadow(color: .black.opacity(0.25), radius: 12, y: 6)
+            .panelSurface(palette, cornerRadius: 18, glow: 0.18, glowRadius: 22)
+            .shadow(color: .black.opacity(palette.isLight ? 0.10 : 0.25), radius: 12, y: 6)
         }
     }
 }

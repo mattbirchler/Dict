@@ -8,6 +8,8 @@ final class AppState {
     let license: LicenseStore
     /// Fired when the HUD color scheme setting changes.
     var onHUDColorSchemeChanged: ((HUDColorScheme) -> Void)?
+    /// Fired when the Appearance setting changes.
+    var onAppearanceChanged: ((AppAppearance) -> Void)?
     let permissionChecker = PermissionChecker()
     let pipeline = PipelineCoordinator()
     let stats = StatsStore(defaults: HUDPreview.sampleStatsDefaults() ?? .standard)
@@ -110,7 +112,9 @@ final class AppState {
             case .usageData:
                 Analytics.shared.setEnabled(self.settings.sharesUsageData)
             case .appearance:
-                break // The main window observes the setting itself.
+                // The main window observes the setting itself; the panel
+                // is AppKit-owned and needs telling.
+                self.onAppearanceChanged?(self.settings.appearance)
             }
         }
     }

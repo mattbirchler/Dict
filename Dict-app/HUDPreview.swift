@@ -12,7 +12,9 @@ enum HUDPreview {
     static func present(from arguments: [String] = CommandLine.arguments, in hud: HUDPanelController) -> Bool {
         guard let flag = arguments.firstIndex(of: "--preview-hud"), flag + 1 < arguments.count else { return false }
         if let appearance = arguments.firstIndex(of: "--appearance"), appearance + 1 < arguments.count {
-            NSApp.appearance = NSAppearance(named: arguments[appearance + 1] == "light" ? .aqua : .darkAqua)
+            let isLight = arguments[appearance + 1] == "light"
+            NSApp.appearance = NSAppearance(named: isLight ? .aqua : .darkAqua)
+            hud.appearance = isLight ? .light : .dark
         }
 
         let transcript = LiveTranscript(
@@ -119,7 +121,7 @@ enum HUDPreview {
     }
 
     /// `Dict --render-hud recording|handsfree|processing|done|ready [--scheme ember]
-    /// [--scale 4] --out panel.png`: draws the panel straight to a PNG at any
+    /// [--appearance light] [--scale 4] --out panel.png`: draws the panel straight to a PNG at any
     /// scale, transparent around its shadow, for marketing images. Unlike
     /// --snapshot it needs no window or screen recording, and isn't limited
     /// to the screen's 2x.
@@ -157,7 +159,7 @@ enum HUDPreview {
         )
         .fixedSize()
         .padding(48)
-        .environment(\.colorScheme, .dark)
+        .environment(\.colorScheme, value("--appearance") == "light" ? .light : .dark)
         let renderer = ImageRenderer(content: view)
         renderer.scale = scale
         renderer.isOpaque = false

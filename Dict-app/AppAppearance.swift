@@ -1,9 +1,8 @@
 import AppKit
 import SwiftUI
 
-/// Whether the main window is dark, light, or follows the Mac. Dark is the
-/// default. The dictation panel and the little panel previews inside the
-/// window stay dark in every mode, so the lit dots keep their glow.
+/// Whether the main window and the dictation panel are dark, light, or
+/// follow the Mac. Dark is the default. Onboarding stays dark.
 enum AppAppearance: String, CaseIterable, Identifiable {
     case dark, light, system
 
@@ -29,7 +28,7 @@ enum AppAppearance: String, CaseIterable, Identifiable {
 
 /// The colors a window's own chrome uses (backdrop, section titles, sidebar,
 /// links, control tint) for one scheme in one appearance. Panel-style cards
-/// keep using the scheme's dark pill colors directly.
+/// use `HUDPalette` instead.
 struct WindowPalette {
     var backdropTop: Color
     var backdropBottom: Color

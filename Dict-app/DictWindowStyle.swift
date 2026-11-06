@@ -57,9 +57,11 @@ struct SettingsHero: View {
     var hotkey: HotkeyChoice
     var mode: ActivationMode
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.colorScheme) private var colorScheme
     private let started = Date()
 
     var body: some View {
+        let palette = scheme.hud(colorScheme)
         TimelineView(.periodic(from: .now, by: reduceMotion ? 3600 : 0.085)) { timeline in
             HStack(spacing: 18) {
                 DotMatrix(
@@ -72,31 +74,21 @@ struct SettingsHero: View {
                     Text(instruction.uppercased())
                         .font(HUDFont.label(15, weight: .bold))
                         .tracking(1.4)
-                        .foregroundStyle(scheme.text)
+                        .foregroundStyle(palette.text)
                         .lineLimit(1)
                         .minimumScaleFactor(0.7)
                     Text("\(scheme.displayName.uppercased()) SCHEME")
                         .font(HUDFont.label(10, weight: .medium))
                         .tracking(1.6)
-                        .foregroundStyle(scheme.accent.opacity(0.8))
+                        .foregroundStyle(palette.accent.opacity(0.8))
                 }
                 Spacer(minLength: 0)
             }
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 16)
-        .background {
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(LinearGradient(colors: [scheme.pillTop, scheme.pillBottom], startPoint: .top, endPoint: .bottom))
-        }
-        .overlay {
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .strokeBorder(
-                    LinearGradient(colors: [scheme.glow.opacity(0.45), Color.white.opacity(0.06), scheme.glow.opacity(0.12)], startPoint: .top, endPoint: .bottom),
-                    lineWidth: 1
-                )
-        }
-        .shadow(color: scheme.glow.opacity(0.14), radius: 16)
+        .panelSurface(palette, cornerRadius: 14)
+        .shadow(color: palette.isLight ? palette.shadow.opacity(0.4) : .clear, radius: 8, y: 3)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(instruction)
     }

@@ -270,7 +270,7 @@ final class SettingsStore {
         }
     }
 
-    /// Dark, light, or following the Mac, for the main window.
+    /// Dark, light, or following the Mac, for the main window and the panel.
     var appearance: AppAppearance {
         didSet {
             defaults.set(appearance.rawValue, forKey: Keys.appearance)
