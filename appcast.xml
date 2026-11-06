@@ -7,6 +7,23 @@
         <language>en</language>
         <item>
             <title>Dict 1.0</title>
+            <pubDate>Fri, 06 Nov 2026 23:35:58 GMT</pubDate>
+            <sparkle:version>11</sparkle:version>
+            <sparkle:shortVersionString>1.0</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description><![CDATA[
+<h3>Dict 1.0 (build 11)</h3>
+<h3>Light mode</h3>
+<p>Dict has always been dark. Now you can pick. Open Settings and look for <strong>Appearance</strong> in General:</p>
+<ul><li><strong>Dark</strong> is the look you already have, and it stays the default.</li><li><strong>Light</strong> gives the Dict window and the dictation panel a bright, clean look.</li><li><strong>Match System</strong> switches between dark and light along with your Mac.</li></ul>
+<p>Light mode works with all five color schemes. The dictation panel turns white, and the dots light up in deeper versions of your scheme&#x27;s colors so they&#x27;re easy to see. Graphite switches to dark gray dots on white.</p>
+<p>The change applies right away, including to the dictation panel, so you can try each option and see what you like.</p>
+            ]]></description>
+            <enclosure url="https://github.com/mattbirchler/Dict-releases/releases/download/v1.0-11/Dict-1.0-11.zip" type="application/octet-stream" sparkle:edSignature="08tdZk4pO1s6U8GvX+FLfkO2glxo5+/cbIlxSB/PSZHKUNe/KCcjTSF1Pnm2kgcA2PsGbsDsRil7ytLQnV9nBA==" length="9327582"/>
+        </item>
+        <item>
+            <title>Dict 1.0</title>
             <pubDate>Fri, 06 Nov 2026 18:22:05 GMT</pubDate>
             <sparkle:version>10</sparkle:version>
             <sparkle:shortVersionString>1.0</sparkle:shortVersionString>
