@@ -168,12 +168,15 @@ final class PipelineCoordinator {
         } else {
             formatted = rawText
         }
-        // Runs whether or not the formatter did (it's skipped for most
-        // Parakeet dictations), and before word replacements so the
+        // Spoken numbers become digits in every style, since the engines
+        // spell most of them out. Runs whether or not the formatter did
+        // (it's skipped for most Parakeet dictations), as does the
+        // respelling, and both come before word replacements so the
         // user's own rules still win.
+        let numbered = NumberNormalizer.apply(formatted)
         let respelled = ScreenContextSpelling.apply(
             terms: terms,
-            to: formatted,
+            to: numbered,
             isDictionaryWord: ScreenContextSpelling.systemDictionaryContains
         )
         if usesScreenContext {
