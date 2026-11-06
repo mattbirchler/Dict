@@ -166,7 +166,7 @@ enum TranscriptionEngineChoice: String, CaseIterable {
 @MainActor
 @Observable
 final class SettingsStore {
-    enum Change { case hotkey, activationMode, formatting, historyLimit, transcriptionEngine, appendTrailingSpace, smartLeadingSpace, wordReplacements, inputDevice, hudColorScheme, sounds, dictationStyle, screenContext, liveWords, usageData }
+    enum Change { case hotkey, activationMode, formatting, historyLimit, transcriptionEngine, appendTrailingSpace, smartLeadingSpace, wordReplacements, inputDevice, hudColorScheme, sounds, dictationStyle, screenContext, liveWords, usageData, appearance }
 
     @ObservationIgnored var onChange: ((Change) -> Void)?
     @ObservationIgnored private let defaults: UserDefaults
@@ -189,6 +189,7 @@ final class SettingsStore {
         static let showsLiveWords = "showsLiveWords"
         static let insertsLiveWords = "insertsLiveWords"
         static let sharesUsageData = "sharesUsageData"
+        static let appearance = "appearance"
     }
 
     var hotkey: HotkeyChoice {
@@ -269,6 +270,14 @@ final class SettingsStore {
         }
     }
 
+    /// Dark, light, or following the Mac, for the main window and the panel.
+    var appearance: AppAppearance {
+        didSet {
+            defaults.set(appearance.rawValue, forKey: Keys.appearance)
+            onChange?(.appearance)
+        }
+    }
+
     /// Short sounds at the start and end of a dictation.
     var playsSounds: Bool {
         didSet {
@@ -325,6 +334,8 @@ final class SettingsStore {
         self.usesScreenContext = defaults.object(forKey: Keys.usesScreenContext) as? Bool ?? true
         self.dictationStyle = defaults.string(forKey: Keys.dictationStyle)
             .flatMap(DictationStyle.init(rawValue:)) ?? .verbatim
+        self.appearance = defaults.string(forKey: Keys.appearance)
+            .flatMap(AppAppearance.init(rawValue:)) ?? .dark
         self.playsSounds = defaults.object(forKey: Keys.playsSounds) as? Bool ?? true
         self.hudColorScheme = defaults.string(forKey: Keys.hudColorScheme)
             .flatMap(HUDColorScheme.init(rawValue:)) ?? .ember

@@ -29,8 +29,9 @@ final class MainWindowController: NSObject, NSWindowDelegate {
         )
         let window = NSWindow(contentViewController: hostingController)
         window.title = "Dict"
-        // Dark like the panel and onboarding, whatever the system setting.
-        window.appearance = NSAppearance(named: .darkAqua)
+        // Dark by default like the panel and onboarding. MainWindow keeps
+        // this in step when the Appearance setting changes.
+        window.appearance = appState.settings.appearance.nsAppearance
         window.styleMask = [.titled, .closable, .miniaturizable, .resizable]
         window.setContentSize(NSSize(width: 720, height: 460))
         window.setFrameAutosaveName("DictMainWindow")

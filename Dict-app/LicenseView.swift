@@ -5,6 +5,7 @@ import AppKit
 struct LicenseView: View {
     let license: LicenseStore
     var scheme: HUDColorScheme
+    @Environment(\.colorScheme) private var colorScheme
     @State private var keyText = ""
     @State private var problem: String?
     @State private var confirmingRemove = false
@@ -16,7 +17,7 @@ struct LicenseView: View {
                 VStack(alignment: .leading, spacing: 6) {
                     Text(headline)
                         .font(HUDFont.label(15, weight: .semibold))
-                        .foregroundStyle(scheme.text)
+                        .foregroundStyle(scheme.window(colorScheme).text)
                     Text(detail)
                         .font(.callout)
                         .foregroundStyle(.secondary)

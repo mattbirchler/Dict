@@ -37,6 +37,11 @@ final class HUDPanelController {
         set { hudState.colorScheme = newValue }
     }
 
+    /// Dark, light or following the Mac; set from Settings.
+    var appearance: AppAppearance = .dark {
+        didSet { panel?.appearance = appearance.nsAppearance }
+    }
+
     func show(
         audioSpectrum: @escaping () -> [Float],
         micName: @escaping () -> String,
@@ -193,10 +198,9 @@ final class HUDPanelController {
         panel.level = .floating
         panel.backgroundColor = .clear
         panel.isOpaque = false
-        // The HUD is always dark, whatever the system appearance: white
-        // text and a lit waveform stay readable over any wallpaper, which
-        // the light glass material could not promise.
-        panel.appearance = NSAppearance(named: .darkAqua)
+        // Dark unless the Appearance setting says otherwise. The panel draws
+        // its own opaque body, so it reads over any wallpaper either way.
+        panel.appearance = appearance.nsAppearance
         // The window shadow would trace the whole canvas mid-animation; the
         // capsule draws its own.
         panel.hasShadow = false

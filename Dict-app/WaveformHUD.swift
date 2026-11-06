@@ -37,6 +37,9 @@ struct WaveformHUD: View {
     var hotkeyGlyph = "⌘"
     var scheme: HUDColorScheme = .ember
     var pulsePhase: Double = 0
+    @Environment(\.colorScheme) private var colorScheme
+
+    private var palette: HUDPalette { scheme.hud(colorScheme) }
 
     static let expandedWidth: CGFloat = 530
     /// The pill's matrix is the menu bar glyph's scale: half the full grid.
@@ -51,7 +54,7 @@ struct WaveformHUD: View {
             header
                 .frame(minHeight: DotMatrix.height * Self.matrixScale)
             if let transcript {
-                LiveTranscriptText(transcript: transcript, scheme: scheme)
+                LiveTranscriptText(transcript: transcript, palette: palette)
                     .transition(.opacity.combined(with: .offset(y: -6)))
             }
         }
@@ -59,23 +62,10 @@ struct WaveformHUD: View {
         .padding(.trailing, 15)
         .padding(.vertical, 9)
         .frame(width: isExpanded ? Self.expandedWidth : nil, alignment: .leading)
-        .background {
-            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                .fill(LinearGradient(colors: [scheme.pillTop, scheme.pillBottom], startPoint: .top, endPoint: .bottom))
-        }
-        .overlay {
-            // Lit rim: brightest along the top edge, like light catching a bezel.
-            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                .strokeBorder(
-                    LinearGradient(
-                        colors: [scheme.glow.opacity(0.45), Color.white.opacity(0.06), scheme.glow.opacity(0.12)],
-                        startPoint: .top, endPoint: .bottom
-                    ),
-                    lineWidth: 1
-                )
-        }
-        .shadow(color: .black.opacity(0.5), radius: 16, y: 8)
-        .shadow(color: scheme.glow.opacity(isRecording ? 0.16 : 0.08), radius: 20)
+        // Lit rim: brightest along the top edge, like light catching a bezel.
+        .panelSurface(palette, cornerRadius: cornerRadius, glow: 0, glowRadius: 0)
+        .shadow(color: palette.shadow, radius: 16, y: 8)
+        .shadow(color: palette.glow.opacity((isRecording ? 0.16 : 0.08) * (palette.isLight ? 0.6 : 1)), radius: 20)
         // New transcript lines grow the panel smoothly instead of snapping.
         .animation(.smooth(duration: 0.25), value: transcript)
     }
@@ -83,13 +73,13 @@ struct WaveformHUD: View {
     private var header: some View {
         HStack(spacing: 10) {
             if isRecording {
-                RecordLED(pulsePhase: pulsePhase, color: scheme.recording)
+                RecordLED(pulsePhase: pulsePhase, color: palette.recording)
                     .transition(.scale.combined(with: .opacity))
             } else if mode == .done || mode == .ready {
-                StatusGlyph(systemName: "checkmark", color: scheme.success)
+                StatusGlyph(systemName: "checkmark", color: palette.success)
                     .transition(.scale(scale: 0.3).combined(with: .opacity))
             } else if case .failed = mode {
-                StatusGlyph(systemName: "exclamationmark", color: scheme.failure)
+                StatusGlyph(systemName: "exclamationmark", color: palette.failure)
                     .transition(.scale(scale: 0.3).combined(with: .opacity))
             }
 
@@ -111,7 +101,7 @@ struct WaveformHUD: View {
                 Text(hint)
                     .font(HUDFont.label(8.5, weight: .medium))
                     .tracking(1.2)
-                    .foregroundStyle(scheme.accent.opacity(0.8))
+                    .foregroundStyle(palette.accent.opacity(0.8))
                     .fixedSize()
                     .transition(.opacity)
             }
@@ -131,10 +121,10 @@ struct WaveformHUD: View {
 
     private var statusColor: Color {
         switch mode {
-        case .processing: scheme.accent
-        case .done, .ready: scheme.success
-        case .recording where !isListening: scheme.text.opacity(0.55)
-        default: scheme.text
+        case .processing: palette.accent
+        case .done, .ready: palette.success
+        case .recording where !isListening: palette.text.opacity(0.55)
+        default: palette.text
         }
     }
 
@@ -158,7 +148,7 @@ private struct LiveTranscriptText: View {
     static let maxHeight: CGFloat = 88
 
     var transcript: LiveTranscript
-    var scheme: HUDColorScheme
+    var palette: HUDPalette
     @State private var isOverflowing = false
 
     var body: some View {
@@ -187,11 +177,11 @@ private struct LiveTranscriptText: View {
     @ViewBuilder private var content: some View {
         if transcript.isEmpty {
             Text("Listening…")
-                .foregroundStyle(scheme.text.opacity(0.5))
+                .foregroundStyle(palette.text.opacity(0.5))
         } else {
-            let confirmed = Text(transcript.confirmed).foregroundStyle(scheme.text)
+            let confirmed = Text(transcript.confirmed).foregroundStyle(palette.text)
             let separator = transcript.confirmed.isEmpty || transcript.tentative.isEmpty ? "" : " "
-            let tentative = Text(separator + transcript.tentative).foregroundStyle(scheme.text.opacity(0.5))
+            let tentative = Text(separator + transcript.tentative).foregroundStyle(palette.text.opacity(0.5))
             Text("\(confirmed)\(tentative)")
         }
     }
@@ -248,6 +238,7 @@ struct DotMatrix: View {
     var phase: Double
     /// Shrinks pitch, dots and bloom together; 1 is the full-size grid.
     var scale: CGFloat = 1
+    @Environment(\.colorScheme) private var colorScheme
 
     @State private var peaks = [Double](repeating: 0, count: DotMatrix.columns)
     @State private var smoothed = [Double](repeating: 0, count: DotMatrix.columns)
@@ -261,7 +252,7 @@ struct DotMatrix: View {
                 // render, say), draw the incoming levels as they are.
                 levels: isLive ? (smoothed.allSatisfy { $0 == 0 } ? spectrum.map(Double.init) : smoothed) : Self.idleLevels(phase: phase),
                 peaks: isLive ? peaks : [],
-                scheme: scheme,
+                palette: scheme.hud(colorScheme),
                 scale: scale
             )
         }
@@ -300,8 +291,8 @@ struct DotMatrix: View {
         }
     }
 
-    static func draw(in context: inout GraphicsContext, size: CGSize, levels: [Double], peaks: [Double], scheme: HUDColorScheme, scale: CGFloat = 1) {
-        let lowColor = scheme.low, highColor = scheme.high
+    static func draw(in context: inout GraphicsContext, size: CGSize, levels: [Double], peaks: [Double], palette: HUDPalette, scale: CGFloat = 1) {
+        let lowColor = palette.low, highColor = palette.high
         let pitch = Self.pitch * scale, dot = Self.dot * scale
         var lit: [(CGRect, Color)] = []
         for column in 0..<columns {
@@ -320,13 +311,13 @@ struct DotMatrix: View {
                     let fraction = Double(row) / Double(max(rows - 1, 1))
                     lit.append((isPeak ? rect.insetBy(dx: -0.5 * scale, dy: -0.5 * scale) : rect, Self.mix(lowColor, highColor, fraction)))
                 } else {
-                    context.fill(Circle().path(in: rect), with: .color(scheme.unlit))
+                    context.fill(Circle().path(in: rect), with: .color(palette.unlit))
                 }
             }
         }
         // Lit dots bloom; unlit ones stay flat.
         context.drawLayer { layer in
-            layer.addFilter(.shadow(color: scheme.glow.opacity(0.9), radius: 3.5 * scale))
+            layer.addFilter(.shadow(color: palette.glow.opacity(palette.bloom), radius: 3.5 * scale))
             for (rect, color) in lit {
                 layer.fill(Circle().path(in: rect), with: .color(color))
             }
